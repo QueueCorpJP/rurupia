@@ -1,100 +1,121 @@
 
 import { useState } from 'react';
-import { Calendar } from '@/components/ui/calendar';
-import { BookingSlot } from '../utils/types';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { ja } from 'date-fns/locale';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { availableSlots } from '../utils/data';
 
 interface AvailabilityCalendarProps {
-  availabilitySlots: BookingSlot[];
+  therapistId: number;
 }
 
-const AvailabilityCalendar = ({ availabilitySlots }: AvailabilityCalendarProps) => {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
-  // Convert array of booking slots to a map for easier access
-  const availabilityMap = availabilitySlots.reduce((acc, slot) => {
-    acc[slot.date] = slot.timeSlots;
-    return acc;
-  }, {} as Record<string, string[]>);
-
-  // Get time slots for the selected date
-  const getTimeSlotsForSelectedDate = () => {
-    if (!selectedDate) return [];
-    
-    const dateKey = format(selectedDate, 'yyyy-MM-dd');
-    return availabilityMap[dateKey] || [];
-  };
-
-  // Get all dates that have available time slots
-  const availableDates = availabilitySlots.map(slot => new Date(slot.date));
+  const therapistSlots = availableSlots[therapistId] || [];
   
-  // Determine if a date has available slots (for highlighting in the calendar)
-  const isDateAvailable = (date: Date) => {
-    return availableDates.some(availableDate => 
-      availableDate.getDate() === date.getDate() &&
-      availableDate.getMonth() === date.getMonth() &&
-      availableDate.getFullYear() === date.getFullYear()
-    );
+  // Convert string dates to Date objects
+  const availableDates = therapistSlots.map(slot => new Date(slot.date));
+  
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  
+  const goToPreviousMonth = () => {
+    setCurrentDate(subMonths(currentDate, 1));
   };
-
-  const timeSlots = getTimeSlotsForSelectedDate();
-
+  
+  const goToNextMonth = () => {
+    setCurrentDate(addMonths(currentDate, 1));
+  };
+  
+  const handleDateClick = (day: Date) => {
+    const isAvailable = availableDates.some(date => isSameDay(date, day));
+    if (isAvailable) {
+      setSelectedDate(day);
+    }
+  };
+  
+  const getAvailableTimesForDate = (date: Date) => {
+    const slot = therapistSlots.find(slot => isSameDay(new Date(slot.date), date));
+    return slot ? slot.timeSlots : [];
+  };
+  
   return (
-    <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-      <div className="p-4 border-b">
-        <h3 className="font-semibold text-lg">Availability</h3>
-        <p className="text-sm text-muted-foreground">
-          Select a date to see available time slots
-        </p>
+    <div className="p-1">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-medium flex items-center">
+          <CalendarIcon className="h-5 w-5 mr-2 text-muted-foreground" />
+          {format(currentDate, 'yyyy年MM月', { locale: ja })}
+        </h3>
+        <div className="flex gap-1">
+          <button
+            onClick={goToPreviousMonth}
+            className="p-2 rounded-md hover:bg-muted"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={goToNextMonth}
+            className="p-2 rounded-md hover:bg-muted"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       </div>
       
-      <div className="p-4">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={setSelectedDate}
-          className="rounded-md border w-full"
-          modifiers={{
-            available: availableDates
-          }}
-          modifiersStyles={{
-            available: {
-              fontWeight: 'bold',
-              textDecoration: 'underline',
-              color: 'var(--primary)'
-            }
-          }}
-        />
-      </div>
-      
-      <div className="p-4 border-t">
-        <h4 className="font-medium">
-          {selectedDate 
-            ? `Available times for ${format(selectedDate, 'EEEE, MMMM d')}`
-            : 'Select a date to see available times'}
-        </h4>
-        
-        {selectedDate && (
-          <div className="mt-3">
-            {timeSlots.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {timeSlots.map((timeSlot, index) => (
-                  <button
-                    key={index}
-                    className="px-3 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-md text-sm font-medium transition-colors"
-                  >
-                    {timeSlot}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No available time slots for this date.
-              </p>
-            )}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['日', '月', '火', '水', '木', '金', '土'].map((day) => (
+          <div key={day} className="text-center text-xs font-medium text-muted-foreground">
+            {day}
           </div>
-        )}
+        ))}
       </div>
+      
+      <div className="grid grid-cols-7 gap-1">
+        {daysInMonth.map((day, i) => {
+          const isAvailable = availableDates.some(date => isSameDay(date, day));
+          const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+          
+          return (
+            <button
+              key={i}
+              onClick={() => handleDateClick(day)}
+              disabled={!isAvailable}
+              className={`p-2 text-center text-sm rounded-md ${
+                !isSameMonth(day, currentDate)
+                  ? 'text-muted-foreground/30'
+                  : isSelected
+                  ? 'bg-primary text-primary-foreground'
+                  : isAvailable
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                  : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {format(day, 'd')}
+            </button>
+          );
+        })}
+      </div>
+      
+      {selectedDate && (
+        <div className="mt-6 animate-fade-in">
+          <h4 className="text-sm font-medium mb-2">
+            {format(selectedDate, 'yyyy年MM月dd日 (EEE)', { locale: ja })}の予約可能時間:
+          </h4>
+          <div className="grid grid-cols-4 gap-2">
+            {getAvailableTimesForDate(selectedDate).map((time) => (
+              <div
+                key={time}
+                className="text-center p-2 text-sm bg-muted rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+              >
+                {time}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

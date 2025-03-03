@@ -4,6 +4,8 @@ import { Therapist, Service, BookingSlot } from '../utils/types';
 import { Calendar, Clock, CalendarCheck } from 'lucide-react';
 import { availableSlots } from '../utils/data';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
 interface BookingFormProps {
   therapist: Therapist;
@@ -17,6 +19,19 @@ const BookingForm = ({ therapist, onClose }: BookingFormProps) => {
   const [step, setStep] = useState(1);
   
   const slots = availableSlots[therapist.id] || [];
+  
+  // Translate service names to Japanese
+  const japaneseServices = therapist.services.map(service => ({
+    ...service,
+    name: service.name === "Swedish Massage" ? "スウェーディッシュマッサージ" :
+          service.name === "Deep Tissue Massage" ? "ディープティシューマッサージ" :
+          service.name === "Sports Massage" ? "スポーツマッサージ" :
+          service.name === "Hot Stone Massage" ? "ホットストーンマッサージ" :
+          service.name === "Aromatherapy Massage" ? "アロマセラピーマッサージ" :
+          service.name === "Relaxation Massage" ? "リラクゼーションマッサージ" :
+          service.name,
+    description: "リラックス効果の高い優しいタッチで全身の疲れを癒します。"
+  }));
   
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service);
@@ -41,8 +56,8 @@ const BookingForm = ({ therapist, onClose }: BookingFormProps) => {
     if (!selectedService || !selectedDate || !selectedTime) return;
     
     // Here you would typically make an API call to book the appointment
-    toast.success('Booking successful!', {
-      description: `Your appointment with ${therapist.name} has been booked for ${selectedDate} at ${selectedTime}.`,
+    toast.success('予約が完了しました！', {
+      description: `${therapist.name}との予約が${format(new Date(selectedDate), 'yyyy年MM月dd日', { locale: ja })}の${selectedTime}に確定しました。`,
     });
     
     if (onClose) onClose();
@@ -51,17 +66,17 @@ const BookingForm = ({ therapist, onClose }: BookingFormProps) => {
   return (
     <div className="bg-card rounded-lg border shadow-sm overflow-hidden animate-fade-in">
       <div className="p-6">
-        <h2 className="text-2xl font-semibold mb-4">Book a Session</h2>
+        <h2 className="text-2xl font-semibold mb-4">セッションを予約</h2>
         
         {step === 1 && (
           <div className="space-y-4">
             <h3 className="text-lg font-medium flex items-center">
               <Calendar className="mr-2 h-5 w-5 text-muted-foreground" />
-              Select a Service
+              メニューを選択
             </h3>
             
             <div className="grid gap-3">
-              {therapist.services.map((service) => (
+              {japaneseServices.map((service) => (
                 <button
                   key={service.id}
                   onClick={() => handleServiceSelect(service)}
@@ -76,8 +91,8 @@ const BookingForm = ({ therapist, onClose }: BookingFormProps) => {
                     <p className="text-sm text-muted-foreground">{service.description}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">${service.price}</p>
-                    <p className="text-sm text-muted-foreground">{service.duration} min</p>
+                    <p className="font-medium">¥{(service.price * 150).toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">{service.duration}分</p>
                   </div>
                 </button>
               ))}
@@ -92,19 +107,27 @@ const BookingForm = ({ therapist, onClose }: BookingFormProps) => {
                 onClick={() => setStep(1)}
                 className="text-sm text-muted-foreground hover:text-foreground flex items-center mb-4"
               >
-                ← Back to services
+                ← メニュー選択に戻る
               </button>
               
               <div className="bg-muted/50 p-3 rounded-lg mb-6">
-                <h4 className="font-medium">{selectedService.name}</h4>
-                <p className="text-sm text-muted-foreground">${selectedService.price} • {selectedService.duration} min</p>
+                <h4 className="font-medium">{
+                  selectedService.name === "Swedish Massage" ? "スウェーディッシュマッサージ" :
+                  selectedService.name === "Deep Tissue Massage" ? "ディープティシューマッサージ" :
+                  selectedService.name === "Sports Massage" ? "スポーツマッサージ" :
+                  selectedService.name === "Hot Stone Massage" ? "ホットストーンマッサージ" :
+                  selectedService.name === "Aromatherapy Massage" ? "アロマセラピーマッサージ" :
+                  selectedService.name === "Relaxation Massage" ? "リラクゼーションマッサージ" :
+                  selectedService.name
+                }</h4>
+                <p className="text-sm text-muted-foreground">¥{(selectedService.price * 150).toLocaleString()} • {selectedService.duration}分</p>
               </div>
             </div>
             
             <div className="space-y-4">
               <h3 className="text-lg font-medium flex items-center">
                 <Calendar className="mr-2 h-5 w-5 text-muted-foreground" />
-                Select a Date
+                日付を選択
               </h3>
               
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -118,8 +141,8 @@ const BookingForm = ({ therapist, onClose }: BookingFormProps) => {
                         : 'hover:border-primary/50'
                     }`}
                   >
-                    <p className="font-medium">{new Date(slot.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(slot.date).toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                    <p className="font-medium">{format(new Date(slot.date), 'MM月dd日', { locale: ja })}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(slot.date), 'EEE', { locale: ja })}</p>
                   </button>
                 ))}
               </div>
@@ -129,7 +152,7 @@ const BookingForm = ({ therapist, onClose }: BookingFormProps) => {
               <div className="space-y-4 animate-fade-in">
                 <h3 className="text-lg font-medium flex items-center">
                   <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
-                  Select a Time
+                  時間を選択
                 </h3>
                 
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -156,7 +179,7 @@ const BookingForm = ({ therapist, onClose }: BookingFormProps) => {
                 className="w-full mt-6 bg-primary text-primary-foreground flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md transition-all hover:bg-primary/90 animate-fade-in"
               >
                 <CalendarCheck className="h-4 w-4" />
-                Confirm Booking
+                予約を確定する
               </button>
             )}
           </div>

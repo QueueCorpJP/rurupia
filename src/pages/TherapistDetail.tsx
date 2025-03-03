@@ -14,7 +14,7 @@ import TherapistPosts from '../components/TherapistPosts';
 import { therapists } from '../utils/data';
 import { Therapist } from '../utils/types';
 import { ArrowLeft, Calendar, DollarSign, MessageSquare } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 
 const TherapistDetail = () => {
   const { id } = useParams<{ id: string }>();

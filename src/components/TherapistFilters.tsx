@@ -1,196 +1,262 @@
 
 import { useState } from 'react';
-import { Search, Filter, X, Check } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { 
+  ChevronDown, 
+  Filter, 
+  Clock, 
+  MapPin, 
+  DollarSign,
+  Award,
+  Star as StarIcon
+} from 'lucide-react';
 
-interface TherapistFiltersProps {
-  onFilterChange: (filters: {
-    search: string;
-    specialties: string[];
-    minPrice: number | null;
-    maxPrice: number | null;
-    minRating: number | null;
-  }) => void;
+interface Filters {
+  specialties: string[];
+  maxPrice: number;
+  minRating: number;
+  availability: string[];
+  location: string[];
 }
 
-const specialtiesList = [
-  "Swedish", "Deep Tissue", "Sports", "Hot Stone", 
-  "Aromatherapy", "Shiatsu", "Thai Massage", "Reflexology",
-  "Myofascial Release", "Trigger Point", "Medical Massage",
-  "Cupping", "Acupressure", "Craniosacral", "Lymphatic Drainage", "Prenatal"
-];
+interface TherapistFiltersProps {
+  onFilterChange: (filters: Filters) => void;
+}
 
 const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
-  const [search, setSearch] = useState('');
-  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
-  const [minPrice, setMinPrice] = useState<number | null>(null);
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
-  const [minRating, setMinRating] = useState<number | null>(null);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<Filters>({
+    specialties: [],
+    maxPrice: 150,
+    minRating: 4,
+    availability: [],
+    location: [],
+  });
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    updateFilters(e.target.value, selectedSpecialties, minPrice, maxPrice, minRating);
+  // Mock data for filter options
+  const specialtyOptions = ['Swedish', 'Deep Tissue', 'Sports', 'Hot Stone', 'Aromatherapy', 'Shiatsu', 'Thai', 'Reflexology'];
+  const availabilityOptions = ['Weekdays', 'Weekends', 'Evenings', 'Mornings'];
+  const locationOptions = ['Downtown', 'Midtown', 'Uptown', 'Suburbs'];
+
+  const handleSpecialtyToggle = (specialty: string) => {
+    setFilters(prev => {
+      const specialties = prev.specialties.includes(specialty)
+        ? prev.specialties.filter(s => s !== specialty)
+        : [...prev.specialties, specialty];
+      
+      return { ...prev, specialties };
+    });
   };
 
-  const toggleSpecialty = (specialty: string) => {
-    const updated = selectedSpecialties.includes(specialty)
-      ? selectedSpecialties.filter(s => s !== specialty)
-      : [...selectedSpecialties, specialty];
-    
-    setSelectedSpecialties(updated);
-    updateFilters(search, updated, minPrice, maxPrice, minRating);
+  const handleAvailabilityToggle = (availability: string) => {
+    setFilters(prev => {
+      const newAvailability = prev.availability.includes(availability)
+        ? prev.availability.filter(a => a !== availability)
+        : [...prev.availability, availability];
+      
+      return { ...prev, availability: newAvailability };
+    });
   };
 
-  const handleMinPrice = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value ? Number(e.target.value) : null;
-    setMinPrice(value);
-    updateFilters(search, selectedSpecialties, value, maxPrice, minRating);
+  const handleLocationToggle = (location: string) => {
+    setFilters(prev => {
+      const locations = prev.location.includes(location)
+        ? prev.location.filter(l => l !== location)
+        : [...prev.location, location];
+      
+      return { ...prev, location: locations };
+    });
   };
 
-  const handleMaxPrice = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value ? Number(e.target.value) : null;
-    setMaxPrice(value);
-    updateFilters(search, selectedSpecialties, minPrice, value, minRating);
+  const handlePriceChange = (value: number[]) => {
+    setFilters(prev => ({ ...prev, maxPrice: value[0] }));
   };
 
-  const handleRating = (rating: number) => {
-    const value = minRating === rating ? null : rating;
-    setMinRating(value);
-    updateFilters(search, selectedSpecialties, minPrice, maxPrice, value);
+  const handleRatingChange = (value: number[]) => {
+    setFilters(prev => ({ ...prev, minRating: value[0] }));
   };
 
-  const clearFilters = () => {
-    setSearch('');
-    setSelectedSpecialties([]);
-    setMinPrice(null);
-    setMaxPrice(null);
-    setMinRating(null);
-    updateFilters('', [], null, null, null);
+  const applyFilters = () => {
+    onFilterChange(filters);
   };
 
-  const updateFilters = (
-    search: string,
-    specialties: string[],
-    minPrice: number | null,
-    maxPrice: number | null,
-    minRating: number | null
-  ) => {
-    onFilterChange({
-      search,
-      specialties,
-      minPrice,
-      maxPrice,
-      minRating
+  const resetFilters = () => {
+    setFilters({
+      specialties: [],
+      maxPrice: 150,
+      minRating: 4,
+      availability: [],
+      location: [],
     });
   };
 
   return (
-    <div className="sticky top-20 z-40 w-full space-y-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          className="w-full rounded-md border border-input bg-background px-9 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          placeholder="Search by name, specialty, or location..."
-          value={search}
-          onChange={handleSearch}
-        />
-        {search && (
-          <button 
-            onClick={() => {
-              setSearch('');
-              updateFilters('', selectedSpecialties, minPrice, maxPrice, minRating);
-            }}
-            className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-
+    <div className="mb-6">
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => setIsFilterOpen(!isFilterOpen)}
-          className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+        <Button
+          variant="outline"
+          className="mb-4 flex items-center gap-2 text-sm"
+          onClick={() => setShowFilters(!showFilters)}
         >
           <Filter className="h-4 w-4" />
-          {isFilterOpen ? "Hide Filters" : "Show Filters"}
-        </button>
+          フィルター
+          <ChevronDown className={`h-3 w-3 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+        </Button>
         
-        {(selectedSpecialties.length > 0 || minPrice !== null || maxPrice !== null || minRating !== null) && (
-          <button
-            onClick={clearFilters}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Clear all filters
-          </button>
-        )}
+        {/* Filter tags/chips would go here */}
+        <div className="flex flex-wrap gap-2">
+          {filters.specialties.length > 0 && (
+            <div className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              {filters.specialties.length}種類の施術
+            </div>
+          )}
+          {filters.maxPrice < 150 && (
+            <div className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              最大¥{filters.maxPrice * 1000}
+            </div>
+          )}
+          {filters.minRating > 4 && (
+            <div className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+              {filters.minRating}+ ★
+            </div>
+          )}
+        </div>
       </div>
-
-      {isFilterOpen && (
-        <div className="animate-fade-in rounded-lg border bg-card p-4 shadow-sm">
-          <div className="space-y-4">
-            <div>
-              <h3 className="mb-2 text-sm font-medium">Specialties</h3>
-              <div className="flex flex-wrap gap-2">
-                {specialtiesList.map((specialty) => (
-                  <button
-                    key={specialty}
-                    onClick={() => toggleSpecialty(specialty)}
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                      selectedSpecialties.includes(specialty)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }`}
+      
+      {showFilters && (
+        <div className="bg-card rounded-lg border p-4 mt-2 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Specialties Section */}
+          <div>
+            <h3 className="font-medium mb-3 flex items-center">
+              <Award className="h-4 w-4 mr-2 text-muted-foreground" />
+              施術の種類
+            </h3>
+            <div className="space-y-2">
+              {specialtyOptions.map(specialty => (
+                <div key={specialty} className="flex items-center">
+                  <Switch
+                    id={`specialty-${specialty}`}
+                    checked={filters.specialties.includes(specialty)}
+                    onCheckedChange={() => handleSpecialtyToggle(specialty)}
+                    className="mr-2"
+                  />
+                  <label
+                    htmlFor={`specialty-${specialty}`}
+                    className="text-sm cursor-pointer"
                   >
-                    {selectedSpecialties.includes(specialty) && (
-                      <Check className="mr-1 h-3 w-3" />
-                    )}
-                    {specialty}
-                  </button>
-                ))}
+                    {specialty === 'Swedish' ? 'スウェーディッシュ' : 
+                     specialty === 'Deep Tissue' ? 'ディープティシュー' : 
+                     specialty === 'Sports' ? 'スポーツ' : 
+                     specialty === 'Hot Stone' ? 'ホットストーン' : 
+                     specialty === 'Aromatherapy' ? 'アロマセラピー' : 
+                     specialty === 'Shiatsu' ? '指圧' : 
+                     specialty === 'Thai' ? 'タイ古式' : 
+                     specialty === 'Reflexology' ? 'リフレクソロジー' : 
+                     specialty}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Price Range Section */}
+          <div>
+            <h3 className="font-medium mb-3 flex items-center">
+              <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+              最大料金
+            </h3>
+            <div className="px-2">
+              <Slider
+                defaultValue={[filters.maxPrice]}
+                max={150}
+                min={50}
+                step={10}
+                onValueChange={handlePriceChange}
+              />
+              <div className="mt-2 text-sm">
+                ¥{(filters.maxPrice * 1000).toLocaleString()}まで
               </div>
             </div>
-
-            <div>
-              <h3 className="mb-2 text-sm font-medium">Price Range (per hour)</h3>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={minPrice || ''}
-                  onChange={handleMinPrice}
-                  className="w-24 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-                <span className="text-muted-foreground">to</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={maxPrice || ''}
-                  onChange={handleMaxPrice}
-                  className="w-24 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
+          </div>
+          
+          {/* Minimum Rating Section */}
+          <div>
+            <h3 className="font-medium mb-3 flex items-center">
+              <StarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+              最低評価
+            </h3>
+            <div className="px-2">
+              <Slider
+                defaultValue={[filters.minRating]}
+                max={5}
+                min={1}
+                step={0.5}
+                onValueChange={handleRatingChange}
+              />
+              <div className="mt-2 text-sm flex items-center">
+                {filters.minRating}
+                <StarIcon className="h-3 w-3 fill-amber-500 text-amber-500 ml-1" />
+                以上
               </div>
             </div>
-
-            <div>
-              <h3 className="mb-2 text-sm font-medium">Minimum Rating</h3>
-              <div className="flex gap-2">
-                {[4, 4.5, 4.8].map((rating) => (
-                  <button
-                    key={rating}
-                    onClick={() => handleRating(rating)}
-                    className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                      minRating === rating
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }`}
+          </div>
+          
+          {/* Availability Section */}
+          <div className="sm:col-span-2 lg:col-span-1">
+            <h3 className="font-medium mb-3 flex items-center">
+              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+              対応可能時間
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {availabilityOptions.map(option => (
+                <div key={option} className="flex items-center">
+                  <Switch
+                    id={`availability-${option}`}
+                    checked={filters.availability.includes(option)}
+                    onCheckedChange={() => handleAvailabilityToggle(option)}
+                    className="mr-2"
+                  />
+                  <label
+                    htmlFor={`availability-${option}`}
+                    className="text-sm cursor-pointer"
                   >
-                    <Star className={`mr-1 h-3 w-3 ${minRating === rating ? "" : "text-amber-500"}`} fill={minRating === rating ? "currentColor" : "#f59e0b"} />
-                    {rating}+
-                  </button>
-                ))}
-              </div>
+                    {option === 'Weekdays' ? '平日' : 
+                     option === 'Weekends' ? '週末' : 
+                     option === 'Evenings' ? '夕方/夜' : 
+                     option === 'Mornings' ? '午前中' : 
+                     option}
+                  </label>
+                </div>
+              ))}
             </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-end gap-2 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetFilters}
+              className="text-sm"
+            >
+              リセット
+            </Button>
+            <Button 
+              size="sm"
+              onClick={applyFilters}
+              className="text-sm"
+            >
+              適用する
+            </Button>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MessageSquare, User } from 'lucide-react';
+import { MessageSquare, User, BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -28,6 +28,15 @@ const Layout = ({ children }: LayoutProps) => {
               }`}
             >
               Find Therapists
+            </Link>
+            <Link 
+              to="/blog" 
+              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 ${
+                location.pathname.startsWith('/blog') ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <BookOpen className="h-4 w-4" />
+              ブログ
             </Link>
             <Link 
               to="/messages" 

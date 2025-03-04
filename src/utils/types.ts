@@ -37,3 +37,18 @@ export interface Message {
   timestamp: string;
   isRead: boolean;
 }
+
+export interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  coverImage: string;
+  authorName: string;
+  authorAvatar?: string;
+  category: string;
+  tags: string[];
+  publishedAt: string;
+  readTime: number;
+}

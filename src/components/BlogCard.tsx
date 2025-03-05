@@ -7,9 +7,10 @@ import { Badge } from './ui/badge';
 interface BlogCardProps {
   post: BlogPost;
   variant?: 'default' | 'featured';
+  isRelated?: boolean;
 }
 
-const BlogCard = ({ post, variant = 'default' }: BlogCardProps) => {
+const BlogCard = ({ post, variant = 'default', isRelated = false }: BlogCardProps) => {
   const isFeatured = variant === 'featured';
   
   return (
@@ -29,6 +30,11 @@ const BlogCard = ({ post, variant = 'default' }: BlogCardProps) => {
       
       <div className="p-4 sm:p-6">
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          {isRelated && (
+            <Badge variant="secondary" className="px-2 py-0">
+              関連記事
+            </Badge>
+          )}
           <Badge variant="outline" className="px-2 py-0">
             {post.category}
           </Badge>

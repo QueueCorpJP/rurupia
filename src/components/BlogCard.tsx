@@ -35,7 +35,7 @@ const BlogCard = ({ post, variant = 'default', isRelated = false }: BlogCardProp
               関連記事
             </Badge>
           )}
-          <Badge variant="outline" className="px-2 py-0">
+          <Badge variant="primary" className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 px-2 py-0">
             {post.category}
           </Badge>
           <div className="flex items-center gap-1">
@@ -60,23 +60,6 @@ const BlogCard = ({ post, variant = 'default', isRelated = false }: BlogCardProp
           {post.excerpt}
         </p>
         
-        <div className="mt-4 flex items-center gap-2">
-          {post.authorAvatar ? (
-            <img 
-              src={post.authorAvatar} 
-              alt={post.authorName} 
-              className="h-8 w-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
-              <span className="text-xs font-medium text-primary-foreground">
-                {post.authorName.charAt(0)}
-              </span>
-            </div>
-          )}
-          <span className="text-sm font-medium">{post.authorName}</span>
-        </div>
-        
         {isFeatured && (
           <Link 
             to={`/blog/${post.slug}`}
@@ -85,6 +68,20 @@ const BlogCard = ({ post, variant = 'default', isRelated = false }: BlogCardProp
             <span>続きを読む</span>
             <BookOpen className="ml-1 h-4 w-4" />
           </Link>
+        )}
+        
+        {post.tags && post.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {post.tags.map((tag, idx) => (
+              <Link 
+                key={idx} 
+                to={`/blog/tag/${encodeURIComponent(tag)}`}
+                className="inline-flex items-center rounded-full bg-gray-100 border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200"
+              >
+                {tag}
+              </Link>
+            ))}
+          </div>
         )}
       </div>
     </article>

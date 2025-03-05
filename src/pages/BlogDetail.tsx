@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -126,7 +127,7 @@ const BlogDetail = () => {
             </div>
             
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <Badge variant="outline" className="px-2.5 py-0.5">
+              <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 px-3 py-1">
                 {post.category}
               </Badge>
               <div className="flex items-center gap-1">
@@ -143,26 +144,6 @@ const BlogDetail = () => {
               {post.title}
             </h1>
             
-            <div className="flex items-center gap-4">
-              {post.authorAvatar ? (
-                <img 
-                  src={post.authorAvatar} 
-                  alt={post.authorName} 
-                  className="h-12 w-12 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-                  <span className="text-sm font-medium text-primary-foreground">
-                    {post.authorName.charAt(0)}
-                  </span>
-                </div>
-              )}
-              <div>
-                <div className="font-medium">{post.authorName}</div>
-                <div className="text-sm text-muted-foreground">セラピスト</div>
-              </div>
-            </div>
-            
             <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
             
             <div className="flex flex-wrap gap-2 pt-4">
@@ -170,7 +151,7 @@ const BlogDetail = () => {
                 <Link 
                   key={idx} 
                   to={`/blog/tag/${encodeURIComponent(tag)}`}
-                  className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary"
+                  className="inline-flex items-center rounded-full bg-gray-100 border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200"
                 >
                   {tag}
                 </Link>
@@ -198,21 +179,21 @@ const BlogDetail = () => {
               <Link2 className="mr-2 h-5 w-5 text-primary" />
               関連記事
             </h2>
-            <div className="grid gap-6 sm:grid-cols-2">
-              {relatedPosts.map(relatedPost => (
-                <BlogCard 
-                  key={relatedPost.id} 
-                  post={relatedPost} 
-                  isRelated={true}
-                />
-              ))}
-              
-              {relatedPosts.length === 0 && (
-                <div className="col-span-2 text-center py-8 border rounded-lg">
-                  <p className="text-muted-foreground">関連記事はありません</p>
-                </div>
-              )}
-            </div>
+            {relatedPosts.length > 0 ? (
+              <div className="grid gap-6 sm:grid-cols-2">
+                {relatedPosts.map(relatedPost => (
+                  <BlogCard 
+                    key={relatedPost.id} 
+                    post={relatedPost} 
+                    isRelated={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 border rounded-lg">
+                <p className="text-muted-foreground">関連記事はありません</p>
+              </div>
+            )}
           </div>
         </div>
         

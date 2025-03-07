@@ -18,6 +18,7 @@ import AdminAccounts from "./pages/admin/AdminAccounts";
 import AdminRequests from "./pages/admin/AdminRequests";
 import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminStoreManagement from "./pages/admin/AdminStoreManagement";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="accounts" element={<AdminAccounts />} />
+            <Route path="store" element={<AdminStoreManagement />} />
             <Route path="requests" element={<AdminRequests />} />
             <Route path="inquiries" element={<AdminInquiries />} />
             <Route path="settings" element={<AdminSettings />} />

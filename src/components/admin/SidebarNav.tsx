@@ -22,6 +22,7 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
   const navItems = [
     { title: 'ダッシュボード', href: '/admin', icon: LayoutDashboard },
     { title: 'アカウント管理', href: '/admin/accounts', icon: Users },
+    { title: '店舗管理', href: '/admin/store', icon: Store },
     { title: '店舗リクエスト', href: '/admin/requests', icon: Store },
     { title: 'お問い合わせ', href: '/admin/inquiries', icon: HelpCircle },
     { title: '設定', href: '/admin/settings', icon: Settings },

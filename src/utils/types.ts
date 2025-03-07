@@ -52,3 +52,42 @@ export interface BlogPost {
   publishedAt: string;
   readTime: number;
 }
+
+export interface Store {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  description: string;
+  status: string;
+  services: Service[];
+  therapists: StoreTherapist[];
+}
+
+export interface StoreTherapist {
+  id: number;
+  name: string;
+  schedule: string;
+  reservations: number;
+  totalSales: string;
+  status: string;
+}
+
+export interface Reservation {
+  id: string;
+  date: string;
+  userName: string;
+  therapist: string;
+  status: string;
+  price: string;
+}
+
+export interface Inquiry {
+  id: number;
+  date: string;
+  userName: string;
+  type: string;
+  status: string;
+  content: string;
+}

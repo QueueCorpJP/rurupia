@@ -111,7 +111,7 @@ export function DataTable({
               data.map((row, rowIndex) => (
                 <TableRow 
                   key={rowIndex} 
-                  className={onRowClick ? "cursor-pointer" : ""}
+                  className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
                   onClick={onRowClick ? () => handleRowClick(row) : undefined}
                 >
                   {columns.map((column) => (

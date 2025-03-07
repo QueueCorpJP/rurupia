@@ -15,6 +15,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       badgeStyles = 'bg-green-100 text-green-800 border-green-200';
       break;
     case '承諾待ち':
+    case '承認待ち':
     case '対応中':
       badgeStyles = 'bg-yellow-100 text-yellow-800 border-yellow-200';
       break;

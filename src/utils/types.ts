@@ -16,6 +16,25 @@ export interface Therapist {
   qualifications: string[];
 }
 
+export interface TherapistProfile {
+  id: string;
+  name: string;
+  therapistId: string;
+  location: string;
+  area: string;
+  detailedArea: string;
+  workingDays: string[];
+  workingHours: { start: string; end: string };
+  pricePerHour: number;
+  bio: string;
+  height?: number;
+  weight?: number;
+  hobbies?: string[];
+  serviceAreas?: { prefecture: string; cities: string[] };
+  avatarUrl: string;
+  galleryImages?: string[];
+}
+
 export interface Service {
   id: number;
   name: string;
@@ -90,4 +109,33 @@ export interface Inquiry {
   type: string;
   status: string;
   content: string;
+}
+
+export interface BookingRequest {
+  id: string;
+  clientName: string;
+  requestTime: string;
+  servicePrice: number;
+  serviceLocation: string;
+  meetingMethod: string;
+  status: "承認待ち" | "確定" | "キャンセル" | "完了";
+}
+
+export interface PostItem {
+  id: string;
+  content: string;
+  postedAt: string;
+  likes: number;
+  authorName: string;
+  authorAvatar: string;
+}
+
+export interface Filters {
+  search: string;
+  specialties: string[];
+  minPrice: number | null;
+  maxPrice: number | null;
+  minRating: number | null;
+  availability?: string[];
+  location?: string[];
 }

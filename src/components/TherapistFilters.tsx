@@ -21,22 +21,32 @@ import {
 } from 'lucide-react';
 
 interface Filters {
+  search: string;
   specialties: string[];
-  maxPrice: number;
-  minRating: number;
+  minPrice: number | null;
+  maxPrice: number | null;
+  minRating: number | null;
   availability: string[];
   location: string[];
 }
 
 interface TherapistFiltersProps {
-  onFilterChange: (filters: Filters) => void;
+  onFilterChange: (filters: {
+    search: string;
+    specialties: string[];
+    minPrice: number | null;
+    maxPrice: number | null;
+    minRating: number | null;
+  }) => void;
 }
 
 const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>({
+    search: '',
     specialties: [],
     maxPrice: 150,
+    minPrice: null,
     minRating: 4,
     availability: [],
     location: [],

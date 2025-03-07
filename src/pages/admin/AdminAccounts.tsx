@@ -1,15 +1,33 @@
-
 import { useState } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
+import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { Button } from '@/components/ui/button';
 import { UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Sample data
+// Sample data with extended fields for the profile modal
 const accounts = [
-  { id: '174005961665x7177171110217600', name: 'taka', type: '', registered: '2025/02/25 11:07', status: 'バン済み' },
-  { id: '174005961665x7177171110217601', name: 'yossii', type: 'Customer', registered: '2025/02/20 14:53', status: 'アクティブ' },
+  { 
+    id: '174005961665x7177171110217600', 
+    name: 'taka', 
+    type: '', 
+    registered: '2025/02/25 11:07', 
+    status: 'バン済み',
+    email: 'taka@example.com',
+    phone: '080-1234-5678',
+    address: '東京都渋谷区'
+  },
+  { 
+    id: '174005961665x7177171110217601', 
+    name: 'yossii', 
+    type: 'Customer', 
+    registered: '2025/02/20 14:53', 
+    status: 'アクティブ',
+    email: 'yossii@example.com',
+    phone: '080-8765-4321',
+    address: '大阪府大阪市'
+  },
   { id: '174005961665x7177171110217602', name: 'mrisbridgeri', type: 'Customer', registered: '2025/02/20 14:53', status: 'アクティブ' },
   { id: '174005961665x7177171110217603', name: 'bmenath', type: 'Customer', registered: '2025/02/20 14:53', status: 'アクティブ' },
   { id: '174005961665x7177171110217604', name: 'gtremouletg', type: 'Customer', registered: '2025/02/20 14:53', status: 'アクティブ' },
@@ -32,6 +50,8 @@ const sortOptions = [
 const AdminAccounts = () => {
   const { toast } = useToast();
   const [filteredAccounts, setFilteredAccounts] = useState(accounts);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const handleSearch = (term: string) => {
     if (!term.trim()) {
@@ -68,6 +88,29 @@ const AdminAccounts = () => {
     setFilteredAccounts(sorted);
   };
 
+  const handleStatusChange = (userId: string, newStatus: string) => {
+    const updatedAccounts = accounts.map(account => 
+      account.id === userId ? { ...account, status: newStatus } : account
+    );
+    
+    const updatedFiltered = filteredAccounts.map(account => 
+      account.id === userId ? { ...account, status: newStatus } : account
+    );
+    
+    accounts.splice(0, accounts.length, ...updatedAccounts);
+    setFilteredAccounts(updatedFiltered);
+    
+    toast({
+      title: "ステータスを更新しました",
+      description: `ユーザーID: ${userId}のステータスを${newStatus}に変更しました`,
+    });
+  };
+
+  const openUserProfile = (user: any) => {
+    setSelectedUser(user);
+    setIsProfileModalOpen(true);
+  };
+
   const columns = [
     { key: 'id', label: 'ID' },
     { key: 'name', label: 'ユーザー名' },
@@ -87,20 +130,13 @@ const AdminAccounts = () => {
   const actionMenuItems = [
     { 
       label: '詳細を見る', 
-      onClick: (account: any) => {
-        toast({
-          title: "アカウント詳細",
-          description: `${account.name}の詳細を表示します`,
-        });
-      } 
+      onClick: (account: any) => openUserProfile(account)
     },
     { 
       label: 'ステータスを変更', 
       onClick: (account: any) => {
-        toast({
-          title: "ステータス変更",
-          description: `${account.name}のステータスを変更します`,
-        });
+        const newStatus = account.status === 'アクティブ' ? 'バン済み' : 'アクティブ';
+        handleStatusChange(account.id, newStatus);
       } 
     },
     { 
@@ -136,6 +172,13 @@ const AdminAccounts = () => {
         onSearchChange={handleSearch}
         onSortChange={handleSortChange}
         actionMenuItems={actionMenuItems}
+      />
+
+      <UserProfileModal 
+        user={selectedUser}
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onStatusChange={handleStatusChange}
       />
     </div>
   );

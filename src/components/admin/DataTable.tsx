@@ -32,6 +32,7 @@ interface DataTableProps {
   onSearchChange?: (value: string) => void;
   onSortChange?: (value: string) => void;
   actionMenuItems?: { label: string, onClick: (row: any) => void }[];
+  onRowClick?: (row: any) => void;
 }
 
 export function DataTable({
@@ -41,7 +42,8 @@ export function DataTable({
   sortOptions,
   onSearchChange,
   onSortChange,
-  actionMenuItems
+  actionMenuItems,
+  onRowClick
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -50,6 +52,12 @@ export function DataTable({
     setSearchTerm(value);
     if (onSearchChange) {
       onSearchChange(value);
+    }
+  };
+
+  const handleRowClick = (row: any) => {
+    if (onRowClick) {
+      onRowClick(row);
     }
   };
 
@@ -101,14 +109,18 @@ export function DataTable({
               </TableRow>
             ) : (
               data.map((row, rowIndex) => (
-                <TableRow key={rowIndex}>
+                <TableRow 
+                  key={rowIndex} 
+                  className={onRowClick ? "cursor-pointer" : ""}
+                  onClick={onRowClick ? () => handleRowClick(row) : undefined}
+                >
                   {columns.map((column) => (
                     <TableCell key={column.key}>
                       {column.render ? column.render(row[column.key], row) : row[column.key]}
                     </TableCell>
                   ))}
                   {actionMenuItems && (
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">

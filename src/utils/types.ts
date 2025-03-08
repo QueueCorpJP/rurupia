@@ -1,4 +1,3 @@
-
 export interface Therapist {
   id: number;
   name: string;
@@ -138,4 +137,15 @@ export interface Filters {
   minRating: number | null;
   availability?: string[];
   location?: string[];
+}
+
+export interface UserProfile {
+  id: string;
+  nickname: string;
+  avatarUrl?: string;
+  age?: string;
+  hobbies?: string[];
+  mbti?: string;
+  isVerified?: boolean;
+  verificationDocument?: string;
 }

@@ -18,7 +18,7 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-primary">
               <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
             </div>
-            <span className="font-semibold text-lg">SerenitySage</span>
+            <span className="font-semibold text-lg">のくとる</span>
           </Link>
           <nav className="ml-auto flex gap-6">
             <Link 
@@ -27,7 +27,7 @@ const Layout = ({ children }: LayoutProps) => {
                 location.pathname === '/therapists' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              Find Therapists
+              セラピスト検索
             </Link>
             <Link 
               to="/blog" 
@@ -45,16 +45,16 @@ const Layout = ({ children }: LayoutProps) => {
               }`}
             >
               <MessageSquare className="h-4 w-4" />
-              Messages
+              メッセージ
             </Link>
             <Link 
-              to="/account" 
+              to="/user-profile" 
               className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 ${
-                location.pathname === '/account' ? 'text-primary' : 'text-muted-foreground'
+                location.pathname === '/user-profile' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
               <User className="h-4 w-4" />
-              Account
+              マイページ
             </Link>
           </nav>
         </div>
@@ -67,7 +67,7 @@ const Layout = ({ children }: LayoutProps) => {
       <footer className="border-t py-6 md:py-0">
         <div className="container flex flex-col md:h-16 md:flex-row md:items-center md:justify-between">
           <p className="text-center text-sm text-muted-foreground md:text-left">
-            &copy; 2023 SerenitySage. All rights reserved.
+            &copy; 2023 のくとる. All rights reserved.
           </p>
           <div className="mt-4 flex items-center justify-center gap-4 md:mt-0">
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">

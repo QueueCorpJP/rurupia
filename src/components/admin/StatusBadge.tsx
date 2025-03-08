@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 export interface StatusBadgeProps {
   status: string;
   className?: string;
+  // Adding an optional label property to fix the AdminInquiries error
+  label?: string;
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {

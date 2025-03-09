@@ -4,12 +4,12 @@ import { cn } from '@/lib/utils';
 export interface StatusBadgeProps {
   status: string;
   className?: string;
-  // Adding an optional label property to fix the AdminInquiries error
-  label?: string;
+  label?: string; // Added label property
 }
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
+export function StatusBadge({ status, className, label }: StatusBadgeProps) {
   let badgeStyles = '';
+  const displayText = label || status; // Use label if provided, otherwise use status
   
   switch (status) {
     case '確定':
@@ -41,7 +41,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       badgeStyles,
       className
     )}>
-      {status}
+      {displayText}
     </span>
   );
 }

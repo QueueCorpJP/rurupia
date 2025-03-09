@@ -1,7 +1,7 @@
 
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { ArrowRight, Check, Star, Search, Calendar, Sliders, Heart, Shield, MapPin } from 'lucide-react';
+import { ArrowRight, Check, Shield, Calendar } from 'lucide-react';
 import TherapistCard from '../components/TherapistCard';
 import { therapists } from '../utils/data';
 import { Button } from '@/components/ui/button';
@@ -67,9 +67,9 @@ const Index = () => {
               <div className="absolute -inset-4 bg-gradient-to-br from-pink-200/30 to-rose-200/30 rounded-full blur-3xl"></div>
               <div className="relative aspect-square overflow-hidden rounded-3xl shadow-lg border-4 border-white">
                 <img
-                  alt="Professional Massage"
+                  alt="Professional Massage Therapy"
                   className="object-cover w-full h-full"
-                  src="/lovable-uploads/aa718ccf-9aa6-41d9-907a-6d529d259192.png"
+                  src="/lovable-uploads/1649972904349-6e44c42644a7.jpg"
                 />
               </div>
             </div>

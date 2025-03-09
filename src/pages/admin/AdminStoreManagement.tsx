@@ -1,145 +1,96 @@
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DataTable } from '@/components/admin/DataTable';
-import { StatusBadge } from '@/components/admin/StatusBadge';
-import { DashboardCard } from '@/components/admin/DashboardCard';
-import { useToast } from '@/hooks/use-toast';
-import { LineChart } from '@/components/admin/LineChart';
-import { Calendar, Clock, Users, DollarSign, CalendarCheck2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LineChart } from "@tremor/react";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { 
+  MoreHorizontal, 
+  Plus, 
+  Search, 
+  Download, 
+  Upload, 
+  FileText, 
+  Trash2, 
+  Edit, 
+  Eye 
+} from "lucide-react";
 
-// Sample data for reservations
-const reservationData = [
+// Sample product data
+const products = [
   { 
-    id: '17400602369690x10443888571296700',
-    date: '2024/02/19 00:00',
-    userName: 'yossii',
-    therapist: 'ユウ',
-    status: '確定',
-    price: '¥34,509'
-  },
-  { 
-    id: '17400602369671x83975436689411700',
-    date: '2024/08/31 00:00',
-    userName: 'mrisbridgeri',
-    therapist: 'ユウ',
-    status: '承諾待ち',
-    price: '¥11,490'
+    id: 1, 
+    name: "リラクシングアロマオイル", 
+    category: "オイル", 
+    price: 3800, 
+    stock: 24, 
+    status: "在庫あり" 
   },
   { 
-    id: '17400602369660x35846984141201360',
-    date: '2024/05/29 00:00',
-    userName: 'bmenath',
-    therapist: 'よしひろ',
-    status: '確定',
-    price: '¥14,975'
+    id: 2, 
+    name: "ホットストーンセット", 
+    category: "ツール", 
+    price: 12000, 
+    stock: 5, 
+    status: "残りわずか" 
   },
   { 
-    id: '17400602369625x79880486353400040',
-    date: '2024/06/15 00:00',
-    userName: 'gtremouletg',
-    therapist: 'ラン',
-    status: '承諾待ち',
-    price: '¥21,700'
+    id: 3, 
+    name: "フェイスクレードル", 
+    category: "機器", 
+    price: 8500, 
+    stock: 0, 
+    status: "在庫切れ" 
   },
   { 
-    id: '17400602369610x91711504723438670',
-    date: '2024/04/01 00:00',
-    userName: 'sscanlanf',
-    therapist: 'ラン',
-    status: '確定',
-    price: '¥26,350'
+    id: 4, 
+    name: "マッサージクリーム", 
+    category: "クリーム", 
+    price: 2800, 
+    stock: 32, 
+    status: "在庫あり" 
   },
   { 
-    id: '17400602368959x83700249696888300',
-    date: '2024/03/23 00:00',
-    userName: 'triquete',
-    therapist: 'よしひろ',
-    status: '確定',
-    price: '¥23,795'
+    id: 5, 
+    name: "フットバス", 
+    category: "機器", 
+    price: 15000, 
+    stock: 3, 
+    status: "残りわずか" 
   },
-  { 
-    id: '17400602368680x10080262468082424',
-    date: '2024/11/08 00:00',
-    userName: 'dsinnottd',
-    therapist: 'ラン',
-    status: '承諾待ち',
-    price: '¥20,885'
-  },
-  { 
-    id: '17400602368657x33091301705574483',
-    date: '2024/05/28 00:00',
-    userName: 'swildec',
-    therapist: 'ラン',
-    status: 'キャンセル',
-    price: '¥28,172'
-  },
-  { 
-    id: '17400602368640x72234661221465720',
-    date: '2024/06/24 00:00',
-    userName: 'simesonb',
-    therapist: 'ユウ',
-    status: 'キャンセル',
-    price: '¥22,929'
-  },
-];
-
-// Sample data for therapists
-const therapistData = [
-  {
-    name: 'ユウ',
-    schedule: '0:00～6:00',
-    reservations: 3,
-    totalSales: '¥68,928',
-    status: '在籍中'
-  },
-  {
-    name: 'ラン',
-    schedule: '20:00～6:00',
-    reservations: 10,
-    totalSales: '¥157,493',
-    status: '在籍中'
-  },
-  {
-    name: 'よしひろ',
-    schedule: '22:00～8:00',
-    reservations: 7,
-    totalSales: '¥135,878',
-    status: '在籍中'
-  }
-];
-
-// Sample data for inquiries
-const inquiryData = [
-  {
-    date: 'Feb 22, 2025 3:45 pm',
-    userName: 'yossii',
-    type: '予約関連',
-    status: '対応中',
-    content: '予約したセラピストのスケジュールを変更できますか？'
-  }
-];
-
-// Sample sort options
-const reservationSortOptions = [
-  { label: '新しい順', value: 'newest' },
-  { label: '古い順', value: 'oldest' },
-  { label: '確定のみ', value: 'confirmed' },
-  { label: '承諾待ちのみ', value: 'pending' },
-  { label: 'キャンセルのみ', value: 'cancelled' },
-];
-
-const therapistSortOptions = [
-  { label: '在籍順', value: 'active' },
-  { label: '予約数順', value: 'reservations' },
-  { label: '売上高順', value: 'sales' },
-];
-
-const inquirySortOptions = [
-  { label: '新しい順', value: 'newest' },
-  { label: '古い順', value: 'oldest' },
-  { label: '対応中のみ', value: 'in-progress' },
-  { label: '完了のみ', value: 'completed' },
 ];
 
 // Sales data for chart
@@ -154,440 +105,355 @@ const salesData = [
 ];
 
 const AdminStoreManagement = () => {
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   
-  // Handle status change action
-  const handleStatusChange = (reservation: any, newStatus: string) => {
-    toast({
-      title: "ステータス変更",
-      description: `予約ID: ${reservation.id} のステータスを「${newStatus}」に変更しました`,
-    });
-  };
-  
-  // Define columns for each table
-  const reservationColumns = [
-    { key: 'id', label: '予約ID' },
-    { key: 'date', label: '日時' },
-    { key: 'userName', label: 'ユーザー名' },
-    { key: 'therapist', label: 'セラピスト' },
-    { 
-      key: 'status', 
-      label: 'ステータス',
-      render: (value: string) => <StatusBadge status={value} />
-    },
-    { key: 'price', label: '料金' },
-  ];
-  
-  const therapistColumns = [
-    { key: 'name', label: 'セラピスト名' },
-    { key: 'schedule', label: 'スケジュール' },
-    { key: 'reservations', label: '予約数' },
-    { key: 'totalSales', label: '売上合計' },
-    { 
-      key: 'status', 
-      label: 'ステータス',
-      render: (value: string) => (
-        <div className="flex items-center">
-          <span className="h-2.5 w-2.5 rounded-full bg-green-500 mr-2"></span>
-          {value}
-        </div>
-      )
-    },
-  ];
-  
-  const inquiryColumns = [
-    { key: 'date', label: '日時' },
-    { key: 'userName', label: 'ユーザー名' },
-    { key: 'type', label: '種類' },
-    { key: 'status', label: 'ステータス' },
-    { key: 'content', label: '内容' },
-  ];
-  
-  // Define action menu items for each table
-  const reservationActionMenuItems = [
-    { 
-      label: '詳細を見る', 
-      onClick: (reservation: any) => {
-        toast({
-          title: "予約詳細",
-          description: `予約ID: ${reservation.id} の詳細を表示します`,
-        });
-      } 
-    },
-    { 
-      label: '確定する', 
-      onClick: (reservation: any) => {
-        if (reservation.status !== '確定') {
-          handleStatusChange(reservation, '確定');
-        }
-      } 
-    },
-    { 
-      label: 'キャンセルする', 
-      onClick: (reservation: any) => {
-        if (reservation.status !== 'キャンセル') {
-          handleStatusChange(reservation, 'キャンセル');
-        }
-      } 
-    },
-  ];
-  
-  const therapistActionMenuItems = [
-    { 
-      label: '詳細を見る', 
-      onClick: (therapist: any) => {
-        toast({
-          title: "セラピスト詳細",
-          description: `${therapist.name}の詳細を表示します`,
-        });
-      } 
-    },
-    { 
-      label: 'スケジュール編集', 
-      onClick: (therapist: any) => {
-        toast({
-          title: "スケジュール編集",
-          description: `${therapist.name}のスケジュールを編集します`,
-        });
-      } 
-    },
-    { 
-      label: '休止する', 
-      onClick: (therapist: any) => {
-        toast({
-          variant: "destructive",
-          title: "休止確認",
-          description: `${therapist.name}を休止状態にしますか？`,
-        });
-      } 
-    },
-  ];
-  
-  const inquiryActionMenuItems = [
-    { 
-      label: '詳細を見る', 
-      onClick: (inquiry: any) => {
-        toast({
-          title: "お問い合わせ詳細",
-          description: `${inquiry.userName}からのお問い合わせ詳細を表示します`,
-        });
-      } 
-    },
-    { 
-      label: '返信する', 
-      onClick: (inquiry: any) => {
-        toast({
-          title: "返信",
-          description: `${inquiry.userName}に返信します`,
-        });
-      } 
-    },
-    { 
-      label: '完了にする', 
-      onClick: (inquiry: any) => {
-        toast({
-          title: "ステータス変更",
-          description: `お問い合わせを完了状態に変更しました`,
-        });
-      } 
-    },
-  ];
-  
-  // Filter functions
-  const [filteredReservations, setFilteredReservations] = useState(reservationData);
-  const [filteredTherapists, setFilteredTherapists] = useState(therapistData);
-  const [filteredInquiries, setFilteredInquiries] = useState(inquiryData);
-  
-  const handleReservationSearch = (term: string) => {
-    if (!term.trim()) {
-      setFilteredReservations(reservationData);
-      return;
-    }
-    
-    const filtered = reservationData.filter(
-      reservation => 
-        reservation.id.includes(term) || 
-        reservation.userName.toLowerCase().includes(term.toLowerCase()) ||
-        reservation.therapist.toLowerCase().includes(term.toLowerCase())
-    );
-    setFilteredReservations(filtered);
-  };
-  
-  const handleTherapistSearch = (term: string) => {
-    if (!term.trim()) {
-      setFilteredTherapists(therapistData);
-      return;
-    }
-    
-    const filtered = therapistData.filter(
-      therapist => therapist.name.toLowerCase().includes(term.toLowerCase())
-    );
-    setFilteredTherapists(filtered);
-  };
-  
-  const handleInquirySearch = (term: string) => {
-    if (!term.trim()) {
-      setFilteredInquiries(inquiryData);
-      return;
-    }
-    
-    const filtered = inquiryData.filter(
-      inquiry => 
-        inquiry.userName.toLowerCase().includes(term.toLowerCase()) ||
-        inquiry.content.toLowerCase().includes(term.toLowerCase())
-    );
-    setFilteredInquiries(filtered);
-  };
-  
-  // Sort functions
-  const handleReservationSort = (value: string) => {
-    let sorted = [...reservationData];
-    
-    switch(value) {
-      case 'newest':
-        sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        break;
-      case 'oldest':
-        sorted.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        break;
-      case 'confirmed':
-        sorted = sorted.filter(r => r.status === '確定');
-        break;
-      case 'pending':
-        sorted = sorted.filter(r => r.status === '承諾待ち');
-        break;
-      case 'cancelled':
-        sorted = sorted.filter(r => r.status === 'キャンセル');
-        break;
-      default:
-        break;
-    }
-    
-    setFilteredReservations(sorted);
-  };
-  
-  const handleTherapistSort = (value: string) => {
-    let sorted = [...therapistData];
-    
-    switch(value) {
-      case 'reservations':
-        sorted.sort((a, b) => b.reservations - a.reservations);
-        break;
-      case 'sales':
-        sorted.sort((a, b) => {
-          const salesA = parseInt(a.totalSales.replace(/[^0-9]/g, ''));
-          const salesB = parseInt(b.totalSales.replace(/[^0-9]/g, ''));
-          return salesB - salesA;
-        });
-        break;
-      default:
-        break;
-    }
-    
-    setFilteredTherapists(sorted);
-  };
-  
-  const handleInquirySort = (value: string) => {
-    let sorted = [...inquiryData];
-    
-    switch(value) {
-      case 'newest':
-        sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        break;
-      case 'oldest':
-        sorted.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        break;
-      case 'in-progress':
-        sorted = sorted.filter(i => i.status === '対応中');
-        break;
-      case 'completed':
-        sorted = sorted.filter(i => i.status === '完了');
-        break;
-      default:
-        break;
-    }
-    
-    setFilteredInquiries(sorted);
-  };
-  
+  // Filter products based on search query
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">店舗管理ページ</h1>
+        <h1 className="text-2xl font-bold tracking-tight">ストア管理</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            エクスポート
+          </Button>
+          <Button variant="outline" size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            インポート
+          </Button>
+          <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                新規商品
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>新規商品の追加</DialogTitle>
+                <DialogDescription>
+                  新しい商品の詳細を入力してください。すべての項目が必須です。
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    商品名
+                  </Label>
+                  <Input id="name" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="category" className="text-right">
+                    カテゴリ
+                  </Label>
+                  <Select>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="カテゴリを選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="oil">オイル</SelectItem>
+                      <SelectItem value="tool">ツール</SelectItem>
+                      <SelectItem value="equipment">機器</SelectItem>
+                      <SelectItem value="cream">クリーム</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="price" className="text-right">
+                    価格 (円)
+                  </Label>
+                  <Input id="price" type="number" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="stock" className="text-right">
+                    在庫数
+                  </Label>
+                  <Input id="stock" type="number" className="col-span-3" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddProductOpen(false)}>キャンセル</Button>
+                <Button type="submit">追加する</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
-      
-      <Tabs 
-        defaultValue="dashboard" 
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-4"
-      >
-        <TabsList className="w-full md:w-auto grid grid-cols-4 md:inline-flex">
-          <TabsTrigger value="dashboard">ダッシュボード</TabsTrigger>
-          <TabsTrigger value="reservations">予約管理</TabsTrigger>
-          <TabsTrigger value="therapists">セラピスト管理</TabsTrigger>
-          <TabsTrigger value="inquiries">問い合わせ・クレーム</TabsTrigger>
+
+      <Tabs defaultValue="products">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="products">商品管理</TabsTrigger>
+          <TabsTrigger value="orders">注文管理</TabsTrigger>
         </TabsList>
-        
-        {/* Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <DashboardCard
-              icon={<DollarSign className="h-5 w-5" />}
-              title="今月の売上"
-              value="¥1,245,000"
-              change={{ value: "+20.1%", positive: true }}
-            />
-            <DashboardCard
-              icon={<CalendarCheck2 className="h-5 w-5" />}
-              title="本日の予約数"
-              value="245"
-              change={{ value: "+4", positive: true }}
-            />
-            <DashboardCard
-              icon={<Users className="h-5 w-5" />}
-              title="セラピスト数"
-              value="15"
-              change={{ value: "+3", positive: true }}
-            />
-            <DashboardCard
-              icon={<Calendar className="h-5 w-5" />}
-              title="平均評価"
-              value="4.8"
-              change={{ value: "+0.2", positive: true }}
-            />
-          </div>
-          
-          <div className="rounded-xl border bg-card p-6">
-            <h3 className="font-semibold text-lg mb-6">売上推移</h3>
-            <div className="h-[300px]">
-              <LineChart 
-                data={salesData} 
-                xAxisKey="date" 
-                yAxisKey="value" 
-                strokeColor="#0ea5e9"
-              />
-            </div>
-          </div>
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="rounded-xl border bg-card p-6">
-              <h3 className="font-semibold text-lg mb-4">最近の予約</h3>
-              <div className="overflow-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-2 py-3 text-left text-xs font-medium text-muted-foreground">予約ID</th>
-                      <th className="px-2 py-3 text-left text-xs font-medium text-muted-foreground">日時</th>
-                      <th className="px-2 py-3 text-left text-xs font-medium text-muted-foreground">料金</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reservationData.slice(0, 3).map((reservation, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-2 py-3 text-sm">{reservation.id.substring(0, 10)}...</td>
-                        <td className="px-2 py-3 text-sm">{reservation.date}</td>
-                        <td className="px-2 py-3 text-sm">{reservation.price}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        <TabsContent value="products" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>商品一覧</CardTitle>
+              <CardDescription>
+                現在登録されている商品の一覧です。商品の追加、編集、削除が可能です。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <div className="relative w-72">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="商品名・カテゴリで検索"
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Select defaultValue="all">
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="カテゴリで絞り込み" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべてのカテゴリ</SelectItem>
+                    <SelectItem value="oil">オイル</SelectItem>
+                    <SelectItem value="tool">ツール</SelectItem>
+                    <SelectItem value="equipment">機器</SelectItem>
+                    <SelectItem value="cream">クリーム</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-            
-            <div className="rounded-xl border bg-card p-6">
-              <h3 className="font-semibold text-lg mb-4">最近のお問い合わせ</h3>
-              <div className="overflow-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-2 py-3 text-left text-xs font-medium text-muted-foreground">ユーザー</th>
-                      <th className="px-2 py-3 text-left text-xs font-medium text-muted-foreground">日時</th>
-                      <th className="px-2 py-3 text-left text-xs font-medium text-muted-foreground">ステータス</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {inquiryData.map((inquiry, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-2 py-3 text-sm">{inquiry.userName}</td>
-                        <td className="px-2 py-3 text-sm">{inquiry.date}</td>
-                        <td className="px-2 py-3 text-sm">{inquiry.status}</td>
-                      </tr>
+              
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>商品名</TableHead>
+                      <TableHead>カテゴリ</TableHead>
+                      <TableHead className="text-right">価格</TableHead>
+                      <TableHead className="text-right">在庫数</TableHead>
+                      <TableHead>ステータス</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{product.category}</TableCell>
+                        <TableCell className="text-right">¥{product.price.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{product.stock}</TableCell>
+                        <TableCell>
+                          <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            product.status === "在庫あり" 
+                              ? "bg-green-100 text-green-800" 
+                              : product.status === "残りわずか" 
+                                ? "bg-yellow-100 text-yellow-800" 
+                                : "bg-red-100 text-red-800"
+                          }`}>
+                            {product.status}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">メニューを開く</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>アクション</DropdownMenuLabel>
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>詳細を見る</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Edit className="mr-2 h-4 w-4" />
+                                <span>編集する</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>削除する</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </TabsContent>
-        
-        {/* Reservations Tab */}
-        <TabsContent value="reservations" className="space-y-6">
-          <h2 className="text-2xl font-bold">予約管理</h2>
-          
-          <DataTable 
-            columns={reservationColumns}
-            data={filteredReservations}
-            searchPlaceholder="IDやユーザー名で検索"
-            sortOptions={reservationSortOptions}
-            onSearchChange={handleReservationSearch}
-            onSortChange={handleReservationSort}
-            actionMenuItems={reservationActionMenuItems}
-            onRowClick={(reservation) => {
-              toast({
-                title: "予約詳細",
-                description: `予約ID: ${reservation.id} の詳細を表示します`,
-              });
-            }}
-          />
-        </TabsContent>
-        
-        {/* Therapists Tab */}
-        <TabsContent value="therapists" className="space-y-6">
-          <h2 className="text-2xl font-bold">セラピスト管理</h2>
-          
-          <DataTable 
-            columns={therapistColumns}
-            data={filteredTherapists}
-            searchPlaceholder="セラピスト名で検索"
-            sortOptions={therapistSortOptions}
-            onSearchChange={handleTherapistSearch}
-            onSortChange={handleTherapistSort}
-            actionMenuItems={therapistActionMenuItems}
-          />
-        </TabsContent>
-        
-        {/* Inquiries Tab */}
-        <TabsContent value="inquiries" className="space-y-6">
-          <h2 className="text-2xl font-bold">お問い合わせ・クレーム</h2>
-          
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative w-full md:w-1/2">
-              <Input 
-                placeholder="ユーザーIDで検索" 
-                className="pl-4"
-                onChange={(e) => handleInquirySearch(e.target.value)}
-              />
-            </div>
-            
-            <div className="relative w-full md:w-1/2">
-              <Input 
-                placeholder="セラピストIDで検索" 
-                className="pl-4"
-              />
-            </div>
-          </div>
-          
-          <DataTable 
-            columns={inquiryColumns}
-            data={filteredInquiries}
-            sortOptions={inquirySortOptions}
-            onSortChange={handleInquirySort}
-            actionMenuItems={inquiryActionMenuItems}
-          />
+        <TabsContent value="orders" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>注文履歴</CardTitle>
+              <CardDescription>
+                過去の注文履歴を確認できます。注文のステータス更新や詳細確認が可能です。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <div className="relative w-72">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="注文ID・顧客名で検索"
+                    className="pl-8"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select defaultValue="all">
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="ステータスで絞り込み" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">すべてのステータス</SelectItem>
+                      <SelectItem value="pending">処理待ち</SelectItem>
+                      <SelectItem value="processing">処理中</SelectItem>
+                      <SelectItem value="shipped">発送済み</SelectItem>
+                      <SelectItem value="delivered">配達済み</SelectItem>
+                      <SelectItem value="cancelled">キャンセル</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="icon">
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>注文ID</TableHead>
+                      <TableHead>顧客名</TableHead>
+                      <TableHead>注文日</TableHead>
+                      <TableHead className="text-right">金額</TableHead>
+                      <TableHead>ステータス</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">#ORD-2024-0123</TableCell>
+                      <TableCell>田中 太郎</TableCell>
+                      <TableCell>2024/02/15</TableCell>
+                      <TableCell className="text-right">¥12,800</TableCell>
+                      <TableCell>
+                        <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800">
+                          発送済み
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          詳細
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">#ORD-2024-0122</TableCell>
+                      <TableCell>佐藤 花子</TableCell>
+                      <TableCell>2024/02/14</TableCell>
+                      <TableCell className="text-right">¥8,500</TableCell>
+                      <TableCell>
+                        <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800">
+                          配達済み
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          詳細
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">#ORD-2024-0121</TableCell>
+                      <TableCell>鈴木 一郎</TableCell>
+                      <TableCell>2024/02/13</TableCell>
+                      <TableCell className="text-right">¥15,000</TableCell>
+                      <TableCell>
+                        <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800">
+                          処理中
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          詳細
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Chart Section */}
+      <div className="border rounded-lg p-4">
+        <h3 className="text-lg font-medium mb-4">月間売上推移</h3>
+        <div className="h-80">
+          <LineChart 
+            data={salesData}
+            categories={["Sales"]}
+            index="date"
+            colors={["#e11d48"]}
+            valueFormatter={(value) => `${value.toLocaleString()}円`}
+            className="h-80"
+          />
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              総売上（今月）
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">¥458,000</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              前月比 +12.5%
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              注文数（今月）
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">42</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              前月比 +8.3%
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              在庫切れ商品
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              要補充
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

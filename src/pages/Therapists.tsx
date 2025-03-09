@@ -90,7 +90,7 @@ const Therapists = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Find a Therapist</h1>
           <p className="text-muted-foreground mt-2">
-            Browse our selection of professional male massage therapists.
+            下記のセラピストはただいま<span className="text-green-600 font-semibold">営業中</span>です。ご予約はお早めに。
           </p>
         </div>
         

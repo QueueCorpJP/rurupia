@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { Star, MapPin, Heart, Clock } from 'lucide-react';
+import { Star, MapPin, Heart, Clock, Zap } from 'lucide-react';
 import { Therapist } from '../utils/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,14 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
         </button>
       </div>
       
+      {/* Available now badge */}
+      <div className="absolute left-4 top-4 z-10">
+        <div className="rounded-full bg-green-500 text-white px-3 py-1 text-xs font-medium flex items-center shadow-sm">
+          <Zap className="h-3 w-3 mr-1" />
+          ただいま営業中
+        </div>
+      </div>
+      
       <Link to={`/therapists/${therapist.id}`}>
         <div className="aspect-[4/3] w-full overflow-hidden">
           <img 
@@ -69,9 +77,10 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
             <Clock className="mr-1 h-4 w-4 text-primary" />
             <span>営業日：{formatAvailability(therapist.availability)}</span>
           </div>
-          <div className="flex items-center">
-            <Clock className="mr-1 h-4 w-4 text-primary" />
-            <span>営業時間：10:00～20:00</span>
+          {/* Highlighted working hours */}
+          <div className="flex items-center bg-green-50 rounded-md p-1.5 border border-green-100">
+            <Clock className="mr-1 h-4 w-4 text-green-600" />
+            <span className="font-medium text-green-800">営業時間：10:00～20:00</span>
           </div>
         </div>
         

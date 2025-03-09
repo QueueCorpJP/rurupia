@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/admin/DataTable';
@@ -145,13 +144,13 @@ const inquirySortOptions = [
 
 // Sales data for chart
 const salesData = [
-  { date: '2024年 9月', value: 65000 },
-  { date: '2024年 10月', value: 55000 },
-  { date: '2024年 11月', value: 75000 },
-  { date: '2024年 12月', value: 68000 },
-  { date: '2025年 1月', value: 120000 },
-  { date: '2025年 2月', value: 50000 },
-  { date: '2025年 3月', value: 10000 },
+  { date: '2024年 9月', value: 65000, name: "Sales" },
+  { date: '2024年 10月', value: 55000, name: "Sales" },
+  { date: '2024年 11月', value: 75000, name: "Sales" },
+  { date: '2024年 12月', value: 68000, name: "Sales" },
+  { date: '2025年 1月', value: 120000, name: "Sales" },
+  { date: '2025年 2月', value: 50000, name: "Sales" },
+  { date: '2025年 3月', value: 10000, name: "Sales" },
 ];
 
 const AdminStoreManagement = () => {

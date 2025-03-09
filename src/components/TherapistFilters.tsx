@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import {
   Select,
@@ -20,25 +19,11 @@ import {
   Star as StarIcon
 } from 'lucide-react';
 
-interface Filters {
-  search: string;
-  specialties: string[];
-  minPrice: number | null;
-  maxPrice: number | null;
-  minRating: number | null;
-  availability: string[];
-  location: string[];
+interface TherapistFiltersProps {
+  onFilterChange: (filters: Filters) => void;
 }
 
-interface TherapistFiltersProps {
-  onFilterChange: (filters: {
-    search: string;
-    specialties: string[];
-    minPrice: number | null;
-    maxPrice: number | null;
-    minRating: number | null;
-  }) => void;
-}
+import { Filters } from '../utils/types';
 
 const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
   const [showFilters, setShowFilters] = useState(false);
@@ -101,8 +86,10 @@ const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
 
   const resetFilters = () => {
     setFilters({
+      search: '',
       specialties: [],
       maxPrice: 150,
+      minPrice: null,
       minRating: 4,
       availability: [],
       location: [],

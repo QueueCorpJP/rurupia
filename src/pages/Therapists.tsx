@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import TherapistCard from '../components/TherapistCard';
 import TherapistFilters from '../components/TherapistFilters';
 import { therapists } from '../utils/data';
-import { Therapist } from '../utils/types';
+import { Therapist, Filters } from '../utils/types';
 
 const Therapists = () => {
   const [filteredTherapists, setFilteredTherapists] = useState<Therapist[]>(therapists);
@@ -19,13 +19,7 @@ const Therapists = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleFilterChange = (filters: {
-    search: string;
-    specialties: string[];
-    minPrice: number | null;
-    maxPrice: number | null;
-    minRating: number | null;
-  }) => {
+  const handleFilterChange = (filters: Filters) => {
     const filtered = therapists.filter((therapist) => {
       // Search filter
       if (filters.search) {
@@ -64,6 +58,24 @@ const Therapists = () => {
       // Rating filter
       if (filters.minRating !== null && therapist.rating < filters.minRating) {
         return false;
+      }
+      
+      // Availability filter
+      if (filters.availability && filters.availability.length > 0) {
+        const hasAvailability = filters.availability.some((day) =>
+          therapist.availability.includes(day)
+        );
+        
+        if (!hasAvailability) {
+          return false;
+        }
+      }
+      
+      // Location filter
+      if (filters.location && filters.location.length > 0) {
+        if (!filters.location.includes(therapist.location)) {
+          return false;
+        }
       }
       
       return true;

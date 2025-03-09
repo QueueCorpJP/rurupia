@@ -69,6 +69,10 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
             <Clock className="mr-1 h-4 w-4 text-primary" />
             <span>営業日：{formatAvailability(therapist.availability)}</span>
           </div>
+          <div className="flex items-center">
+            <Clock className="mr-1 h-4 w-4 text-primary" />
+            <span>営業時間：10:00～20:00</span>
+          </div>
         </div>
         
         <div className="mb-4">

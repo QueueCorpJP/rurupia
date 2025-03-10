@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Calendar, Heart, MessageSquare, Upload, Check, Search, Sliders } from "lucide-react";
+import { Calendar, Heart, MessageSquare, Upload, Check, Search, Sliders, Star, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

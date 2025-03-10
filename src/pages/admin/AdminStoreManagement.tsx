@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart } from "@tremor/react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { 
   Table, 
   TableBody, 
@@ -204,7 +204,7 @@ const AdminStoreManagement = () => {
                 <div className="relative w-72">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="商品名・カテゴリで検索"
+                    placeholder="商品名���カテゴリで検索"
                     className="pl-8"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -401,14 +401,24 @@ const AdminStoreManagement = () => {
       <div className="border rounded-lg p-4">
         <h3 className="text-lg font-medium mb-4">月間売上推移</h3>
         <div className="h-80">
-          <LineChart 
-            data={salesData}
-            categories={["Sales"]}
-            index="date"
-            colors={["#e11d48"]}
-            valueFormatter={(value) => `${value.toLocaleString()}円`}
-            className="h-80"
-          />
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={salesData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip formatter={(value) => `${value.toLocaleString()}円`} />
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                name="Sales" 
+                stroke="#e11d48" 
+                strokeWidth={2} 
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

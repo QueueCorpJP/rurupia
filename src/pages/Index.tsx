@@ -1,7 +1,7 @@
 
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { ArrowRight, Check, Shield, Calendar } from 'lucide-react';
+import { ArrowRight, Check, Shield, Calendar, Search, Sliders } from 'lucide-react';
 import TherapistCard from '../components/TherapistCard';
 import { therapists } from '../utils/data';
 import { Button } from '@/components/ui/button';

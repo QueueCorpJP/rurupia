@@ -1,3 +1,4 @@
+
 export interface Therapist {
   id: number;
   name: string;
@@ -118,6 +119,13 @@ export interface BookingRequest {
   serviceLocation: string;
   meetingMethod: string;
   status: "承認待ち" | "確定" | "キャンセル" | "完了";
+  therapistId?: number;
+  therapistName?: string;
+  storeId?: string;
+  storeName?: string;
+  notes?: string;
+  prefecture?: string;
+  locationDetails?: string;
 }
 
 export interface PostItem {

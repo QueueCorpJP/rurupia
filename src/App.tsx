@@ -9,6 +9,7 @@ import Therapists from "./pages/Therapists";
 import TherapistDetail from "./pages/TherapistDetail";
 import TherapistDashboard from "./pages/TherapistDashboard";
 import UserProfile from "./pages/UserProfile";
+import UserBookings from "./pages/UserBookings";
 import Messages from "./pages/Messages";
 import MessagesIndex from "./pages/MessagesIndex";
 import Blog from "./pages/Blog";
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/therapists/:id" element={<TherapistDetail />} />
           <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
           <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/user-bookings" element={<UserBookings />} />
           <Route path="/messages" element={<MessagesIndex />} />
           <Route path="/messages/:id" element={<Messages />} />
           <Route path="/blog" element={<Blog />} />

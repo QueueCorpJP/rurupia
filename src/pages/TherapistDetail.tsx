@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import BookingForm from '../components/BookingForm';
 import MessageInterface from '../components/MessageInterface';
 import TherapistGallery from '../components/TherapistGallery';
 import AvailabilityCalendar from '../components/AvailabilityCalendar';
@@ -13,9 +12,10 @@ import TherapistReviews from '../components/TherapistReviews';
 import TherapistPosts from '../components/TherapistPosts';
 import { therapists } from '../utils/data';
 import { Therapist } from '../utils/types';
-import { ArrowLeft, Calendar, DollarSign, MessageSquare, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign, MessageSquare, ClipboardList, ExternalLink } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import BookingRequestForm from '../components/BookingRequestForm';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const TherapistDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +23,7 @@ const TherapistDetail = () => {
   const [therapist, setTherapist] = useState<Therapist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [bookingTab, setBookingTab] = useState<'availability' | 'book' | 'request' | 'message'>('availability');
+  const [sidebarTab, setSidebarTab] = useState<'availability' | 'message'>('availability');
 
   useEffect(() => {
     // Simulate loading for a smooth experience
@@ -128,25 +128,34 @@ const TherapistDetail = () => {
         
         <div className="space-y-6">
           <div className="bg-card rounded-lg border shadow-sm overflow-hidden sticky top-20">
-            <div className="p-0">
+            <div className="p-6">
+              <Card className="mb-6">
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold mb-4">予約</h2>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                      {therapist.name}さんの施術を予約しましょう。
+                    </p>
+                    <Link to={`/book/${therapist.id}`}>
+                      <Button className="w-full" size="lg">
+                        <Calendar className="mr-2 h-5 w-5" />
+                        予約ページへ進む
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+              
               <Tabs 
                 defaultValue="availability" 
-                value={bookingTab}
-                onValueChange={(value) => setBookingTab(value as 'availability' | 'book' | 'request' | 'message')}
+                value={sidebarTab}
+                onValueChange={(value) => setSidebarTab(value as 'availability' | 'message')}
                 className="w-full"
               >
-                <TabsList className="w-full grid grid-cols-4">
+                <TabsList className="w-full grid grid-cols-2">
                   <TabsTrigger value="availability" className="text-xs sm:text-sm flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     <span className="hidden sm:inline">空き状況</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="book" className="text-xs sm:text-sm flex items-center gap-1">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="hidden sm:inline">直接予約</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="request" className="text-xs sm:text-sm flex items-center gap-1">
-                    <ClipboardList className="h-4 w-4" />
-                    <span className="hidden sm:inline">リクエスト</span>
                   </TabsTrigger>
                   <TabsTrigger value="message" className="text-xs sm:text-sm flex items-center gap-1">
                     <MessageSquare className="h-4 w-4" />
@@ -154,22 +163,12 @@ const TherapistDetail = () => {
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="availability" className="p-0 m-0">
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-3">空き状況</h3>
-                    <AvailabilityCalendar therapistId={therapist.id} />
-                  </div>
+                <TabsContent value="availability" className="p-0 m-0 pt-4">
+                  <h3 className="font-semibold mb-3">空き状況</h3>
+                  <AvailabilityCalendar therapistId={therapist.id} />
                 </TabsContent>
                 
-                <TabsContent value="book" className="p-0 m-0">
-                  <BookingForm therapist={therapist} onClose={() => {}} />
-                </TabsContent>
-                
-                <TabsContent value="request" className="p-0 m-0">
-                  <BookingRequestForm therapist={therapist} onClose={() => {}} />
-                </TabsContent>
-                
-                <TabsContent value="message" className="p-0 m-0">
+                <TabsContent value="message" className="p-0 m-0 pt-4">
                   <MessageInterface therapist={therapist} />
                 </TabsContent>
               </Tabs>

@@ -13,20 +13,16 @@ interface TherapistCardProps {
 const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
   // Format availability days into a readable string
   const formatAvailability = (days: string[]) => {
+    // Create mapping from Japanese days to their proper order in a week
     const sortOrder: Record<string, number> = {
-      'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6
+      '月': 0, '火': 1, '水': 2, '木': 3, '金': 4, '土': 5, '日': 6
     };
     
     // Sort days according to weekday order
     const sortedDays = [...days].sort((a, b) => sortOrder[a] - sortOrder[b]);
     
-    // Map English day abbreviations to Japanese
-    const dayMap: Record<string, string> = {
-      'Mon': '月', 'Tue': '火', 'Wed': '水', 
-      'Thu': '木', 'Fri': '金', 'Sat': '土', 'Sun': '日'
-    };
-    
-    return sortedDays.map(day => dayMap[day]).join('・');
+    // Return the sorted days with proper separator
+    return sortedDays.join('・');
   };
 
   return (

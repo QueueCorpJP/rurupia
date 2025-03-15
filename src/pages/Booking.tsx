@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
-import BookingForm from "../components/BookingForm";
+import BookingRequestForm from "../components/BookingRequestForm";
 import { therapists } from "../utils/data";
 import { Therapist } from "../utils/types";
 import { ArrowLeft } from "lucide-react";
@@ -74,7 +74,7 @@ const Booking = () => {
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-6">
             <h1 className="text-2xl font-bold mb-6">{therapist.name} へ予約</h1>
-            <BookingForm 
+            <BookingRequestForm 
               therapist={therapist} 
               onClose={() => navigate(`/therapists/${id}`)} 
             />

@@ -1,349 +1,425 @@
 
 import { useState } from "react";
-import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Calendar,
-  Clock,
-  Filter, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle 
-} from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, Clock, Users, Archive } from "lucide-react";
+import { DataTable } from "@/components/admin/DataTable";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+
+// Sample data for bookings
+const bookings = [
+  {
+    id: "BK-2023-001",
+    clientName: "田中さくら",
+    therapistName: "鈴木一郎",
+    service: "全身リラクゼーション",
+    date: "2023-10-15",
+    time: "14:00-15:30",
+    status: "確定",
+    price: "7,500円"
+  },
+  {
+    id: "BK-2023-002",
+    clientName: "佐藤ゆかり",
+    therapistName: "山田太郎",
+    service: "肩こり集中ケア",
+    date: "2023-10-16",
+    time: "11:00-12:00",
+    status: "キャンセル",
+    price: "6,000円"
+  },
+  {
+    id: "BK-2023-003",
+    clientName: "高橋美香",
+    therapistName: "佐々木健太",
+    service: "フットリフレ",
+    date: "2023-10-18",
+    time: "17:30-18:30",
+    status: "確定",
+    price: "5,000円"
+  },
+  {
+    id: "BK-2023-004",
+    clientName: "伊藤洋子",
+    therapistName: "鈴木一郎",
+    service: "全身リラクゼーション",
+    date: "2023-10-20",
+    time: "10:00-11:30",
+    status: "確定",
+    price: "7,500円"
+  },
+  {
+    id: "BK-2023-005",
+    clientName: "中村俊介",
+    therapistName: "山田太郎",
+    service: "ヘッドスパ",
+    date: "2023-10-21",
+    time: "15:00-16:00",
+    status: "仮予約",
+    price: "6,500円"
+  }
+];
 
 const StoreBookings = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("all");
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-
-  const bookings = [
-    { 
-      id: 1, 
-      customer: "田中 花子", 
-      service: "リラクゼーションマッサージ 60分", 
-      therapist: "佐藤 健太", 
-      date: "2023-11-15", 
-      time: "14:00", 
-      status: "confirmed",
-      phone: "090-1234-5678",
-      email: "tanaka@example.com",
-      notes: "初回利用です。肩こりがひどいので重点的にお願いします。",
-      payment: "クレジットカード"
-    },
-    { 
-      id: 2, 
-      customer: "鈴木 一郎", 
-      service: "ディープティシューマッサージ 90分", 
-      therapist: "山田 太郎", 
-      date: "2023-11-15", 
-      time: "16:30", 
-      status: "completed",
-      phone: "090-8765-4321",
-      email: "suzuki@example.com",
-      notes: "",
-      payment: "現金"
-    },
-    { 
-      id: 3, 
-      customer: "佐々木 美咲", 
-      service: "アロマオイルマッサージ 60分", 
-      therapist: "鈴木 健二", 
-      date: "2023-11-16", 
-      time: "11:00", 
-      status: "pending",
-      phone: "090-5555-7777",
-      email: "sasaki@example.com",
-      notes: "ラベンダーの香りを希望します。",
-      payment: "クレジットカード"
-    },
-    { 
-      id: 4, 
-      customer: "山本 雄太", 
-      service: "スポーツマッサージ 90分", 
-      therapist: "佐藤 健太", 
-      date: "2023-11-17", 
-      time: "15:00", 
-      status: "cancelled",
-      phone: "090-3333-4444",
-      email: "yamamoto@example.com",
-      notes: "お客様都合によるキャンセル",
-      payment: "クレジットカード"
-    },
-    { 
-      id: 5, 
-      customer: "伊藤 真理子", 
-      service: "ヘッドマッサージ 30分", 
-      therapist: "鈴木 健二", 
-      date: "2023-11-18", 
-      time: "13:30", 
-      status: "confirmed",
-      phone: "090-2222-8888",
-      email: "ito@example.com",
-      notes: "",
-      payment: "現金"
-    },
-  ];
-
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  
+  // Column definition for the bookings table
   const columns = [
-    { 
-      key: "customer",
-      label: "お客様名",
-      accessorKey: "customer", 
+    {
+      key: "id",
+      label: "予約ID",
+      accessorKey: "id"
     },
-    { 
+    {
+      key: "clientName",
+      label: "顧客名",
+      accessorKey: "clientName"
+    },
+    {
+      key: "therapistName",
+      label: "担当セラピスト",
+      accessorKey: "therapistName"
+    },
+    {
       key: "service",
       label: "サービス",
-      accessorKey: "service", 
+      accessorKey: "service"
     },
-    { 
-      key: "therapist",
-      label: "セラピスト",
-      accessorKey: "therapist", 
+    {
+      key: "date",
+      label: "日付",
+      accessorKey: "date"
     },
-    { 
-      key: "dateTime",
-      label: "予約日時",
-      render: (value: string, row: any) => (
-        <div className="flex flex-col">
-          <div className="flex items-center">
-            <Calendar className="mr-1 h-3 w-3" />
-            <span>{row.date}</span>
-          </div>
-          <div className="flex items-center text-muted-foreground">
-            <Clock className="mr-1 h-3 w-3" />
-            <span>{row.time}</span>
-          </div>
-        </div>
-      )
+    {
+      key: "time",
+      label: "時間",
+      accessorKey: "time"
     },
-    { 
+    {
       key: "status",
       label: "ステータス",
       accessorKey: "status",
-      render: (value: string, row: any) => {
-        const status = row.status;
+      render: ({ row }: any) => {
+        let statusColor;
+        switch (row.status) {
+          case "確定":
+            statusColor = "bg-green-100 text-green-800";
+            break;
+          case "キャンセル":
+            statusColor = "bg-red-100 text-red-800";
+            break;
+          case "仮予約":
+            statusColor = "bg-yellow-100 text-yellow-800";
+            break;
+          default:
+            statusColor = "bg-gray-100 text-gray-800";
+        }
+        
         return (
-          <Badge variant={
-            status === "confirmed" ? "outline" :
-            status === "completed" ? "default" :
-            status === "pending" ? "secondary" :
-            "destructive"
-          }>
-            {status === "confirmed" ? "予約確定" :
-             status === "completed" ? "施術完了" :
-             status === "pending" ? "予約保留" :
-             "キャンセル"}
+          <Badge variant="outline" className={`${statusColor} border-0`}>
+            {row.status}
           </Badge>
         );
       }
     },
     {
-      key: "actions",
-      label: "アクション",
-      render: (value: string, row: any) => (
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => handleViewDetails(row)}>詳細</Button>
-        </div>
-      ),
+      key: "price",
+      label: "料金",
+      accessorKey: "price"
     },
+    {
+      key: "actions",
+      label: "操作",
+      render: () => (
+        <div className="flex space-x-2">
+          <Button size="sm" variant="outline">詳細</Button>
+          <Button size="sm" variant="outline" className="text-red-500">キャンセル</Button>
+        </div>
+      )
+    }
   ];
 
-  const handleViewDetails = (booking: any) => {
-    setSelectedBooking(booking);
-    setDetailsOpen(true);
-  };
+  // Filter bookings based on search query and status filter
+  const filteredBookings = bookings.filter(booking => {
+    const matchesSearch = 
+      booking.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.therapistName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (statusFilter === "all") return matchesSearch;
+    return matchesSearch && booking.status === statusFilter;
+  });
 
-  const handleStatusChange = (status: string) => {
-    // Update booking status logic would go here
+  const handleCheckIn = () => {
     toast({
-      title: "予約ステータスを更新しました",
-      description: `予約 #${selectedBooking?.id} のステータスが更新されました`,
+      title: "チェックイン完了",
+      description: "顧客のチェックインが完了しました。",
     });
-    setDetailsOpen(false);
   };
-
-  const filteredBookings = activeTab === "all" 
-    ? bookings 
-    : bookings.filter(booking => booking.status === activeTab);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">予約管理</h1>
-        <p className="text-muted-foreground mt-2">お客様の予約状況の確認と管理を行います</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">本日の予約</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">待機中</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">完了</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">今週</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">キャンセル</CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1</div>
-            <p className="text-xs text-muted-foreground">今週</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="all" onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">すべて</TabsTrigger>
-          <TabsTrigger value="confirmed">予約確定</TabsTrigger>
-          <TabsTrigger value="pending">予約保留</TabsTrigger>
-          <TabsTrigger value="completed">完了</TabsTrigger>
-          <TabsTrigger value="cancelled">キャンセル</TabsTrigger>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">予約管理</h1>
+      
+      <Tabs defaultValue="upcoming" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="upcoming">
+            <Calendar className="h-4 w-4 mr-2" /> 今日の予約
+          </TabsTrigger>
+          <TabsTrigger value="all">
+            <Clock className="h-4 w-4 mr-2" /> すべての予約
+          </TabsTrigger>
+          <TabsTrigger value="therapists">
+            <Users className="h-4 w-4 mr-2" /> セラピスト別
+          </TabsTrigger>
+          <TabsTrigger value="archived">
+            <Archive className="h-4 w-4 mr-2" /> 過去の予約
+          </TabsTrigger>
         </TabsList>
-      </Tabs>
-
-      <DataTable 
-        columns={columns}
-        data={filteredBookings}
-        searchPlaceholder="予約を検索..."
-        onRowClick={handleViewDetails}
-      />
-
-      {selectedBooking && (
-        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>予約詳細 #{selectedBooking.id}</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+        
+        <TabsContent value="upcoming" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <h3 className="font-medium text-sm mb-1">お客様名</h3>
-                  <p>{selectedBooking.customer}</p>
+                  <CardTitle>本日の予約 (3件)</CardTitle>
+                  <CardDescription>2023年10月15日の予約一覧</CardDescription>
                 </div>
-                <div>
-                  <h3 className="font-medium text-sm mb-1">ステータス</h3>
-                  <Badge variant={
-                    selectedBooking.status === "confirmed" ? "outline" :
-                    selectedBooking.status === "completed" ? "default" :
-                    selectedBooking.status === "pending" ? "secondary" :
-                    "destructive"
-                  }>
-                    {selectedBooking.status === "confirmed" ? "予約確定" :
-                    selectedBooking.status === "completed" ? "施術完了" :
-                    selectedBooking.status === "pending" ? "予約保留" :
-                    "キャンセル"}
-                  </Badge>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button size="sm" onClick={handleCheckIn}>チェックイン</Button>
+                  <Button size="sm" variant="outline">予約を追加</Button>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-sm mb-1">予約日</h3>
-                  <p>{selectedBooking.date}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm mb-1">予約時間</h3>
-                  <p>{selectedBooking.time}</p>
-                </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg overflow-hidden border">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時間</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">顧客名</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">セラピスト</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">サービス</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ステータス</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">アクション</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">10:00 - 11:30</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">伊藤洋子</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">鈴木一郎</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">全身リラクゼーション</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <Badge variant="outline" className="bg-green-100 text-green-800 border-0">
+                          確定
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline">詳細</Button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">14:00 - 15:30</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">田中さくら</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">鈴木一郎</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">全身リラクゼーション</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <Badge variant="outline" className="bg-green-100 text-green-800 border-0">
+                          確定
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline">詳細</Button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">16:00 - 17:00</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">小林直人</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">山田太郎</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">ヘッドスパ</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-0">
+                          仮予約
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline">詳細</Button>
+                          <Button size="sm" variant="outline" className="text-green-500">確定</Button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-sm mb-1">サービス</h3>
-                  <p>{selectedBooking.service}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm mb-1">セラピスト</h3>
-                  <p>{selectedBooking.therapist}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-sm mb-1">電話番号</h3>
-                  <p>{selectedBooking.phone}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm mb-1">メールアドレス</h3>
-                  <p>{selectedBooking.email}</p>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-sm mb-1">支払い方法</h3>
-                <p>{selectedBooking.payment}</p>
-              </div>
-              
-              {selectedBooking.notes && (
-                <div>
-                  <h3 className="font-medium text-sm mb-1">お客様メモ</h3>
-                  <p className="text-sm text-muted-foreground">{selectedBooking.notes}</p>
-                </div>
-              )}
-              
-              <div>
-                <Label htmlFor="status">ステータスを変更</Label>
-                <div className="flex space-x-2 mt-2">
-                  <Select 
-                    defaultValue={selectedBooking.status}
-                    onValueChange={handleStatusChange}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="all" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <CardTitle>すべての予約</CardTitle>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Select
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="ステータス" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="confirmed">予約確定</SelectItem>
-                      <SelectItem value="pending">予約保留</SelectItem>
-                      <SelectItem value="completed">施術完了</SelectItem>
-                      <SelectItem value="cancelled">キャンセル</SelectItem>
+                      <SelectItem value="all">すべて</SelectItem>
+                      <SelectItem value="確定">確定</SelectItem>
+                      <SelectItem value="仮予約">仮予約</SelectItem>
+                      <SelectItem value="キャンセル">キャンセル</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Input
+                    placeholder="検索..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full sm:w-[220px]"
+                  />
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDetailsOpen(false)}>閉じる</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+              <CardDescription>すべての予約の管理と詳細確認ができます。</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={columns} data={filteredBookings} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="therapists" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>セラピスト別予約状況</CardTitle>
+              <CardDescription>セラピスト別の予約状況を確認できます。</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">鈴木一郎</CardTitle>
+                    <CardDescription>本日の予約: 2件</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="p-2 bg-gray-50 rounded flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">10:00 - 11:30</p>
+                          <p className="text-sm text-gray-500">伊藤洋子 - 全身リラクゼーション</p>
+                        </div>
+                        <Badge variant="outline" className="bg-green-100 text-green-800 border-0">確定</Badge>
+                      </div>
+                      <div className="p-2 bg-gray-50 rounded flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">14:00 - 15:30</p>
+                          <p className="text-sm text-gray-500">田中さくら - 全身リラクゼーション</p>
+                        </div>
+                        <Badge variant="outline" className="bg-green-100 text-green-800 border-0">確定</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">山田太郎</CardTitle>
+                    <CardDescription>本日の予約: 1件</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="p-2 bg-gray-50 rounded flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">16:00 - 17:00</p>
+                          <p className="text-sm text-gray-500">小林直人 - ヘッドスパ</p>
+                        </div>
+                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-0">仮予約</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">佐々木健太</CardTitle>
+                    <CardDescription>本日の予約: 0件</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[100px] flex items-center justify-center text-gray-400">
+                      <p>予約なし</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="archived" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>過去の予約履歴</CardTitle>
+              <CardDescription>過去の予約履歴を確認できます。</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg overflow-hidden border">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">予約ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日付</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">顧客名</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">セラピスト</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">サービス</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">料金</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">詳細</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">BK-2023-001</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">2023-10-05</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">中村俊介</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">鈴木一郎</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">全身リラクゼーション</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">7,500円</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <Button size="sm" variant="outline">詳細</Button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">BK-2023-002</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">2023-10-07</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">佐藤ゆかり</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">山田太郎</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">肩こり集中ケア</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">6,000円</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <Button size="sm" variant="outline">詳細</Button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

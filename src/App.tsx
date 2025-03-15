@@ -23,13 +23,12 @@ import AdminAccounts from "./pages/admin/AdminAccounts";
 import AdminRequests from "./pages/admin/AdminRequests";
 import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminSettings from "./pages/admin/AdminSettings";
-import AdminStoreManagement from "./pages/admin/AdminStoreManagement";
+import AdminBlog from "./pages/admin/AdminBlog";
 import StoreAdminDashboard from "./pages/store/StoreAdminDashboard";
 import StoreTherapists from "./pages/store/StoreTherapists";
 import StoreCourses from "./pages/store/StoreCourses";
 import StoreInquiries from "./pages/store/StoreInquiries";
 import StoreAnalytics from "./pages/store/StoreAnalytics";
-import StoreBlog from "./pages/store/StoreBlog";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import TherapistLogin from "./pages/TherapistLogin";
@@ -70,9 +69,9 @@ const App = () => (
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="accounts" element={<AdminAccounts />} />
-            <Route path="store" element={<AdminStoreManagement />} />
             <Route path="requests" element={<AdminRequests />} />
             <Route path="inquiries" element={<AdminInquiries />} />
+            <Route path="blog" element={<AdminBlog />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
           
@@ -83,7 +82,6 @@ const App = () => (
             <Route path="courses" element={<StoreCourses />} />
             <Route path="inquiries" element={<StoreInquiries />} />
             <Route path="analytics" element={<StoreAnalytics />} />
-            <Route path="blog" element={<StoreBlog />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

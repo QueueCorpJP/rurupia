@@ -1,58 +1,80 @@
-import React from "react";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
 
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import NotFound from "./pages/NotFound";
 import Therapists from "./pages/Therapists";
 import TherapistDetail from "./pages/TherapistDetail";
 import Booking from "./pages/Booking";
-import TherapistPosts from "./pages/TherapistPosts";
+import TherapistDashboard from "./pages/TherapistDashboard";
+import UserProfile from "./pages/UserProfile";
+import UserBookings from "./pages/UserBookings";
+import Messages from "./pages/Messages";
+import MessagesIndex from "./pages/MessagesIndex";
+import Blog from "./pages/Blog";
+import BlogDetail from "./pages/BlogDetail";
+import NotFound from "./pages/NotFound";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAccounts from "./pages/admin/AdminAccounts";
+import AdminRequests from "./pages/admin/AdminRequests";
+import AdminInquiries from "./pages/admin/AdminInquiries";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminStoreManagement from "./pages/admin/AdminStoreManagement";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import TherapistLogin from "./pages/TherapistLogin";
+import TherapistSignup from "./pages/TherapistSignup";
+import StoreLogin from "./pages/StoreLogin";
+import StoreSignup from "./pages/StoreSignup";
 
-function App() {
-  return (
-    <ThemeProvider defaultTheme="system" enableSystem>
-      <div className="min-h-screen bg-background font-sans">
-        <RouterProvider
-          router={createBrowserRouter([
-            {
-              path: "/",
-              element: <Index />,
-              errorElement: <NotFound />,
-            },
-            {
-              path: "/login",
-              element: <Login />,
-            },
-            {
-              path: "/register",
-              element: <Register />,
-            },
-            {
-              path: "/therapists",
-              element: <Therapists />,
-            },
-            {
-              path: "/therapists/:id",
-              element: <TherapistDetail />,
-            },
-            {
-              path: "/therapist-posts/:id",
-              element: <TherapistPosts />,
-            },
-            {
-              path: "/book/:id",
-              element: <Booking />,
-            },
-          ])}
-        />
-      </div>
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
       <Toaster />
-    </ThemeProvider>
-  );
-}
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/therapists" element={<Therapists />} />
+          <Route path="/therapists/:id" element={<TherapistDetail />} />
+          <Route path="/book/:id" element={<Booking />} />
+          <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
+          <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/user-bookings" element={<UserBookings />} />
+          <Route path="/messages" element={<MessagesIndex />} />
+          <Route path="/messages/:id" element={<Messages />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogDetail />} />
+          
+          {/* Auth Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/therapist-login" element={<TherapistLogin />} />
+          <Route path="/therapist-signup" element={<TherapistSignup />} />
+          <Route path="/store-login" element={<StoreLogin />} />
+          <Route path="/store-signup" element={<StoreSignup />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="accounts" element={<AdminAccounts />} />
+            <Route path="store" element={<AdminStoreManagement />} />
+            <Route path="requests" element={<AdminRequests />} />
+            <Route path="inquiries" element={<AdminInquiries />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
+          
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

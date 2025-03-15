@@ -26,7 +26,6 @@ interface DateTimePickerProps {
   timeSlot: string;
   setTimeSlot: (time: string) => void;
   className?: string;
-  minDate?: Date;
 }
 
 const timeSlots = [
@@ -42,8 +41,7 @@ export function DateTimePicker({
   setDate, 
   timeSlot, 
   setTimeSlot,
-  className,
-  minDate = new Date()
+  className 
 }: DateTimePickerProps) {
   return (
     <div className={cn("flex flex-col space-y-2", className)}>
@@ -66,7 +64,6 @@ export function DateTimePicker({
             selected={date}
             onSelect={setDate}
             initialFocus
-            fromDate={minDate}
           />
         </PopoverContent>
       </Popover>

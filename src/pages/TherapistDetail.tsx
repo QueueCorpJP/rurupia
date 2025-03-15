@@ -79,24 +79,10 @@ const TherapistDetail = () => {
     { id: 3, user: "Haruna K.", rating: 5, content: "予約時間通りに来ていただき、とても親切でプロフェッショナルな対応でした。", date: "2023年3月10日" }
   ];
   
-  // Japanese posts with more Twitter-like metadata
+  // Japanese posts
   const japanesePosts = [
-    { 
-      id: 1, 
-      content: "今日は新しいアロマオイルを使った施術をしました。お客様にも大好評でした！", 
-      image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?ixlib=rb-4.0.3", 
-      date: "2日前",
-      likes: 15,
-      comments: 3 
-    },
-    { 
-      id: 2, 
-      content: "マッサージの技術向上のための研修に参加してきました。新しい知識をセッションに活かせるのが楽しみです。", 
-      image: "https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?ixlib=rb-4.0.3", 
-      date: "1週間前",
-      likes: 24,
-      comments: 5
-    }
+    { id: 1, content: "今日は新しいアロマオイルを使った施術をしました。お客様にも大好評でした！", image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?ixlib=rb-4.0.3", date: "2日前" },
+    { id: 2, content: "マッサージの技術向上のための研修に参加してきました。新しい知識をセッションに活かせるのが楽しみです。", image: "https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?ixlib=rb-4.0.3", date: "1週間前" }
   ];
 
   const japaneseName = `${therapist.name}（${therapist.name.split(' ')[0]}）`;
@@ -135,12 +121,7 @@ const TherapistDetail = () => {
               <TherapistReviews reviews={japaneseReviews} />
               
               {/* SNS Posts */}
-              <TherapistPosts 
-                posts={japanesePosts} 
-                therapistName={japaneseName} 
-                therapistId={therapist.id}
-                isFollowing={isFollowing}
-              />
+              <TherapistPosts posts={japanesePosts} therapistName={japaneseName} />
             </div>
           </div>
         </div>

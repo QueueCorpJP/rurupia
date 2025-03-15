@@ -97,7 +97,7 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-medium">{request.clientName}からのリクエスト</h3>
+            <h3 className="font-medium text-base">{request.clientName}からのリクエスト</h3>
             {getStatusBadge()}
           </div>
           
@@ -156,7 +156,7 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>日時変更の提案</DialogTitle>
+                <DialogTitle className="text-lg">日時変更の提案</DialogTitle>
               </DialogHeader>
               
               <div className="mt-4 space-y-3">

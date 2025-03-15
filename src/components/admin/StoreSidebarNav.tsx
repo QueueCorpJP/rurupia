@@ -10,7 +10,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Copy
+  Copy,
+  Calendar
 } from 'lucide-react';
 
 interface StoreSidebarNavProps {
@@ -21,6 +22,7 @@ interface StoreSidebarNavProps {
 export function StoreSidebarNav({ isOpen, toggleSidebar }: StoreSidebarNavProps) {
   const navItems = [
     { title: 'ダッシュボード', href: '/store-admin', icon: LayoutDashboard },
+    { title: '予約管理', href: '/store-admin/bookings', icon: Calendar },
     { title: 'セラピスト管理', href: '/store-admin/therapists', icon: Users },
     { title: 'コース管理', href: '/store-admin/courses', icon: BookOpen },
     { title: 'お問い合わせ', href: '/store-admin/inquiries', icon: MessageSquare },

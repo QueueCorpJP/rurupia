@@ -15,6 +15,7 @@ import Messages from "./pages/Messages";
 import MessagesIndex from "./pages/MessagesIndex";
 import Blog from "./pages/Blog";
 import BlogDetail from "./pages/BlogDetail";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./components/admin/AdminLayout";
 import StoreAdminLayout from "./components/admin/StoreAdminLayout";
@@ -29,6 +30,7 @@ import StoreTherapists from "./pages/store/StoreTherapists";
 import StoreCourses from "./pages/store/StoreCourses";
 import StoreInquiries from "./pages/store/StoreInquiries";
 import StoreAnalytics from "./pages/store/StoreAnalytics";
+import StoreBookings from "./pages/store/StoreBookings";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import TherapistLogin from "./pages/TherapistLogin";
@@ -56,6 +58,7 @@ const App = () => (
           <Route path="/messages/:id" element={<Messages />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
+          <Route path="/contact" element={<Contact />} />
           
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
@@ -79,6 +82,7 @@ const App = () => (
           <Route path="/store-admin" element={<StoreAdminLayout />}>
             <Route index element={<StoreAdminDashboard />} />
             <Route path="therapists" element={<StoreTherapists />} />
+            <Route path="bookings" element={<StoreBookings />} />
             <Route path="courses" element={<StoreCourses />} />
             <Route path="inquiries" element={<StoreInquiries />} />
             <Route path="analytics" element={<StoreAnalytics />} />

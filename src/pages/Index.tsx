@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import Layout from '../components/Layout';
@@ -13,6 +12,7 @@ import {
   Clock,
   ArrowLeft,
   HelpCircle,
+  CalendarIcon,
 } from 'lucide-react';
 import TherapistCard from '../components/TherapistCard';
 import { therapists } from '../utils/data';
@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { DateTimePicker } from '@/components/DateTimePicker';
 
 const Index = () => {
   // Show only featured therapists on the landing page
@@ -40,9 +41,10 @@ const Index = () => {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [keywordFilters, setKeywordFilters] = useState({
     area: '',
-    time: '',
     budget: '',
   });
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState("指定なし");
 
   // State for multi-step questionnaire
   const [step, setStep] = useState(1);
@@ -85,7 +87,9 @@ const Index = () => {
   const handleKeywordSearch = () => {
     console.log('Searching for:', {
       keyword: searchTerm,
-      ...keywordFilters
+      ...keywordFilters,
+      date: selectedDate ? selectedDate.toISOString() : undefined,
+      timeSlot: selectedTimeSlot
     });
     // Navigate to search results with params
   };
@@ -96,6 +100,12 @@ const Index = () => {
       ...prev,
       [filterType]: value
     }));
+  };
+
+  // Clear date selection
+  const clearDateSelection = () => {
+    setSelectedDate(undefined);
+    setSelectedTimeSlot("指定なし");
   };
 
   // Question components
@@ -451,69 +461,75 @@ const Index = () => {
                     </div>
                     
                     {showAdvancedSearch && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 pb-1 border-t">
-                        <div>
-                          <label className="text-sm font-medium flex items-center mb-1.5">
-                            <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                            エリア
-                          </label>
-                          <Select 
-                            value={keywordFilters.area} 
-                            onValueChange={(value) => handleFilterChange('area', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="選択してください" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="tokyo">東京</SelectItem>
-                              <SelectItem value="osaka">大阪</SelectItem>
-                              <SelectItem value="kyoto">京都</SelectItem>
-                              <SelectItem value="yokohama">横浜</SelectItem>
-                              <SelectItem value="sapporo">札幌</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      <div className="pt-2 pb-1 border-t space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium flex items-center mb-1.5">
+                              <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                              エリア
+                            </label>
+                            <Select 
+                              value={keywordFilters.area} 
+                              onValueChange={(value) => handleFilterChange('area', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="選択してください" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="tokyo">東京</SelectItem>
+                                <SelectItem value="osaka">大阪</SelectItem>
+                                <SelectItem value="kyoto">京都</SelectItem>
+                                <SelectItem value="yokohama">横浜</SelectItem>
+                                <SelectItem value="sapporo">札幌</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <label className="text-sm font-medium flex items-center mb-1.5">
+                              <Calendar className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                              予算
+                            </label>
+                            <Select 
+                              value={keywordFilters.budget} 
+                              onValueChange={(value) => handleFilterChange('budget', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="選択してください" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="under5000">～5,000円</SelectItem>
+                                <SelectItem value="5000to10000">5,000円～10,000円</SelectItem>
+                                <SelectItem value="10000to20000">10,000円～20,000円</SelectItem>
+                                <SelectItem value="over20000">20,000円以上</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                         
                         <div>
                           <label className="text-sm font-medium flex items-center mb-1.5">
                             <Clock className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                            時間帯
+                            日時指定
                           </label>
-                          <Select 
-                            value={keywordFilters.time} 
-                            onValueChange={(value) => handleFilterChange('time', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="選択してください" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="morning">朝 (9:00-12:00)</SelectItem>
-                              <SelectItem value="afternoon">昼 (12:00-18:00)</SelectItem>
-                              <SelectItem value="evening">夕方 (18:00-21:00)</SelectItem>
-                              <SelectItem value="night">夜 (21:00-)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <label className="text-sm font-medium flex items-center mb-1.5">
-                            <Calendar className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                            予算
-                          </label>
-                          <Select 
-                            value={keywordFilters.budget} 
-                            onValueChange={(value) => handleFilterChange('budget', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="選択してください" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="under5000">～5,000円</SelectItem>
-                              <SelectItem value="5000to10000">5,000円～10,000円</SelectItem>
-                              <SelectItem value="10000to20000">10,000円～20,000円</SelectItem>
-                              <SelectItem value="over20000">20,000円以上</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="relative">
+                            <DateTimePicker
+                              date={selectedDate}
+                              setDate={setSelectedDate}
+                              timeSlot={selectedTimeSlot}
+                              setTimeSlot={setSelectedTimeSlot}
+                            />
+                            {selectedDate && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="absolute right-2 top-2"
+                                onClick={clearDateSelection}
+                              >
+                                クリア
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}

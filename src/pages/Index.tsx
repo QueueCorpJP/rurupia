@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import Layout from '../components/Layout';
@@ -20,6 +21,13 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const Index = () => {
   // Show only featured therapists on the landing page
@@ -27,7 +35,14 @@ const Index = () => {
     .sort((a, b) => b.rating - a.rating)
     .slice(0, 3);
 
+  // Keyword search state
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [keywordFilters, setKeywordFilters] = useState({
+    area: '',
+    time: '',
+    budget: '',
+  });
 
   // State for multi-step questionnaire
   const [step, setStep] = useState(1);
@@ -68,10 +83,19 @@ const Index = () => {
 
   // Handle keyword search
   const handleKeywordSearch = () => {
-    if (searchTerm.trim()) {
-      console.log('Searching for:', searchTerm);
-      // Navigate to search results
-    }
+    console.log('Searching for:', {
+      keyword: searchTerm,
+      ...keywordFilters
+    });
+    // Navigate to search results with params
+  };
+
+  // Handle keyword filter change
+  const handleFilterChange = (filterType: keyof typeof keywordFilters, value: string) => {
+    setKeywordFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
   };
 
   // Question components
@@ -402,17 +426,97 @@ const Index = () => {
                 </TabsList>
                 
                 <TabsContent value="keyword" className="mt-0">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="セラピスト名・キーワードなど"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleKeywordSearch}>
-                      <Search className="h-4 w-4 mr-2" />
-                      検索
-                    </Button>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="セラピスト名・得意分野など"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button onClick={handleKeywordSearch}>
+                        <Search className="h-4 w-4 mr-2" />
+                        検索
+                      </Button>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <button 
+                        onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+                        className="text-sm text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors"
+                      >
+                        <Sliders className="h-3 w-3" />
+                        詳細検索 {showAdvancedSearch ? '閉じる' : '開く'}
+                      </button>
+                    </div>
+                    
+                    {showAdvancedSearch && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 pb-1 border-t">
+                        <div>
+                          <label className="text-sm font-medium flex items-center mb-1.5">
+                            <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                            エリア
+                          </label>
+                          <Select 
+                            value={keywordFilters.area} 
+                            onValueChange={(value) => handleFilterChange('area', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="選択してください" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="tokyo">東京</SelectItem>
+                              <SelectItem value="osaka">大阪</SelectItem>
+                              <SelectItem value="kyoto">京都</SelectItem>
+                              <SelectItem value="yokohama">横浜</SelectItem>
+                              <SelectItem value="sapporo">札幌</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium flex items-center mb-1.5">
+                            <Clock className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                            時間帯
+                          </label>
+                          <Select 
+                            value={keywordFilters.time} 
+                            onValueChange={(value) => handleFilterChange('time', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="選択してください" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="morning">朝 (9:00-12:00)</SelectItem>
+                              <SelectItem value="afternoon">昼 (12:00-18:00)</SelectItem>
+                              <SelectItem value="evening">夕方 (18:00-21:00)</SelectItem>
+                              <SelectItem value="night">夜 (21:00-)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium flex items-center mb-1.5">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                            予算
+                          </label>
+                          <Select 
+                            value={keywordFilters.budget} 
+                            onValueChange={(value) => handleFilterChange('budget', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="選択してください" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="under5000">～5,000円</SelectItem>
+                              <SelectItem value="5000to10000">5,000円～10,000円</SelectItem>
+                              <SelectItem value="10000to20000">10,000円～20,000円</SelectItem>
+                              <SelectItem value="over20000">20,000円以上</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
                 

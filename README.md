@@ -1,69 +1,98 @@
-# Welcome to your Lovable project
+# Therapist Connectivity Project
 
-## Project info
+A web application for connecting therapists and managing therapy-related services.
 
-**URL**: https://lovable.dev/projects/329dd63d-1572-498f-963a-4893aefad95a
+## Live Demo
+The application is deployed and accessible at: [https://therapist-connectivity.vercel.app/](https://therapist-connectivity.vercel.app/)
 
-## How can I edit this code?
+## API Endpoints
 
-There are several ways of editing your application.
+### Authentication Endpoints
+- `POST /api/auth/login` - User login endpoint
+- `POST /api/auth/register` - New user registration
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/session` - Get current session information
 
-**Use Lovable**
+### User Management
+- `GET /api/users/profile` - Get user profile information
+- `PUT /api/users/profile` - Update user profile
+- `GET /api/users/therapists` - List all therapists
+- `GET /api/users/therapists/:id` - Get specific therapist details
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/329dd63d-1572-498f-963a-4893aefad95a) and start prompting.
+### Appointment Management
+- `GET /api/appointments` - List all appointments
+- `POST /api/appointments` - Create new appointment
+- `PUT /api/appointments/:id` - Update existing appointment
+- `DELETE /api/appointments/:id` - Cancel/delete appointment
+- `GET /api/appointments/:id` - Get specific appointment details
 
-Changes made via Lovable will be committed automatically to this repo.
+### Availability Management
+- `GET /api/availability` - Get availability slots
+- `POST /api/availability` - Set availability
+- `PUT /api/availability/:id` - Update availability
+- `DELETE /api/availability/:id` - Remove availability slot
 
-**Use your preferred IDE**
+### Communication
+- `GET /api/messages` - Get message history
+- `POST /api/messages` - Send new message
+- `GET /api/messages/:conversationId` - Get conversation messages
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Pages/Routes
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- `/` - Home/Landing page
+- `/login` - Login page
+- `/register` - Registration page
+- `/dashboard` - User dashboard
+- `/profile` - User profile management
+- `/appointments` - Appointments management
+- `/therapists` - Therapist listing
+- `/messages` - Messaging interface
+- `/availability` - Availability management
 
-Follow these steps:
+## Tech Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Vercel (Deployment)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Getting Started
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. Clone the repository
+2. Install dependencies:
+```bash
+npm install
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
+
+4. Run the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Environment Variables
 
-**Use GitHub Codespaces**
+Required environment variables:
+- `NEXT_PUBLIC_API_URL` - API base URL
+- `DATABASE_URL` - Database connection string
+- `NEXTAUTH_SECRET` - Authentication secret
+- `NEXTAUTH_URL` - Authentication URL
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Contributing
 
-## What technologies are used for this project?
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-This project is built with .
+## License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/329dd63d-1572-498f-963a-4893aefad95a) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+This project is licensed under the MIT License - see the LICENSE file for details.

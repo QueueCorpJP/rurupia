@@ -18,9 +18,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface Column {
+export interface Column {
   key: string;
   label: string;
+  accessorKey?: string;
   render?: (value: any, row: any) => React.ReactNode;
 }
 
@@ -116,7 +117,11 @@ export function DataTable({
                 >
                   {columns.map((column) => (
                     <TableCell key={column.key}>
-                      {column.render ? column.render(row[column.key], row) : row[column.key]}
+                      {column.render 
+                        ? column.render(column.accessorKey ? row[column.accessorKey] : null, row) 
+                        : column.accessorKey 
+                          ? row[column.accessorKey] 
+                          : null}
                     </TableCell>
                   ))}
                   {actionMenuItems && (

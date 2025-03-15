@@ -18,18 +18,21 @@ const AdminBlog = () => {
 
   const columns = [
     { 
-      header: "タイトル",
+      key: "title",
+      label: "タイトル",
       accessorKey: "title",
     },
     { 
-      header: "カテゴリ",
+      key: "category",
+      label: "カテゴリ",
       accessorKey: "category",
     },
     { 
-      header: "ステータス",
+      key: "status",
+      label: "ステータス",
       accessorKey: "status",
-      cell: ({ row }: any) => {
-        const status = row.original.status;
+      render: (value: string, row: any) => {
+        const status = row.status;
         return (
           <span className={`inline-block px-2 py-1 text-xs rounded-full ${
             status === "published" ? "bg-green-100 text-green-800" :
@@ -44,12 +47,14 @@ const AdminBlog = () => {
       }
     },
     { 
-      header: "公開日",
+      key: "date",
+      label: "公開日",
       accessorKey: "date",
     },
     {
-      header: "アクション",
-      cell: () => (
+      key: "actions",
+      label: "アクション",
+      render: (value: string, row: any) => (
         <div className="flex space-x-2">
           <Button variant="outline" size="sm">編集</Button>
           <Button variant="outline" size="sm" className="text-destructive">削除</Button>

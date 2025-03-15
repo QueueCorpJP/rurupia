@@ -4,146 +4,146 @@ import { Therapist, BookingSlot } from './types';
 export const therapists: Therapist[] = [
   {
     id: 1,
-    name: "Michael Johnson",
-    specialties: ["Swedish", "Deep Tissue", "Sports"],
+    name: "鈴木 健太",
+    specialties: ["スウェディッシュ", "ディープティシュー", "スポーツ"],
     experience: 8,
     rating: 4.9,
     reviews: 127,
-    description: "Specialized in therapeutic massage targeting chronic pain and sports injuries.",
-    longDescription: "With over 8 years of experience, I specialize in therapeutic massage techniques that target chronic pain, sports injuries, and stress relief. My approach combines Swedish relaxation techniques with targeted deep tissue work to address specific areas of tension. My background in sports therapy allows me to effectively work with athletes and active individuals to improve performance and recovery times. I'm passionate about helping clients achieve a greater sense of well-being and mobility through personalized massage therapy.",
-    location: "Downtown Wellness Center",
+    description: "慢性的な痛みやスポーツ障害に対応する治療マッサージを専門としています。",
+    longDescription: "8年以上の経験を持ち、慢性的な痛み、スポーツ障害、ストレス緩和を対象とした治療マッサージ技術を専門としています。私のアプローチでは、スウェディッシュリラクゼーション技術と特定の緊張領域をターゲットにしたディープティシューワークを組み合わせています。スポーツセラピーのバックグラウンドにより、アスリートやアクティブな個人と効果的に連携して、パフォーマンスと回復時間を向上させることができます。パーソナライズされたマッサージセラピーを通じて、クライアントがより良い健康感と運動能力を達成できるようサポートすることに情熱を持っています。",
+    location: "ダウンタウンウェルネスセンター",
     price: 90,
-    availability: ["Mon", "Tue", "Thu", "Fri"],
+    availability: ["月", "火", "木", "金"],
     imageUrl: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3",
     services: [
-      { id: 1, name: "Swedish Massage", duration: 60, price: 90, description: "Relaxing full-body massage using long, flowing strokes." },
-      { id: 2, name: "Deep Tissue Massage", duration: 60, price: 100, description: "Focused massage targeting deeper muscle layers and connective tissue." },
-      { id: 3, name: "Sports Massage", duration: 75, price: 120, description: "Specialized techniques to enhance athletic performance and recovery." }
+      { id: 1, name: "スウェディッシュマッサージ", duration: 60, price: 9000, description: "長く流れるようなストロークを使用したリラックス効果のある全身マッサージ。" },
+      { id: 2, name: "ディープティシューマッサージ", duration: 60, price: 10000, description: "深層筋肉層と結合組織をターゲットにしたフォーカスしたマッサージ。" },
+      { id: 3, name: "スポーツマッサージ", duration: 75, price: 12000, description: "アスレチックパフォーマンスと回復を向上させるための専門的な技術。" }
     ],
     qualifications: [
-      "Certified Massage Therapist (CMT)",
-      "Sports Massage Certification",
-      "Bachelor's in Kinesiology"
+      "認定マッサージセラピスト（CMT）",
+      "スポーツマッサージ認定",
+      "運動学の学士号"
     ]
   },
   {
     id: 2,
-    name: "David Thompson",
-    specialties: ["Hot Stone", "Aromatherapy", "Relaxation"],
+    name: "田中 大輔",
+    specialties: ["ホットストーン", "アロマセラピー", "リラクゼーション"],
     experience: 5,
     rating: 4.7,
     reviews: 89,
-    description: "Expert in holistic relaxation techniques incorporating aromatherapy and hot stones.",
-    longDescription: "I've dedicated 5 years to mastering holistic massage approaches that promote deep relaxation and stress relief. My sessions incorporate aromatherapy oils, hot stone techniques, and mindfulness practices to create a truly rejuvenating experience. I believe in the connection between physical and mental wellbeing, and tailor each session to address both aspects. My clients appreciate my calm demeanor and attentive approach to their unique needs. I specialize in creating a peaceful environment where healing and relaxation can naturally occur.",
-    location: "Serenity Spa & Wellness",
+    description: "アロマセラピーとホットストーンを取り入れたホリスティックなリラクゼーション技術のエキスパート。",
+    longDescription: "私は5年間、深いリラクゼーションとストレス軽減を促進するホリスティックなマッサージアプローチの習得に専念してきました。私のセッションでは、アロマセラピーオイル、ホットストーン技術、マインドフルネス実践を取り入れて、真に若返るような体験を作り出します。私は身体的・精神的なウェルビーイングの間の繋がりを信じており、両方の側面に対応するために各セッションをカスタマイズしています。クライアントは私の穏やかな態度と彼らのユニークなニーズへの注意深いアプローチを評価しています。私は、癒しとリラクゼーションが自然に起こることができる平和な環境を作り出すことを専門としています。",
+    location: "セレニティスパ＆ウェルネス",
     price: 95,
-    availability: ["Wed", "Thu", "Sat", "Sun"],
+    availability: ["水", "木", "土", "日"],
     imageUrl: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&q=80&w=1374&ixlib=rb-4.0.3",
     services: [
-      { id: 1, name: "Aromatherapy Massage", duration: 60, price: 95, description: "Relaxing massage using essential oils to enhance wellbeing." },
-      { id: 2, name: "Hot Stone Massage", duration: 75, price: 115, description: "Therapeutic massage incorporating smooth heated stones." },
-      { id: 3, name: "Relaxation Massage", duration: 90, price: 135, description: "Extended full-body relaxation session with gentle techniques." }
+      { id: 1, name: "アロマセラピーマッサージ", duration: 60, price: 9500, description: "エッセンシャルオイルを使用した、ウェルビーイングを高めるリラックス効果のあるマッサージ。" },
+      { id: 2, name: "ホットストーンマッサージ", duration: 75, price: 11500, description: "滑らかな加熱された石を取り入れた治療マッサージ。" },
+      { id: 3, name: "リラクゼーションマッサージ", duration: 90, price: 13500, description: "穏やかな技術を用いた全身リラクゼーションの延長セッション。" }
     ],
     qualifications: [
-      "Licensed Massage Therapist (LMT)",
-      "Aromatherapy Certification",
-      "Hot Stone Therapy Certification"
+      "ライセンスマッサージセラピスト（LMT）",
+      "アロマセラピー認定",
+      "ホットストーンセラピー認定"
     ]
   },
   {
     id: 3,
-    name: "Robert Williams",
-    specialties: ["Shiatsu", "Thai Massage", "Reflexology"],
+    name: "佐藤 隆",
+    specialties: ["指圧", "タイマッサージ", "リフレクソロジー"],
     experience: 12,
     rating: 4.8,
     reviews: 215,
-    description: "Combines Eastern and Western techniques for comprehensive therapeutic sessions.",
-    longDescription: "With 12 years of practice, I've developed a unique approach that blends Eastern and Western massage philosophies. My training in Shiatsu, Thai massage, and reflexology allows me to address both physical tension and energy flow within the body. I specialize in helping clients with chronic stress, insomnia, and tension-related headaches. My extensive experience working with diverse clients has given me insights into adapting techniques to various body types and conditions. I'm committed to continuing education and regularly incorporate new research-backed approaches into my practice.",
-    location: "Eastern Healing Arts Center",
+    description: "東洋と西洋の技術を組み合わせた包括的な治療セッションを提供します。",
+    longDescription: "12年の実践を経て、東洋と西洋のマッサージ哲学を融合させた独自のアプローチを開発しました。指圧、タイマッサージ、リフレクソロジーのトレーニングにより、身体の物理的な緊張とエネルギーの流れの両方に対応することができます。慢性的なストレス、不眠症、緊張関連の頭痛を抱えるクライアントを支援することを専門としています。多様なクライアントとの豊富な経験から、様々な体型や状態に技術を適応させる洞察力を得ました。継続的な教育に取り組み、定期的に新しい研究に基づくアプローチを実践に取り入れています。",
+    location: "東洋治療アートセンター",
     price: 110,
-    availability: ["Mon", "Tue", "Wed", "Fri", "Sat"],
+    availability: ["月", "火", "水", "金", "土"],
     imageUrl: "https://images.unsplash.com/photo-1543132220-3ec99c6094dc?auto=format&fit=crop&q=80&w=1374&ixlib=rb-4.0.3",
     services: [
-      { id: 1, name: "Shiatsu Massage", duration: 60, price: 110, description: "Japanese pressure point therapy to balance energy and relieve tension." },
-      { id: 2, name: "Thai Massage", duration: 90, price: 140, description: "Dynamic yoga-like stretches combined with pressure point therapy." },
-      { id: 3, name: "Reflexology Session", duration: 45, price: 80, description: "Focused foot and hand pressure point work for whole-body benefits." }
+      { id: 1, name: "指圧マッサージ", duration: 60, price: 11000, description: "エネルギーのバランスをとり、緊張を和らげる日本のツボ療法。" },
+      { id: 2, name: "タイマッサージ", duration: 90, price: 14000, description: "ダイナミックなヨガのようなストレッチと組み合わせたツボ療法。" },
+      { id: 3, name: "リフレクソロジーセッション", duration: 45, price: 8000, description: "身体全体の効果のための足と手のツボ療法。" }
     ],
     qualifications: [
-      "Master Certification in Asian Bodywork Therapy",
-      "Thai Massage Specialist",
-      "Certified Reflexologist"
+      "アジアンボディーワークセラピーのマスター認定",
+      "タイマッサージスペシャリスト",
+      "認定リフレクソロジスト"
     ]
   },
   {
     id: 4,
-    name: "James Martinez",
-    specialties: ["Myofascial Release", "Trigger Point", "Medical Massage"],
+    name: "中村 誠",
+    specialties: ["筋膜リリース", "トリガーポイント", "医療マッサージ"],
     experience: 10,
     rating: 4.9,
     reviews: 176,
-    description: "Clinical approach to addressing chronic pain and movement restrictions.",
-    longDescription: "I specialize in clinical massage therapy with a focus on pain management and improved mobility. With 10 years in the field, I've worked alongside physical therapists and chiropractors to develop effective protocols for various conditions. My technique centers on myofascial release, trigger point therapy, and medical massage approaches that target specific issues rather than general relaxation. I excel at helping clients with persistent conditions that haven't responded to other treatments. My background in exercise science informs my approach to not just treating symptoms but addressing underlying movement patterns and imbalances.",
-    location: "Integrated Health Clinic",
+    description: "慢性的な痛みや運動制限に対する臨床的アプローチを提供します。",
+    longDescription: "痛みの管理と運動性の向上に焦点を当てた臨床マッサージセラピーを専門としています。この分野で10年間、理学療法士やカイロプラクターと協力して、様々な症状に対する効果的なプロトコルを開発してきました。私の技術は、一般的なリラクゼーションよりも特定の問題をターゲットにした筋膜リリース、トリガーポイントセラピー、医療マッサージアプローチに焦点を当てています。他の治療に反応していない持続的な症状を持つクライアントの支援に優れています。運動科学のバックグラウンドは、症状だけでなく、基礎となる動きのパターンと不均衡に対処するアプローチに情報を提供しています。",
+    location: "統合健康クリニック",
     price: 120,
-    availability: ["Tue", "Wed", "Thu", "Fri", "Sat"],
+    availability: ["火", "水", "木", "金", "土"],
     imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=1374&ixlib=rb-4.0.3",
     services: [
-      { id: 1, name: "Medical Massage", duration: 60, price: 120, description: "Targeted therapeutic massage for specific medical conditions." },
-      { id: 2, name: "Myofascial Release", duration: 60, price: 120, description: "Specialized technique to release fascial restrictions and improve mobility." },
-      { id: 3, name: "Trigger Point Therapy", duration: 75, price: 140, description: "Focused work on muscle knots and trigger points causing pain." }
+      { id: 1, name: "医療マッサージ", duration: 60, price: 12000, description: "特定の医療状態のためのターゲットを絞った治療マッサージ。" },
+      { id: 2, name: "筋膜リリース", duration: 60, price: 12000, description: "筋膜の制限を解放し、可動性を向上させる専門的な技術。" },
+      { id: 3, name: "トリガーポイントセラピー", duration: 75, price: 14000, description: "痛みを引き起こす筋肉の結節やトリガーポイントに焦点を当てた施術。" }
     ],
     qualifications: [
-      "Clinical Massage Therapy Certification",
-      "Myofascial Release Specialist",
-      "Master's in Exercise Physiology"
+      "臨床マッサージセラピー認定",
+      "筋膜リリーススペシャリスト",
+      "運動生理学の修士号"
     ]
   },
   {
     id: 5,
-    name: "Alexander Chen",
-    specialties: ["Therapeutic", "Cupping", "Acupressure"],
+    name: "山田 健太郎",
+    specialties: ["セラピューティック", "カッピング", "指圧"],
     experience: 7,
     rating: 4.6,
     reviews: 92,
-    description: "Integrates traditional Chinese medicine techniques with modern therapeutic massage.",
-    longDescription: "I bring together traditional Chinese medicine philosophies and contemporary therapeutic techniques in my 7 years of practice. My sessions often incorporate cupping therapy, acupressure, and therapeutic massage to address both symptoms and underlying imbalances. I believe in the body's innate ability to heal when given the right support. My approach is particularly effective for stress-related conditions, chronic fatigue, and tension patterns that haven't resolved with conventional methods. I prioritize client education and often provide self-care techniques to extend the benefits of our work together.",
-    location: "Harmony Healing Center",
+    description: "伝統的な中国医学の技術と現代の治療マッサージを統合します。",
+    longDescription: "私は7年間の実践で伝統的な中国医学の哲学と現代の治療技術を組み合わせています。私のセッションでは、症状と根本的な不均衡の両方に対処するために、カッピングセラピー、指圧、治療マッサージを組み込むことがよくあります。私は、適切なサポートがあれば、体には自然治癒能力があると信じています。私のアプローチは、ストレス関連の症状、慢性疲労、従来の方法では解決していない緊張パターンに特に効果的です。私はクライアント教育を優先し、私たちの作業の効果を延長するためのセルフケア技術を提供することがよくあります。",
+    location: "ハーモニーヒーリングセンター",
     price: 100,
-    availability: ["Mon", "Thu", "Fri", "Sat", "Sun"],
+    availability: ["月", "木", "金", "土", "日"],
     imageUrl: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&q=80&w=1480&ixlib=rb-4.0.3",
     services: [
-      { id: 1, name: "Therapeutic Massage", duration: 60, price: 100, description: "Customized massage targeting your specific needs and concerns." },
-      { id: 2, name: "Cupping Therapy", duration: 45, price: 85, description: "Traditional suction technique to improve circulation and release tension." },
-      { id: 3, name: "Acupressure Session", duration: 60, price: 100, description: "Pressure point therapy based on traditional Chinese medicine principles." }
+      { id: 1, name: "セラピューティックマッサージ", duration: 60, price: 10000, description: "あなたの特定のニーズと懸念事項に合わせたカスタマイズされたマッサージ。" },
+      { id: 2, name: "カッピングセラピー", duration: 45, price: 8500, description: "循環を改善し、緊張を解放するための伝統的な吸引技術。" },
+      { id: 3, name: "指圧セッション", duration: 60, price: 10000, description: "伝統的な中国医学の原則に基づくツボ療法。" }
     ],
     qualifications: [
-      "Traditional Chinese Medicine Foundations",
-      "Certified Cupping Therapist",
-      "Acupressure Specialist"
+      "伝統的な中国医学の基礎",
+      "認定カッピングセラピスト",
+      "指圧スペシャリスト"
     ]
   },
   {
     id: 6,
-    name: "Daniel Wilson",
-    specialties: ["Craniosacral", "Lymphatic Drainage", "Prenatal"],
+    name: "伊藤 大地",
+    specialties: ["クラニオセイクラル", "リンパドレナージ", "プレナタル"],
     experience: 9,
     rating: 4.9,
     reviews: 134,
-    description: "Gentle yet effective approach specializing in subtle therapeutic techniques.",
-    longDescription: "Over my 9 years in practice, I've focused on gentle yet powerful modalities that support the body's natural healing processes. My specialty areas include craniosacral therapy, lymphatic drainage, and prenatal massage. These approaches use light touch but can create profound shifts in the nervous system and overall wellbeing. I excel at working with sensitive individuals, those with autoimmune conditions, and clients seeking deep relaxation without intense pressure. My prenatal work is informed by extensive specialized training to ensure both comfort and safety. I create a calm, nurturing environment where healing can occur at its own pace.",
-    location: "Gentle Touch Wellness Studio",
+    description: "繊細な治療技術を専門とする穏やかかつ効果的なアプローチを提供します。",
+    longDescription: "9年間の実践を通じて、体の自然な治癒プロセスをサポートする穏やかながらも強力なモダリティに焦点を当ててきました。私の専門分野には、クラニオセイクラルセラピー、リンパドレナージ、プレナタルマッサージが含まれます。これらのアプローチは軽いタッチを使用しますが、神経系と全体的な健康に深い変化をもたらすことができます。私は敏感な個人、自己免疫疾患を持つ人々、そして激しい圧力なしに深いリラクゼーションを求めるクライアントとの作業に優れています。私のプレナタル作業は、快適さと安全性の両方を確保するための広範な専門トレーニングに基づいています。私は、癒しが自分のペースで起こることができる穏やかで育成的な環境を作り出します。",
+    location: "ジェントルタッチウェルネススタジオ",
     price: 105,
-    availability: ["Mon", "Tue", "Wed", "Fri"],
+    availability: ["月", "火", "水", "金"],
     imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=1374&ixlib=rb-4.0.3",
     services: [
-      { id: 1, name: "Craniosacral Therapy", duration: 60, price: 105, description: "Gentle touch therapy focusing on the craniosacral system and nervous system regulation." },
-      { id: 2, name: "Lymphatic Drainage", duration: 60, price: 105, description: "Light touch technique to improve lymphatic flow and reduce swelling." },
-      { id: 3, name: "Prenatal Massage", duration: 75, price: 125, description: "Safe, comfortable massage specifically designed for pregnancy." }
+      { id: 1, name: "クラニオセイクラルセラピー", duration: 60, price: 10500, description: "クラニオセイクラルシステムと神経系の調整に焦点を当てた優しいタッチセラピー。" },
+      { id: 2, name: "リンパドレナージ", duration: 60, price: 10500, description: "リンパの流れを改善し、腫れを軽減するための軽いタッチ技術。" },
+      { id: 3, name: "プレナタルマッサージ", duration: 75, price: 12500, description: "妊娠のために特別に設計された安全で快適なマッサージ。" }
     ],
     qualifications: [
-      "Certified Craniosacral Therapist",
-      "Lymphatic Drainage Specialist",
-      "Certified Prenatal Massage Therapist"
+      "認定クラニオセイクラルセラピスト",
+      "リンパドレナージスペシャリスト",
+      "認定プレナタルマッサージセラピスト"
     ]
   }
 ];

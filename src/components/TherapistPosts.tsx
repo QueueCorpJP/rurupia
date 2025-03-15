@@ -29,8 +29,8 @@ const TherapistPosts = ({ posts, therapistName, isFollowing = true }: TherapistP
   const CHARACTER_LIMIT = 140;
   
   return (
-    <div className="mt-8">
-      <h2 className="font-semibold text-lg mb-3">最近の投稿</h2>
+    <div className="mt-6">
+      <h3 className="text-base font-semibold mb-3">最近の投稿</h3>
       <div className="space-y-4">
         {posts.map(post => {
           const isExpanded = expandedPosts.includes(post.id);
@@ -57,7 +57,7 @@ const TherapistPosts = ({ posts, therapistName, isFollowing = true }: TherapistP
               )}
               <div className="p-4">
                 <div className="flex justify-between items-center">
-                  <div className="font-medium text-base">{therapistName}</div>
+                  <div className="font-medium text-sm">{therapistName}</div>
                   <div className="text-xs text-muted-foreground">{post.date}</div>
                 </div>
                 
@@ -95,13 +95,13 @@ const TherapistPosts = ({ posts, therapistName, isFollowing = true }: TherapistP
                   </div>
                 )}
                 
-                <div className="flex mt-3 pt-3 border-t text-sm text-muted-foreground">
+                <div className="flex mt-3 pt-3 border-t text-xs text-muted-foreground">
                   <button className="flex items-center mr-4 hover:text-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                     いいね
                   </button>
                   <button className="flex items-center hover:text-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
                     コメント
                   </button>
                 </div>

@@ -1,5 +1,6 @@
 
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import Layout from '../components/Layout';
 import { 
   ArrowRight, 
@@ -10,6 +11,7 @@ import {
   Sliders, 
   MapPin,
   Clock,
+  ArrowLeft,
 } from 'lucide-react';
 import TherapistCard from '../components/TherapistCard';
 import { therapists } from '../utils/data';
@@ -17,12 +19,346 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const Index = () => {
   // Show only featured therapists on the landing page
   const featuredTherapists = therapists
     .sort((a, b) => b.rating - a.rating)
     .slice(0, 3);
+
+  // State for multi-step questionnaire
+  const [step, setStep] = useState(1);
+  const [answers, setAnswers] = useState({
+    mood: '',
+    therapistType: '',
+    treatmentType: '',
+    therapistAge: '',
+    location: '',
+    budget: ''
+  });
+
+  // Handle answer selection
+  const handleAnswerSelect = (question: keyof typeof answers, answer: string) => {
+    setAnswers(prev => ({
+      ...prev,
+      [question]: answer
+    }));
+  };
+
+  // Move to next question
+  const handleNext = () => {
+    setStep(prev => prev + 1);
+  };
+
+  // Move to previous question
+  const handlePrevious = () => {
+    setStep(prev => prev - 1);
+  };
+
+  // Handle search submission
+  const handleSearchSubmit = () => {
+    // Here you would typically navigate to the search results page with the filters
+    console.log('Search with:', answers);
+    // For now, we'll just reset the form
+    setStep(1);
+  };
+
+  // Question components
+  const renderQuestionStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">1. 今日はどんな気分ですか？</h2>
+            <RadioGroup 
+              value={answers.mood} 
+              onValueChange={(value) => handleAnswerSelect('mood', value)}
+              className="space-y-3"
+            >
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="relax" id="mood-1" />
+                <label htmlFor="mood-1" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">① リラックスしたい</span>
+                  <span className="ml-2">☁️</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="stress" id="mood-2" />
+                <label htmlFor="mood-2" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">② ストレスを発散したい</span>
+                  <span className="ml-2">💥</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="heal" id="mood-3" />
+                <label htmlFor="mood-3" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">③ 癒されたい</span>
+                  <span className="ml-2">💗</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="talk" id="mood-4" />
+                <label htmlFor="mood-4" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">④ しっかり会話を楽しみたい</span>
+                  <span className="ml-2">🗣️</span>
+                </label>
+              </div>
+            </RadioGroup>
+            
+            <div className="flex justify-end">
+              <Button onClick={handleNext} disabled={!answers.mood} className="px-8 rounded-full">
+                次へ
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 2:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">2. どんな雰囲気のセラピストが理想ですか？</h2>
+            <RadioGroup 
+              value={answers.therapistType} 
+              onValueChange={(value) => handleAnswerSelect('therapistType', value)}
+              className="space-y-3"
+            >
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="mature" id="type-1" />
+                <label htmlFor="type-1" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">① 落ち着いた・大人っぽい</span>
+                  <span className="ml-2">🎩</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="bright" id="type-2" />
+                <label htmlFor="type-2" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">② 明るくて話しやすい</span>
+                  <span className="ml-2">😄</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="inclusive" id="type-3" />
+                <label htmlFor="type-3" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">③ 包容力がある</span>
+                  <span className="ml-2">🌿</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="cool" id="type-4" />
+                <label htmlFor="type-4" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">④ クールで控えめ</span>
+                  <span className="ml-2">❄️</span>
+                </label>
+              </div>
+            </RadioGroup>
+            
+            <div className="flex justify-between">
+              <Button onClick={handlePrevious} variant="outline" className="px-8 rounded-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                戻る
+              </Button>
+              <Button onClick={handleNext} disabled={!answers.therapistType} className="px-8 rounded-full">
+                次へ
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 3:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">3. どんなプレイを受けたいですか？</h2>
+            <RadioGroup 
+              value={answers.treatmentType} 
+              onValueChange={(value) => handleAnswerSelect('treatmentType', value)}
+              className="space-y-3"
+            >
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="gentle" id="treatment-1" />
+                <label htmlFor="treatment-1" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">① ゆっくり丁寧なプレイ</span>
+                  <span className="ml-2">🦊</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="strong" id="treatment-2" />
+                <label htmlFor="treatment-2" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">② しっかり強めのプレイ</span>
+                  <span className="ml-2">💪</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="technique" id="treatment-3" />
+                <label htmlFor="treatment-3" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">③ ハンドテクニックメイン</span>
+                  <span className="ml-2">✋</span>
+                </label>
+              </div>
+            </RadioGroup>
+            
+            <div className="flex justify-between">
+              <Button onClick={handlePrevious} variant="outline" className="px-8 rounded-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                戻る
+              </Button>
+              <Button onClick={handleNext} disabled={!answers.treatmentType} className="px-8 rounded-full">
+                次へ
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 4:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">4. セラピストの年齢に希望はありますか？</h2>
+            <RadioGroup 
+              value={answers.therapistAge} 
+              onValueChange={(value) => handleAnswerSelect('therapistAge', value)}
+              className="space-y-3"
+            >
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="early20s" id="age-1" />
+                <label htmlFor="age-1" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">① 20代前半</span>
+                  <span className="ml-2">👧</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="late20s" id="age-2" />
+                <label htmlFor="age-2" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">② 20代後半</span>
+                  <span className="ml-2">👱</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="30plus" id="age-3" />
+                <label htmlFor="age-3" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">③ 30代以上</span>
+                  <span className="ml-2">👨</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="noPreference" id="age-4" />
+                <label htmlFor="age-4" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">④ 特にない</span>
+                  <span className="ml-2">🙈</span>
+                </label>
+              </div>
+            </RadioGroup>
+            
+            <div className="flex justify-between">
+              <Button onClick={handlePrevious} variant="outline" className="px-8 rounded-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                戻る
+              </Button>
+              <Button onClick={handleNext} disabled={!answers.therapistAge} className="px-8 rounded-full">
+                次へ
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 5:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">5. 希望エリアは？</h2>
+            <div className="rounded-lg border p-4">
+              <Input 
+                placeholder="都道府県" 
+                value={answers.location}
+                onChange={(e) => handleAnswerSelect('location', e.target.value)}
+                className="text-lg p-4 h-14"
+              />
+            </div>
+            
+            <div className="flex justify-between">
+              <Button onClick={handlePrevious} variant="outline" className="px-8 rounded-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                戻る
+              </Button>
+              <Button onClick={handleNext} disabled={!answers.location} className="px-8 rounded-full">
+                次へ
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 6:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">6. 予算の希望は？</h2>
+            <RadioGroup 
+              value={answers.budget} 
+              onValueChange={(value) => handleAnswerSelect('budget', value)}
+              className="space-y-3"
+            >
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="under5000" id="budget-1" />
+                <label htmlFor="budget-1" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">① ～5,000円</span>
+                  <span className="ml-2">💰</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="5000to10000" id="budget-2" />
+                <label htmlFor="budget-2" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">② 5,000円～10,000円</span>
+                  <span className="ml-2">💵</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="10000to20000" id="budget-3" />
+                <label htmlFor="budget-3" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">③ 10,000円～20,000円</span>
+                  <span className="ml-2">💎</span>
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3 rounded-lg border p-4 cursor-pointer hover:bg-muted">
+                <RadioGroupItem value="noPreference" id="budget-4" />
+                <label htmlFor="budget-4" className="flex items-center cursor-pointer w-full">
+                  <span className="text-lg">④ 特にない</span>
+                  <span className="ml-2">🙈</span>
+                </label>
+              </div>
+            </RadioGroup>
+            
+            <div className="flex justify-between">
+              <Button onClick={handlePrevious} variant="outline" className="px-8 rounded-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                戻る
+              </Button>
+              <Button onClick={handleSearchSubmit} className="px-8 rounded-full">
+                結果を見る
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Layout>
@@ -43,98 +379,13 @@ const Index = () => {
             <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-pink-100">
               <h2 className="text-2xl font-bold mb-6 text-center">あなたにぴったりのセラピストを見つける</h2>
               
-              {/* Search Tabs */}
-              <Tabs defaultValue="keyword" className="mb-6">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="keyword">キーワード検索</TabsTrigger>
-                  <TabsTrigger value="guided">質問形式で探す</TabsTrigger>
-                </TabsList>
-                <TabsContent value="keyword" className="space-y-4 pt-4">
-                  <div className="relative">
-                    <div className="flex items-center bg-white rounded-full border border-pink-100 shadow-sm overflow-hidden">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                        <Input 
-                          type="text" 
-                          placeholder="セラピスト名、得意分野で検索" 
-                          className="pl-10 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-12 text-base rounded-full" 
-                        />
-                      </div>
-                      <Button size="lg" className="rounded-l-none h-12 px-6 rounded-r-full">
-                        検索
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Quick Filter Options */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="flex items-center gap-2 p-3 rounded-xl border border-pink-100 bg-white">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      <span className="text-muted-foreground text-sm">サービス希望日</span>
-                      <input type="date" className="ml-auto border-0 bg-transparent text-sm" />
-                    </div>
-                    <div className="flex items-center gap-2 p-3 rounded-xl border border-pink-100 bg-white">
-                      <MapPin className="h-5 w-5 text-primary" />
-                      <select className="border-0 bg-transparent text-sm w-full">
-                        <option>エリアを選択</option>
-                        <option>東京</option>
-                        <option>大阪</option>
-                        <option>名古屋</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 rounded-xl border border-pink-100 bg-white">
-                      <Sliders className="h-5 w-5 text-primary" />
-                      <span className="text-muted-foreground text-sm">フィルター</span>
-                      <select className="ml-auto border-0 bg-transparent text-sm">
-                        <option>並び替え</option>
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-center pt-2">
-                    <Link to="/therapists">
-                      <Button size="lg" className="font-medium text-base rounded-full px-8 shadow-md hover:shadow-lg transition-shadow btn-hover-slide">
-                        すべてのセラピストを表示
-                        <ArrowRight className="ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="guided" className="space-y-4 pt-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-medium">どのようなケアをお求めですか？</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        <Button variant="outline" className="justify-start border-pink-100">リラクゼーション</Button>
-                        <Button variant="outline" className="justify-start border-pink-100">美容</Button>
-                        <Button variant="outline" className="justify-start border-pink-100">筋肉疲労</Button>
-                        <Button variant="outline" className="justify-start border-pink-100">ストレス軽減</Button>
-                        <Button variant="outline" className="justify-start border-pink-100">姿勢改善</Button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-medium">ご希望の予算はいくらですか？</h3>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button variant="outline" className="justify-start border-pink-100">～7,000円</Button>
-                        <Button variant="outline" className="justify-start border-pink-100">～10,000円</Button>
-                        <Button variant="outline" className="justify-start border-pink-100">10,000円～</Button>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-center pt-2">
-                      <Button size="lg" className="font-medium text-base rounded-full px-8 shadow-md hover:shadow-lg transition-shadow btn-hover-slide">
-                        セラピストを探す
-                        <ArrowRight className="ml-2" />
-                      </Button>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+              {/* Step-by-step questionnaire */}
+              <div className="transition-all duration-300 ease-in-out">
+                {renderQuestionStep()}
+              </div>
               
               {/* Features */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-8">
                 <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-pink-100">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <Shield className="h-5 w-5 text-primary" />

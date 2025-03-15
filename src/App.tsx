@@ -17,12 +17,19 @@ import Blog from "./pages/Blog";
 import BlogDetail from "./pages/BlogDetail";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./components/admin/AdminLayout";
+import StoreAdminLayout from "./components/admin/StoreAdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAccounts from "./pages/admin/AdminAccounts";
 import AdminRequests from "./pages/admin/AdminRequests";
 import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminStoreManagement from "./pages/admin/AdminStoreManagement";
+import StoreAdminDashboard from "./pages/store/StoreAdminDashboard";
+import StoreTherapists from "./pages/store/StoreTherapists";
+import StoreCourses from "./pages/store/StoreCourses";
+import StoreInquiries from "./pages/store/StoreInquiries";
+import StoreAnalytics from "./pages/store/StoreAnalytics";
+import StoreBlog from "./pages/store/StoreBlog";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import TherapistLogin from "./pages/TherapistLogin";
@@ -59,7 +66,7 @@ const App = () => (
           <Route path="/store-login" element={<StoreLogin />} />
           <Route path="/store-signup" element={<StoreSignup />} />
           
-          {/* Admin Routes */}
+          {/* Admin Routes - For Site Operation */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="accounts" element={<AdminAccounts />} />
@@ -67,6 +74,16 @@ const App = () => (
             <Route path="requests" element={<AdminRequests />} />
             <Route path="inquiries" element={<AdminInquiries />} />
             <Route path="settings" element={<AdminSettings />} />
+          </Route>
+          
+          {/* Store Admin Routes - For Store Management */}
+          <Route path="/store-admin" element={<StoreAdminLayout />}>
+            <Route index element={<StoreAdminDashboard />} />
+            <Route path="therapists" element={<StoreTherapists />} />
+            <Route path="courses" element={<StoreCourses />} />
+            <Route path="inquiries" element={<StoreInquiries />} />
+            <Route path="analytics" element={<StoreAnalytics />} />
+            <Route path="blog" element={<StoreBlog />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

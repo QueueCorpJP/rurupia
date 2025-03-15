@@ -2,30 +2,31 @@
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
-  LayoutDashboard, 
-  Users, 
-  Store, 
-  HelpCircle, 
-  Settings, 
-  Newspaper, 
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  MessageSquare,
+  BarChart2,
+  FileText,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Copy
 } from 'lucide-react';
 
-interface SidebarNavProps {
+interface StoreSidebarNavProps {
   isOpen: boolean;
   toggleSidebar: () => void;
 }
 
-export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
+export function StoreSidebarNav({ isOpen, toggleSidebar }: StoreSidebarNavProps) {
   const navItems = [
-    { title: 'ダッシュボード', href: '/admin', icon: LayoutDashboard },
-    { title: 'アカウント管理', href: '/admin/accounts', icon: Users },
-    { title: '店舗管理', href: '/admin/store', icon: Store },
-    { title: '店舗リクエスト', href: '/admin/requests', icon: Store },
-    { title: 'お問い合わせ', href: '/admin/inquiries', icon: HelpCircle },
-    { title: '設定', href: '/admin/settings', icon: Settings },
+    { title: 'ダッシュボード', href: '/store-admin', icon: LayoutDashboard },
+    { title: 'セラピスト管理', href: '/store-admin/therapists', icon: Users },
+    { title: 'コース管理', href: '/store-admin/courses', icon: BookOpen },
+    { title: 'お問い合わせ', href: '/store-admin/inquiries', icon: MessageSquare },
+    { title: '分析・統計', href: '/store-admin/analytics', icon: BarChart2 },
+    { title: 'ブログ管理', href: '/store-admin/blog', icon: FileText },
   ];
 
   return (
@@ -39,7 +40,7 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
         <span className={cn("font-semibold whitespace-nowrap overflow-hidden transition-all", 
           isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
         )}>
-          運営管理システム
+          店舗管理システム
         </span>
         <button
           onClick={toggleSidebar}
@@ -64,7 +65,7 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
                     !isOpen && "justify-center"
                   )
                 }
-                end={item.href === '/admin'}
+                end={item.href === '/store-admin'}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
                 <span className={cn("truncate transition-all", 
@@ -79,25 +80,19 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
         
         <div className="mt-auto">
           <div className="px-2 py-4">
-            <NavLink
-              to="/admin/blog"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
-                  isActive 
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-                  !isOpen && "justify-center"
-                )
-              }
+            <button
+              className={cn(
+                "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                !isOpen && "justify-center"
+              )}
             >
-              <Newspaper className="h-5 w-5 flex-shrink-0" />
+              <Copy className="h-5 w-5 flex-shrink-0" />
               <span className={cn("truncate transition-all", 
                 isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
               )}>
-                ブログ管理
+                招待リンクをコピー
               </span>
-            </NavLink>
+            </button>
           </div>
           
           <div className="border-t border-sidebar-border px-2 py-4">

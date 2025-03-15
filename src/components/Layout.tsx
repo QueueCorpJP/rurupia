@@ -1,5 +1,5 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,13 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  // This would be replaced with actual auth state management
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  // Toggle login state (for demo purposes)
+  const toggleLogin = () => {
+    setIsLoggedIn(!isLoggedIn);
+  };
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -49,68 +56,85 @@ const Layout = ({ children }: LayoutProps) => {
               <BookOpen className="h-4 w-4" />
               <span>ブログ</span>
             </Link>
-            <Link 
-              to="/messages" 
-              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
-                location.pathname === '/messages' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
-              }`}
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span>メッセージ</span>
-            </Link>
-            <Link 
-              to="/user-profile" 
-              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
-                location.pathname === '/user-profile' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
-              }`}
-            >
-              <User className="h-4 w-4" />
-              <span>マイページ</span>
-            </Link>
-            <div className="h-6 w-px bg-border mx-1"></div>
             
-            {/* Auth dropdown menu */}
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid w-[200px] gap-2 p-4">
-                      <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
-                        ユーザーログイン
-                      </Link>
-                      <Link to="/therapist-login" className="block p-2 hover:bg-muted rounded-md">
-                        セラピストログイン
-                      </Link>
-                      <Link to="/store-login" className="block p-2 hover:bg-muted rounded-md">
-                        店舗ログイン
-                      </Link>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+            {isLoggedIn && (
+              <>
+                <Link 
+                  to="/messages" 
+                  className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
+                    location.pathname === '/messages' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+                  }`}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>メッセージ</span>
+                </Link>
+                <Link 
+                  to="/user-profile" 
+                  className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
+                    location.pathname === '/user-profile' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+                  }`}
+                >
+                  <User className="h-4 w-4" />
+                  <span>マイページ</span>
+                </Link>
+                <Button onClick={toggleLogin} variant="destructive" size="sm" className="ml-2">
+                  ログアウト (デモ)
+                </Button>
+              </>
+            )}
             
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid w-[200px] gap-2 p-4">
-                      <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
-                        ユーザー登録
-                      </Link>
-                      <Link to="/therapist-signup" className="block p-2 hover:bg-muted rounded-md">
-                        セラピスト登録
-                      </Link>
-                      <Link to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
-                        店舗登録
-                      </Link>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+            {!isLoggedIn && (
+              <>
+                <div className="h-6 w-px bg-border mx-1"></div>
+                
+                {/* Auth dropdown menu */}
+                <NavigationMenu>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="grid w-[200px] gap-2 p-4">
+                          <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
+                            ユーザーログイン
+                          </Link>
+                          <Link to="/therapist-login" className="block p-2 hover:bg-muted rounded-md">
+                            セラピストログイン
+                          </Link>
+                          <Link to="/store-login" className="block p-2 hover:bg-muted rounded-md">
+                            店舗ログイン
+                          </Link>
+                        </div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+                
+                <NavigationMenu>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="grid w-[200px] gap-2 p-4">
+                          <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
+                            ユーザー登録
+                          </Link>
+                          <Link to="/therapist-signup" className="block p-2 hover:bg-muted rounded-md">
+                            セラピスト登録
+                          </Link>
+                          <Link to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
+                            店舗登録
+                          </Link>
+                        </div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+                
+                <Button onClick={toggleLogin} variant="default" size="sm" className="ml-2">
+                  ログイン (デモ)
+                </Button>
+              </>
+            )}
           </nav>
 
           {/* Mobile menu button */}

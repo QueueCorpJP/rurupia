@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import Layout from '../components/Layout';
@@ -12,6 +11,7 @@ import {
   MapPin,
   Clock,
   ArrowLeft,
+  HelpCircle,
 } from 'lucide-react';
 import TherapistCard from '../components/TherapistCard';
 import { therapists } from '../utils/data';
@@ -26,6 +26,8 @@ const Index = () => {
   const featuredTherapists = therapists
     .sort((a, b) => b.rating - a.rating)
     .slice(0, 3);
+
+  const [searchTerm, setSearchTerm] = useState('');
 
   // State for multi-step questionnaire
   const [step, setStep] = useState(1);
@@ -62,6 +64,14 @@ const Index = () => {
     console.log('Search with:', answers);
     // For now, we'll just reset the form
     setStep(1);
+  };
+
+  // Handle keyword search
+  const handleKeywordSearch = () => {
+    if (searchTerm.trim()) {
+      console.log('Searching for:', searchTerm);
+      // Navigate to search results
+    }
   };
 
   // Question components
@@ -379,10 +389,40 @@ const Index = () => {
             <div className="relative bg-white rounded-2xl p-6 shadow-lg border border-pink-100">
               <h2 className="text-2xl font-bold mb-6 text-center">あなたにぴったりのセラピストを見つける</h2>
               
-              {/* Step-by-step questionnaire */}
-              <div className="transition-all duration-300 ease-in-out">
-                {renderQuestionStep()}
-              </div>
+              <Tabs defaultValue="keyword" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="keyword" className="flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    キーワード検索
+                  </TabsTrigger>
+                  <TabsTrigger value="questions" className="flex items-center gap-2">
+                    <HelpCircle className="h-4 w-4" />
+                    質問に答えて検索
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="keyword" className="mt-0">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="セラピスト名・キーワードなど"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button onClick={handleKeywordSearch}>
+                      <Search className="h-4 w-4 mr-2" />
+                      検索
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="questions" className="mt-0">
+                  {/* Step-by-step questionnaire */}
+                  <div className="transition-all duration-300 ease-in-out">
+                    {renderQuestionStep()}
+                  </div>
+                </TabsContent>
+              </Tabs>
               
               {/* Features */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-8">

@@ -3,6 +3,14 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { 
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 interface LayoutProps {
   children: ReactNode;
@@ -60,16 +68,49 @@ const Layout = ({ children }: LayoutProps) => {
               <span>マイページ</span>
             </Link>
             <div className="h-6 w-px bg-border mx-1"></div>
-            <Link to="/login">
-              <Button variant="ghost" size="sm" className="rounded-full">
-                ログイン
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm" className="rounded-full">
-                新規登録
-              </Button>
-            </Link>
+            
+            {/* Auth dropdown menu */}
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[200px] gap-2 p-4">
+                      <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
+                        ユーザーログイン
+                      </Link>
+                      <Link to="/therapist-login" className="block p-2 hover:bg-muted rounded-md">
+                        セラピストログイン
+                      </Link>
+                      <Link to="/store-login" className="block p-2 hover:bg-muted rounded-md">
+                        店舗ログイン
+                      </Link>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+            
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[200px] gap-2 p-4">
+                      <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
+                        ユーザー登録
+                      </Link>
+                      <Link to="/therapist-signup" className="block p-2 hover:bg-muted rounded-md">
+                        セラピスト登録
+                      </Link>
+                      <Link to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
+                        店舗登録
+                      </Link>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
           </nav>
 
           {/* Mobile menu button */}

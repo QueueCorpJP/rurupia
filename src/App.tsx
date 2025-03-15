@@ -23,6 +23,12 @@ import AdminRequests from "./pages/admin/AdminRequests";
 import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminStoreManagement from "./pages/admin/AdminStoreManagement";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import TherapistLogin from "./pages/TherapistLogin";
+import TherapistSignup from "./pages/TherapistSignup";
+import StoreLogin from "./pages/StoreLogin";
+import StoreSignup from "./pages/StoreSignup";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +50,14 @@ const App = () => (
           <Route path="/messages/:id" element={<Messages />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
+          
+          {/* Auth Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/therapist-login" element={<TherapistLogin />} />
+          <Route path="/therapist-signup" element={<TherapistSignup />} />
+          <Route path="/store-login" element={<StoreLogin />} />
+          <Route path="/store-signup" element={<StoreSignup />} />
           
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminLayout />}>

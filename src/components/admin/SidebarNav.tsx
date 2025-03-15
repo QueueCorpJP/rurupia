@@ -10,7 +10,8 @@ import {
   Newspaper, 
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ListChecks
 } from 'lucide-react';
 
 interface SidebarNavProps {
@@ -23,8 +24,9 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
     { title: 'ダッシュボード', href: '/admin', icon: LayoutDashboard },
     { title: 'アカウント管理', href: '/admin/accounts', icon: Users },
     { title: '店舗管理', href: '/admin/store', icon: Store },
-    { title: '店舗リクエスト', href: '/admin/requests', icon: Store },
+    { title: '店舗一覧', href: '/admin/requests', icon: ListChecks },
     { title: 'お問い合わせ', href: '/admin/inquiries', icon: HelpCircle },
+    { title: 'ブログ管理', href: '/admin/blog', icon: Newspaper },
     { title: '設定', href: '/admin/settings', icon: Settings },
   ];
 
@@ -78,28 +80,6 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
         </ul>
         
         <div className="mt-auto">
-          <div className="px-2 py-4">
-            <NavLink
-              to="/admin/blog"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
-                  isActive 
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-                  !isOpen && "justify-center"
-                )
-              }
-            >
-              <Newspaper className="h-5 w-5 flex-shrink-0" />
-              <span className={cn("truncate transition-all", 
-                isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
-              )}>
-                ブログ管理
-              </span>
-            </NavLink>
-          </div>
-          
           <div className="border-t border-sidebar-border px-2 py-4">
             <button
               className={cn(

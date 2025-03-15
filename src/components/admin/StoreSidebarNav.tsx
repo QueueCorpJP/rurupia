@@ -7,7 +7,6 @@ import {
   BookOpen,
   MessageSquare,
   BarChart2,
-  FileText,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -26,7 +25,6 @@ export function StoreSidebarNav({ isOpen, toggleSidebar }: StoreSidebarNavProps)
     { title: 'コース管理', href: '/store-admin/courses', icon: BookOpen },
     { title: 'お問い合わせ', href: '/store-admin/inquiries', icon: MessageSquare },
     { title: '分析・統計', href: '/store-admin/analytics', icon: BarChart2 },
-    { title: 'ブログ管理', href: '/store-admin/blog', icon: FileText },
   ];
 
   return (

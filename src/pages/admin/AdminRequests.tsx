@@ -134,8 +134,8 @@ const AdminRequests = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">店舗新規登録リクエスト</h1>
-        <p className="text-muted-foreground mt-2">新しい店舗登録リクエストの管理</p>
+        <h1 className="text-3xl font-bold tracking-tight">店舗一覧</h1>
+        <p className="text-muted-foreground mt-2">システムに登録されている店舗の管理</p>
       </div>
       
       <DataTable 

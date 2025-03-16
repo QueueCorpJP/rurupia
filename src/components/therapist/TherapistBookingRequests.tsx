@@ -46,12 +46,15 @@ export const TherapistBookingRequests = ({ therapistId }: TherapistBookingReques
           }),
           servicePrice: booking.price,
           serviceLocation: booking.location || "未指定",
-          meetingMethod: booking.meeting_method || "meetup",
+          // Handle the case where meeting_method might not exist in the database
+          meetingMethod: booking.notes?.includes("meetup") ? "meetup" : 
+                        booking.notes?.includes("hotel") ? "hotel" : 
+                        booking.notes?.includes("home") ? "home" : "meetup",
           status: booking.status === 'pending' ? "承認待ち" : 
                  booking.status === 'confirmed' ? "確定" : 
                  booking.status === 'cancelled' ? "キャンセル" : "完了",
           notes: booking.notes,
-          therapistId: parseInt(booking.therapist_id)
+          therapistId: booking.therapist_id
         }));
         
         setBookingRequests(transformedData);
@@ -113,12 +116,12 @@ export const TherapistBookingRequests = ({ therapistId }: TherapistBookingReques
             <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
             <p className="mt-2 text-muted-foreground">データを読み込んでいます...</p>
           </div>
-        ) : sortedRequests.length === 0 ? (
+        ) : bookingRequests.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground">
             現在、予約リクエストはありません
           </div>
         ) : (
-          sortedRequests.map(request => (
+          bookingRequests.map(request => (
             <TherapistBookingRequest 
               key={request.id} 
               request={request} 

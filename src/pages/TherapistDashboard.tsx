@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Calendar, Clock, DollarSign, Heart, MapPin, Upload, UploadCloud, Image, Building, Users
@@ -42,70 +41,6 @@ const TherapistDashboard = () => {
     authorName: therapistProfile.name,
     authorAvatar: therapistProfile.avatarUrl
   };
-
-  // Mock booking requests
-  const bookingRequests = [
-    {
-      id: "b1",
-      clientName: "scroke0",
-      requestTime: "2024/11/08 00:00",
-      servicePrice: 13523,
-      serviceLocation: "東京都渋谷区",
-      meetingMethod: "お客様宅",
-      status: "承認待ち" as const
-    },
-    {
-      id: "b2",
-      clientName: "sbeevors5",
-      requestTime: "2024/04/05 00:00",
-      servicePrice: 19752,
-      serviceLocation: "東京都新宿区",
-      meetingMethod: "ホテル",
-      status: "確定" as const
-    },
-    {
-      id: "b3",
-      clientName: "jpietroni6",
-      requestTime: "2024/06/11 00:00",
-      servicePrice: 34045,
-      serviceLocation: "東京都中央区",
-      meetingMethod: "お客様宅",
-      status: "承認待ち" as const
-    },
-    {
-      id: "b4",
-      clientName: "esee9",
-      requestTime: "2024/12/01 00:00",
-      servicePrice: 8091,
-      serviceLocation: "東京都品川区",
-      meetingMethod: "ホテル",
-      status: "キャンセル" as const
-    }
-  ];
-
-  // Mock gallery images
-  const galleryImages = [
-    {
-      id: "g1",
-      url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3",
-      title: "ポートレート1"
-    },
-    {
-      id: "g2",
-      url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3",
-      title: "ポートレート2"
-    },
-    {
-      id: "g3",
-      url: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3",
-      title: "ポートレート3"
-    },
-    {
-      id: "g4",
-      url: "https://images.unsplash.com/photo-1526413232644-8a40f03cc03b?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3",
-      title: "日常風景"
-    }
-  ];
 
   // Current active tab
   const [activeTab, setActiveTab] = useState("profile");
@@ -217,38 +152,90 @@ const TherapistDashboard = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {galleryImages.map((image) => (
-                    <div key={image.id} className="group relative overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
-                      <img 
-                        src={image.url} 
-                        alt={image.title} 
-                        className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                        <h4 className="text-white font-medium">{image.title}</h4>
-                        <div className="flex justify-between items-center mt-2">
-                          <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20 hover:text-white">
-                            編集
-                          </Button>
-                          <Button variant="destructive" size="sm" className="bg-white/20 text-white hover:bg-white/30">
-                            削除
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg border-gray-300 p-8">
-                    <div className="text-center">
-                      <Image className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-sm font-semibold text-gray-900">新しい画像</h3>
-                      <p className="mt-1 text-sm text-gray-500">ドラッグ&ドロップまたはクリックしてアップロード</p>
-                      <div className="mt-4">
-                        <Button variant="outline" size="sm">
-                          <UploadCloud className="mr-2 h-4 w-4" />
-                          ギャラリーに追加
+                  <div key="g1" className="group relative overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
+                    <img 
+                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3" 
+                      alt="ポートレート1" 
+                      className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                      <h4 className="text-white font-medium">ポートレート1</h4>
+                      <div className="flex justify-between items-center mt-2">
+                        <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20 hover:text-white">
+                          編集
+                        </Button>
+                        <Button variant="destructive" size="sm" className="bg-white/20 text-white hover:bg-white/30">
+                          削除
                         </Button>
                       </div>
+                    </div>
+                  </div>
+                  <div key="g2" className="group relative overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
+                    <img 
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3" 
+                      alt="ポートレート2" 
+                      className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                      <h4 className="text-white font-medium">ポートレート2</h4>
+                      <div className="flex justify-between items-center mt-2">
+                        <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20 hover:text-white">
+                          編集
+                        </Button>
+                        <Button variant="destructive" size="sm" className="bg-white/20 text-white hover:bg-white/30">
+                          削除
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div key="g3" className="group relative overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
+                    <img 
+                      src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3" 
+                      alt="ポートレート3" 
+                      className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                      <h4 className="text-white font-medium">ポートレート3</h4>
+                      <div className="flex justify-between items-center mt-2">
+                        <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20 hover:text-white">
+                          編集
+                        </Button>
+                        <Button variant="destructive" size="sm" className="bg-white/20 text-white hover:bg-white/30">
+                          削除
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div key="g4" className="group relative overflow-hidden rounded-lg bg-gray-100 border border-gray-200">
+                    <img 
+                      src="https://images.unsplash.com/photo-1526413232644-8a40f03cc03b?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3" 
+                      alt="日常風景" 
+                      className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                      <h4 className="text-white font-medium">日常風景</h4>
+                      <div className="flex justify-between items-center mt-2">
+                        <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20 hover:text-white">
+                          編集
+                        </Button>
+                        <Button variant="destructive" size="sm" className="bg-white/20 text-white hover:bg-white/30">
+                          削除
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg border-gray-300 p-8">
+                  <div className="text-center">
+                    <Image className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-semibold text-gray-900">新しい画像</h3>
+                    <p className="mt-1 text-sm text-gray-500">ドラッグ&ドロップまたはクリックしてアップロード</p>
+                    <div className="mt-4">
+                      <Button variant="outline" size="sm">
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        ギャラリーに追加
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -256,7 +243,7 @@ const TherapistDashboard = () => {
             </TabsContent>
 
             <TabsContent value="bookings">
-              <TherapistBookingRequests bookingRequests={bookingRequests} />
+              <TherapistBookingRequests therapistId={therapistProfile.therapistId} />
             </TabsContent>
           </Tabs>
         </div>

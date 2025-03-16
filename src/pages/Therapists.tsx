@@ -151,7 +151,7 @@ const Therapists = () => {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredTherapists.map((therapist) => (
-              <TherapistCard key={therapist.id} therapist={therapist} />
+              <TherapistCard key={therapist.id.toString()} therapist={therapist} />
             ))}
           </div>
         )}

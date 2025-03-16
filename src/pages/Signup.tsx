@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,20 @@ const Signup = () => {
   const [idDocument, setIdDocument] = useState<File | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [session, setSession] = useState(null);
   const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate('/');
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,11 +73,31 @@ const Signup = () => {
       
       console.log("Attempting to upload file to path:", filePath);
       
+      // Ensure the 'verification' bucket exists
+      try {
+        const { error: bucketError } = await supabase
+          .storage
+          .getBucket('verification');
+          
+        if (bucketError) {
+          // Create the bucket if it doesn't exist
+          await supabase
+            .storage
+            .createBucket('verification', {
+              public: false
+            });
+        }
+      } catch (error) {
+        console.log("Checking bucket:", error);
+      }
+      
       // Upload the file to the verification bucket with simplified path
       const { data: uploadData, error: uploadError } = await supabase
         .storage
         .from('verification')
-        .upload(filePath, idDocument);
+        .upload(filePath, idDocument, {
+          upsert: true
+        });
         
       if (uploadError) {
         console.error("Error uploading file:", uploadError);
@@ -84,12 +118,12 @@ const Signup = () => {
       // 3. Update the user profile with the verification document path
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ 
+        .upsert({ 
+          id: authData.user.id,
           verification_document: filePath,
           nickname: name,
           email: email
-        })
-        .eq('id', authData.user.id);
+        });
         
       if (updateError) {
         console.error("Error updating profile:", updateError);
@@ -97,9 +131,22 @@ const Signup = () => {
         return;
       }
       
-      // After successful registration, show success message and redirect to login
-      toast.success("登録が完了しました。ログインページに移動します。");
-      navigate("/login");
+      // 4. Sign in the user automatically
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (signInError) {
+        console.error("Auto login failed:", signInError);
+        toast.warning("自動ログインに失敗しました。ログイン画面へ移動します。");
+        navigate("/login");
+        return;
+      }
+      
+      // Success - user is registered and logged in
+      toast.success("登録が完了しました！");
+      navigate("/");
       
     } catch (error) {
       console.error("Signup error:", error);
@@ -289,4 +336,3 @@ const Signup = () => {
 };
 
 export default Signup;
-

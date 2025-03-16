@@ -1,27 +1,34 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,86 +36,151 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Search,
-  Plus,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye,
-} from 'lucide-react';
+} from "@/components/ui/dropdown-menu";
+import { Plus, MoreHorizontal, Edit, Trash2, Clock, Tag } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-// サンプルデータ
-const courses = [
+const initialCourses = [
   {
     id: 1,
-    name: 'アロマオイルマッサージ 60分',
-    price: 6000,
+    name: "アロマオイルマッサージ",
+    category: "リラクゼーション",
+    description: "北欧生まれのマッサージで、心と身体の調整を行います。",
     duration: 60,
-    category: 'オイルマッサージ',
-    status: 'アクティブ',
-    bookings: 120
+    price: 8000,
+    defaultPrice: 8000,
+    customizable: true
   },
   {
     id: 2,
-    name: 'ディープティシュー 90分',
-    price: 9000,
+    name: "ディープティシューマッサージ",
+    category: "ボディケア",
+    description: "深層筋肉に働きかけることで、筋肉疲労を軽減します。",
     duration: 90,
-    category: 'ディープティシュー',
-    status: 'アクティブ',
-    bookings: 85
+    price: 12000,
+    defaultPrice: 12000,
+    customizable: true
   },
   {
     id: 3,
-    name: 'ホットストーンセラピー 90分',
-    price: 10000,
-    duration: 90,
-    category: 'ホットストーン',
-    status: '非アクティブ',
-    bookings: 42
+    name: "ホットストーンマッサージ",
+    category: "スペシャルケア",
+    description: "温めた石を使用することで、深いリラクゼーション効果があります。",
+    duration: 120,
+    price: 15000,
+    defaultPrice: 15000,
+    customizable: false
   },
   {
     id: 4,
-    name: 'フットマッサージ 30分',
-    price: 3500,
-    duration: 30,
-    category: 'フットケア',
-    status: 'アクティブ',
-    bookings: 95
+    name: "フットマッサージ",
+    category: "リラクゼーション",
+    description: "足裏の反射区を刺激し、全身の疲労回復を促します。",
+    duration: 45,
+    price: 6000,
+    defaultPrice: 6000,
+    customizable: true
   },
   {
     id: 5,
-    name: 'ヘッドスパ 45分',
-    price: 5000,
-    duration: 45,
-    category: 'ヘッドケア',
-    status: 'アクティブ',
-    bookings: 76
+    name: "ヘッドスパ",
+    category: "ヘッドケア",
+    description: "頭皮と髪の健康を促進するスペシャルケアです。",
+    duration: 60,
+    price: 8500,
+    defaultPrice: 8500,
+    customizable: false
   }
 ];
 
+const categories = [
+  "リラクゼーション",
+  "ボディケア",
+  "スペシャルケア",
+  "ヘッドケア",
+  "フットケア",
+  "その他"
+];
+
+const durations = [30, 45, 60, 90, 120, 150, 180];
+
 const StoreCourses = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const { toast } = useToast();
+  const [courses, setCourses] = useState(initialCourses);
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false);
-  const [filteredCourses, setFilteredCourses] = useState(courses);
-  
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
+  const [isEditCourseOpen, setIsEditCourseOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [newCourse, setNewCourse] = useState({
+    name: '',
+    category: '',
+    description: '',
+    duration: 60,
+    price: 0,
+    defaultPrice: 0,
+    customizable: true
+  });
+  const [editingCourse, setEditingCourse] = useState<any>(null);
+
+  const filteredCourses = courses.filter(
+    course => course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             course.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleAddCourse = () => {
+    const courseToAdd = {
+      ...newCourse,
+      id: courses.length > 0 ? Math.max(...courses.map(c => c.id)) + 1 : 1,
+      defaultPrice: newCourse.price
+    };
     
-    if (query.trim() === '') {
-      setFilteredCourses(courses);
-      return;
-    }
+    setCourses([...courses, courseToAdd]);
+    setNewCourse({
+      name: '',
+      category: '',
+      description: '',
+      duration: 60,
+      price: 0,
+      defaultPrice: 0,
+      customizable: true
+    });
+    setIsAddCourseOpen(false);
     
-    const filtered = courses.filter(
-      course => 
-        course.name.toLowerCase().includes(query.toLowerCase()) ||
-        course.category.toLowerCase().includes(query.toLowerCase())
-    );
+    toast({
+      title: "コースを追加しました",
+      description: `新しいコース「${courseToAdd.name}」を追加しました。`
+    });
+  };
+
+  const handleEditCourse = () => {
+    if (!editingCourse) return;
     
-    setFilteredCourses(filtered);
+    setCourses(courses.map(course => 
+      course.id === editingCourse.id ? {...editingCourse, defaultPrice: editingCourse.price} : course
+    ));
+    setIsEditCourseOpen(false);
+    
+    toast({
+      title: "コースを更新しました",
+      description: `コース「${editingCourse.name}」の情報を更新しました。`
+    });
+  };
+
+  const handleDeleteCourse = (courseId: number) => {
+    setCourses(courses.filter(course => course.id !== courseId));
+    
+    toast({
+      title: "コースを削除しました",
+      description: "コースが正常に削除されました。"
+    });
+  };
+
+  const startEditCourse = (course: any) => {
+    setEditingCourse({...course});
+    setIsEditCourseOpen(true);
+  };
+
+  const formatPrice = (price: number) => {
+    return `¥${price.toLocaleString()}`;
   };
 
   return (
@@ -116,7 +188,7 @@ const StoreCourses = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">コース管理</h1>
-          <p className="text-muted-foreground mt-2">マッサージコースの登録・管理</p>
+          <p className="text-muted-foreground mt-2">マッサージコースの作成と管理</p>
         </div>
         <Dialog open={isAddCourseOpen} onOpenChange={setIsAddCourseOpen}>
           <DialogTrigger asChild>
@@ -125,61 +197,117 @@ const StoreCourses = () => {
               新規コース
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[525px]">
             <DialogHeader>
-              <DialogTitle>新規コース登録</DialogTitle>
+              <DialogTitle>新規コース作成</DialogTitle>
               <DialogDescription>
-                新しいマッサージコースの詳細を入力してください。
+                新しいマッサージコースの情報を入力してください。
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="course-name">コース名</Label>
-                <Input id="course-name" placeholder="例: アロマオイルマッサージ 60分" />
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">コース名</Label>
+                <Input
+                  id="name"
+                  value={newCourse.name}
+                  onChange={(e) => setNewCourse({...newCourse, name: e.target.value})}
+                  placeholder="例: アロマオイルマッサージ"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="category">カテゴリー</Label>
+                <Select
+                  value={newCourse.category}
+                  onValueChange={(value) => setNewCourse({...newCourse, category: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="カテゴリーを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">説明</Label>
+                <Textarea
+                  id="description"
+                  value={newCourse.description}
+                  onChange={(e) => setNewCourse({...newCourse, description: e.target.value})}
+                  placeholder="コースの詳細説明"
+                  rows={3}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">料金 (円)</Label>
-                  <Input id="price" type="number" placeholder="6000" />
+                <div className="grid gap-2">
+                  <Label htmlFor="duration">施術時間（分）</Label>
+                  <Select
+                    value={newCourse.duration.toString()}
+                    onValueChange={(value) => setNewCourse({...newCourse, duration: parseInt(value)})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="時間を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {durations.map((duration) => (
+                        <SelectItem key={duration} value={duration.toString()}>
+                          {duration}分
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="duration">時間 (分)</Label>
-                  <Input id="duration" type="number" placeholder="60" />
+                <div className="grid gap-2">
+                  <Label htmlFor="price">料金（円）</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={newCourse.price || ''}
+                    onChange={(e) => setNewCourse({...newCourse, price: parseInt(e.target.value) || 0})}
+                    placeholder="例: 8000"
+                  />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">カテゴリ</Label>
-                <Input id="category" placeholder="例: オイルマッサージ" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">説明</Label>
-                <Textarea id="description" placeholder="コースの説明を入力してください" />
+              <div className="flex items-center space-x-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="customizable"
+                  checked={newCourse.customizable}
+                  onChange={(e) => setNewCourse({...newCourse, customizable: e.target.checked})}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="customizable" className="text-sm font-normal">
+                  セラピストによる料金カスタマイズを許可する
+                </Label>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddCourseOpen(false)}>キャンセル</Button>
-              <Button type="submit">登録する</Button>
+              <Button onClick={handleAddCourse}>コースを作成</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <CardTitle>コース一覧</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex gap-2">
               <Input
-                placeholder="コース名やカテゴリで検索"
-                className="pl-8"
+                placeholder="コース名を検索..."
                 value={searchQuery}
-                onChange={handleSearch}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-60"
               />
             </div>
           </div>
           <CardDescription>
-            現在登録されているマッサージコースの一覧です。
+            マッサージコースの一覧と詳細
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -187,53 +315,60 @@ const StoreCourses = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>コース名</TableHead>
-                <TableHead>カテゴリ</TableHead>
-                <TableHead className="text-right">料金 (円)</TableHead>
-                <TableHead className="text-right">時間 (分)</TableHead>
-                <TableHead>ステータス</TableHead>
-                <TableHead className="text-right">予約数</TableHead>
-                <TableHead className="text-right">操作</TableHead>
+                <TableHead>カテゴリー</TableHead>
+                <TableHead>時間</TableHead>
+                <TableHead>料金</TableHead>
+                <TableHead>セラピスト調整</TableHead>
+                <TableHead className="text-right">アクション</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredCourses.map((course) => (
                 <TableRow key={course.id}>
                   <TableCell className="font-medium">{course.name}</TableCell>
-                  <TableCell>{course.category}</TableCell>
-                  <TableCell className="text-right">{course.price.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{course.duration}</TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                      course.status === 'アクティブ' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
+                    <div className="flex items-center">
+                      <Tag className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <span>{course.category}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <span>{course.duration}分</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{formatPrice(course.price)}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      course.customizable 
+                        ? "bg-green-100 text-green-800" 
+                        : "bg-gray-100 text-gray-800"
                     }`}>
-                      {course.status}
+                      {course.customizable ? "許可" : "固定"}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">{course.bookings}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
                           <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">メニューを開く</span>
+                          <span className="sr-only">操作メニュー</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>アクション</DropdownMenuLabel>
-                        <DropdownMenuItem>
-                          <Eye className="mr-2 h-4 w-4" />
-                          <span>詳細を見る</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuLabel>操作</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => startEditCourse(course)}>
                           <Edit className="mr-2 h-4 w-4" />
-                          <span>編集する</span>
+                          <span>編集</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteCourse(course.id)}
+                          className="text-destructive"
+                        >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          <span>削除する</span>
+                          <span>削除</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -244,104 +379,122 @@ const StoreCourses = () => {
           </Table>
         </CardContent>
       </Card>
-      
-      {/* 売上や予約の分析セクション */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              人気コースランキング
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-3">
-              <li className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full">1</span>
-                  <span>アロマオイルマッサージ 60分</span>
-                </div>
-                <span className="text-sm font-medium">120 予約</span>
-              </li>
-              <li className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full">2</span>
-                  <span>フットマッサージ 30分</span>
-                </div>
-                <span className="text-sm font-medium">95 予約</span>
-              </li>
-              <li className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full">3</span>
-                  <span>ディープティシュー 90分</span>
-                </div>
-                <span className="text-sm font-medium">85 予約</span>
-              </li>
-            </ol>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              平均満足度
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-2">
-              <div className="text-3xl font-bold">4.8 / 5.0</div>
-              <div className="flex items-center mt-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <svg key={star} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-yellow-500">
-                    <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                  </svg>
-                ))}
+
+      {/* 編集ダイアログ */}
+      <Dialog open={isEditCourseOpen} onOpenChange={setIsEditCourseOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>コース編集</DialogTitle>
+            <DialogDescription>
+              コース情報を変更できます。
+            </DialogDescription>
+          </DialogHeader>
+          {editingCourse && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">コース名</Label>
+                <Input
+                  id="edit-name"
+                  value={editingCourse.name}
+                  onChange={(e) => setEditingCourse({...editingCourse, name: e.target.value})}
+                />
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                418件のレビューに基づく
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              売上貢献度
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span>ディープティシュー 90分</span>
-                  <span>35%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full" style={{ width: '35%' }} />
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-category">カテゴリー</Label>
+                <Select
+                  value={editingCourse.category}
+                  onValueChange={(value) => setEditingCourse({...editingCourse, category: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="カテゴリーを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span>アロマオイルマッサージ 60分</span>
-                  <span>28%</span>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-description">説明</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingCourse.description}
+                  onChange={(e) => setEditingCourse({...editingCourse, description: e.target.value})}
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-duration">施術時間（分）</Label>
+                  <Select
+                    value={editingCourse.duration.toString()}
+                    onValueChange={(value) => setEditingCourse({...editingCourse, duration: parseInt(value)})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="時間を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {durations.map((duration) => (
+                        <SelectItem key={duration} value={duration.toString()}>
+                          {duration}分
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full" style={{ width: '28%' }} />
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-price">料金（円）</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    value={editingCourse.price || ''}
+                    onChange={(e) => setEditingCourse({...editingCourse, price: parseInt(e.target.value) || 0})}
+                  />
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span>ホットストーンセラピー 90分</span>
-                  <span>18%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full" style={{ width: '18%' }} />
-                </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="edit-customizable"
+                  checked={editingCourse.customizable}
+                  onChange={(e) => setEditingCourse({...editingCourse, customizable: e.target.checked})}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="edit-customizable" className="text-sm font-normal">
+                  セラピストによる料金カスタマイズを許可する
+                </Label>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditCourseOpen(false)}>キャンセル</Button>
+            <Button onClick={handleEditCourse}>変更を保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>コースの注意事項</CardTitle>
+          <CardDescription>
+            コース設定・管理に関する重要な情報
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm">
+            <strong>セラピストによる料金カスタマイズ:</strong> 許可されている場合、セラピストは自身のプロフィールでこのコースの料金を変更できます。
+          </p>
+          <p className="text-sm">
+            <strong>コース削除の注意:</strong> 現在予約が入っているコースを削除すると、関連する予約情報に影響が出る可能性があります。
+          </p>
+          <p className="text-sm">
+            <strong>料金表示:</strong> 設定された料金は税抜き価格で表示されます。お客様向けの表示では税込み価格が自動計算されます。
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };

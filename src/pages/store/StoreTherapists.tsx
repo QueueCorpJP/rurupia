@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
   Plus, 
@@ -46,19 +49,22 @@ import {
   Edit, 
   Trash2, 
   Copy,
-  Calendar
+  Calendar,
+  RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // サンプルデータ
-const therapists = [
+const initialTherapistsData = [
   {
     id: 1,
     name: '佐藤 愛',
     type: '正社員',
     specialties: ['アロマオイルマッサージ', 'タイ古式マッサージ'],
     status: 'アクティブ',
-    bookings: 45
+    bookings: 45,
+    newClients: 12,
+    repeatClients: 33
   },
   {
     id: 2,
@@ -66,7 +72,9 @@ const therapists = [
     type: 'パート',
     specialties: ['ディープティシュー', 'ストレッチ'],
     status: 'アクティブ',
-    bookings: 32
+    bookings: 32,
+    newClients: 8,
+    repeatClients: 24
   },
   {
     id: 3,
@@ -74,7 +82,9 @@ const therapists = [
     type: '正社員',
     specialties: ['ホットストーンマッサージ', 'フットマッサージ'],
     status: '休暇中',
-    bookings: 28
+    bookings: 28,
+    newClients: 5,
+    repeatClients: 23
   },
   {
     id: 4,
@@ -82,7 +92,9 @@ const therapists = [
     type: 'パート',
     specialties: ['アロマオイルマッサージ', 'ヘッドマッサージ'],
     status: 'アクティブ',
-    bookings: 18
+    bookings: 18,
+    newClients: 10,
+    repeatClients: 8
   },
   {
     id: 5,
@@ -90,29 +102,59 @@ const therapists = [
     type: '研修中',
     specialties: ['アロマオイルマッサージ'],
     status: '研修中',
-    bookings: 5
+    bookings: 5,
+    newClients: 5,
+    repeatClients: 0
   }
 ];
 
 const StoreTherapists = () => {
   const { toast } = useToast();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isStatusUpdateOpen, setIsStatusUpdateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredTherapists, setFilteredTherapists] = useState(therapists);
+  const [therapists, setTherapists] = useState(initialTherapistsData);
+  const [filteredTherapists, setFilteredTherapists] = useState(initialTherapistsData);
+  const [selectedTherapist, setSelectedTherapist] = useState<any>(null);
+  const [therapistDetails, setTherapistDetails] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
+  // Real-time status simulation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Randomly update a therapist's status to simulate real-time updates
+      const randomIndex = Math.floor(Math.random() * therapists.length);
+      const statuses = ['アクティブ', '休憩中', '施術中', '休暇中'];
+      const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+      
+      setTherapists(prevTherapists => {
+        const updatedTherapists = [...prevTherapists];
+        updatedTherapists[randomIndex] = {
+          ...updatedTherapists[randomIndex],
+          status: randomStatus
+        };
+        return updatedTherapists;
+      });
+    }, 30000); // Update every 30 seconds
     
-    if (query.trim() === '') {
+    return () => clearInterval(interval);
+  }, [therapists]);
+  
+  // Update filtered therapists when therapists or search query changes
+  useEffect(() => {
+    handleSearch();
+  }, [therapists, searchQuery]);
+  
+  const handleSearch = () => {
+    if (searchQuery.trim() === '') {
       setFilteredTherapists(therapists);
       return;
     }
     
     const filtered = therapists.filter(
       therapist => 
-        therapist.name.toLowerCase().includes(query.toLowerCase()) ||
-        therapist.specialties.some(specialty => specialty.toLowerCase().includes(query.toLowerCase()))
+        therapist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        therapist.specialties.some(specialty => specialty.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     
     setFilteredTherapists(filtered);
@@ -124,6 +166,43 @@ const StoreTherapists = () => {
       title: "招待リンクをコピーしました",
       description: "招待リンクをセラピスト候補に共有してください",
     });
+  };
+
+  const updateTherapistStatus = (therapistId: number, newStatus: string) => {
+    setTherapists(prevTherapists => 
+      prevTherapists.map(therapist => 
+        therapist.id === therapistId 
+          ? { ...therapist, status: newStatus } 
+          : therapist
+      )
+    );
+    
+    toast({
+      title: "ステータスを更新しました",
+      description: `セラピストのステータスを「${newStatus}」に変更しました。`,
+    });
+  };
+  
+  const viewTherapistDetails = (therapist: any) => {
+    setTherapistDetails(therapist);
+    setIsDetailsModalOpen(true);
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'アクティブ':
+        return 'bg-green-100 text-green-800';
+      case '施術中':
+        return 'bg-blue-100 text-blue-800';
+      case '休憩中':
+        return 'bg-amber-100 text-amber-800';
+      case '休暇中':
+        return 'bg-gray-100 text-gray-800';
+      case '研修中':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
@@ -170,7 +249,9 @@ const StoreTherapists = () => {
         <TabsList>
           <TabsTrigger value="all">全て</TabsTrigger>
           <TabsTrigger value="active">アクティブ</TabsTrigger>
-          <TabsTrigger value="inactive">休暇中</TabsTrigger>
+          <TabsTrigger value="onbreak">休憩中</TabsTrigger>
+          <TabsTrigger value="treatment">施術中</TabsTrigger>
+          <TabsTrigger value="vacation">休暇中</TabsTrigger>
           <TabsTrigger value="training">研修中</TabsTrigger>
         </TabsList>
         
@@ -185,7 +266,7 @@ const StoreTherapists = () => {
                     placeholder="名前や専門で検索"
                     className="pl-8"
                     value={searchQuery}
-                    onChange={handleSearch}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
               </div>
@@ -201,7 +282,8 @@ const StoreTherapists = () => {
                     <TableHead>雇用形態</TableHead>
                     <TableHead>専門</TableHead>
                     <TableHead>ステータス</TableHead>
-                    <TableHead className="text-right">予約数</TableHead>
+                    <TableHead className="text-right">予約</TableHead>
+                    <TableHead className="text-right">新規/リピート</TableHead>
                     <TableHead className="text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -224,16 +306,13 @@ const StoreTherapists = () => {
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                          therapist.status === 'アクティブ' 
-                            ? 'bg-green-100 text-green-800' 
-                            : therapist.status === '休暇中' 
-                              ? 'bg-amber-100 text-amber-800' 
-                              : 'bg-blue-100 text-blue-800'
+                          getStatusBadgeColor(therapist.status)
                         }`}>
                           {therapist.status}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">{therapist.bookings}</TableCell>
+                      <TableCell className="text-right">{therapist.newClients}/{therapist.repeatClients}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -244,7 +323,7 @@ const StoreTherapists = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>アクション</DropdownMenuLabel>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => viewTherapistDetails(therapist)}>
                               <Eye className="mr-2 h-4 w-4" />
                               <span>プロフィールを見る</span>
                             </DropdownMenuItem>
@@ -256,6 +335,40 @@ const StoreTherapists = () => {
                               <Calendar className="mr-2 h-4 w-4" />
                               <span>予約状況を確認</span>
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel>ステータス変更</DropdownMenuLabel>
+                            <DropdownMenuRadioGroup value={therapist.status}>
+                              <DropdownMenuRadioItem 
+                                value="アクティブ"
+                                onClick={() => updateTherapistStatus(therapist.id, "アクティブ")}
+                              >
+                                アクティブ
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem 
+                                value="施術中"
+                                onClick={() => updateTherapistStatus(therapist.id, "施術中")}
+                              >
+                                施術中
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem 
+                                value="休憩中"
+                                onClick={() => updateTherapistStatus(therapist.id, "休憩中")}
+                              >
+                                休憩中
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem 
+                                value="休暇中"
+                                onClick={() => updateTherapistStatus(therapist.id, "休暇中")}
+                              >
+                                休暇中
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem 
+                                value="研修中"
+                                onClick={() => updateTherapistStatus(therapist.id, "研修中")}
+                              >
+                                研修中
+                              </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive">
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -276,7 +389,15 @@ const StoreTherapists = () => {
           {/* アクティブのセラピスト向けのコンテンツ */}
         </TabsContent>
         
-        <TabsContent value="inactive" className="space-y-4">
+        <TabsContent value="onbreak" className="space-y-4">
+          {/* 休憩中のセラピスト向けのコンテンツ */}
+        </TabsContent>
+        
+        <TabsContent value="treatment" className="space-y-4">
+          {/* 施術中のセラピスト向けのコンテンツ */}
+        </TabsContent>
+        
+        <TabsContent value="vacation" className="space-y-4">
           {/* 休暇中のセラピスト向けのコンテンツ */}
         </TabsContent>
         
@@ -303,6 +424,69 @@ const StoreTherapists = () => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Therapist Details Modal */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          {therapistDetails && (
+            <>
+              <DialogHeader>
+                <DialogTitle>セラピスト詳細</DialogTitle>
+                <DialogDescription>
+                  {therapistDetails.name}のプロフィール情報
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-xl font-semibold">{therapistDetails.name.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{therapistDetails.name}</h3>
+                    <p className="text-sm text-muted-foreground">{therapistDetails.type}</p>
+                    <div className="flex gap-1 mt-1">
+                      <Badge className={getStatusBadgeColor(therapistDetails.status)}>
+                        {therapistDetails.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 grid gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">専門</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {therapistDetails.specialties.map((specialty: string, index: number) => (
+                        <Badge key={index} variant="outline">
+                          {specialty}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">予約数</h4>
+                      <p className="text-2xl font-semibold">{therapistDetails.bookings}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">新規客</h4>
+                      <p className="text-2xl font-semibold">{therapistDetails.newClients}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">リピート</h4>
+                      <p className="text-2xl font-semibold">{therapistDetails.repeatClients}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDetailsModalOpen(false)}>閉じる</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

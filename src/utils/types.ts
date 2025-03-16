@@ -55,6 +55,7 @@ export interface Message {
   content: string;
   timestamp: string;
   isRead: boolean;
+  imageUrl?: string | null;
 }
 
 export interface BlogPost {
@@ -70,6 +71,7 @@ export interface BlogPost {
   tags: string[];
   publishedAt: string;
   readTime: number;
+  views?: number;
 }
 
 export interface Store {

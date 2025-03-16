@@ -6,10 +6,11 @@ import BlogSidebar from '../components/BlogSidebar';
 import BlogCard from '../components/BlogCard';
 import { blogPosts } from '../utils/blogData';
 import { BlogPost } from '../utils/types';
-import { ArrowLeft, Heart, Share, MessageSquare, CalendarDays, Clock, Link2 } from 'lucide-react';
+import { ArrowLeft, Heart, Share, MessageSquare, CalendarDays, Clock, Link2, TrendingUp } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { toast } from '../components/ui/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const BlogDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -32,6 +33,11 @@ const BlogDetail = () => {
   
   const categories = [...new Set(blogPosts.map(post => post.category))];
   const tags = [...new Set(blogPosts.flatMap(post => post.tags))];
+  
+  // Get top 5 popular posts based on view count
+  const popularPosts = [...blogPosts]
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 5);
   
   const recentPosts = [...blogPosts]
     .filter(p => p.slug !== slug)
@@ -173,6 +179,33 @@ const BlogDetail = () => {
               </Button>
             </div>
           </article>
+          
+          {/* Popular Posts Section */}
+          <div className="mt-12 border-t pt-8">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <TrendingUp className="mr-2 h-5 w-5 text-primary" />
+              人気の記事
+            </h2>
+            <div className="grid gap-6 sm:grid-cols-2">
+              {popularPosts.map(popularPost => (
+                <Card key={popularPost.id} className="overflow-hidden">
+                  <div className="h-40 overflow-hidden">
+                    <img 
+                      src={popularPost.coverImage} 
+                      alt={popularPost.title} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-4">
+                    <Badge className="mb-2">{popularPost.views || 0} 閲覧</Badge>
+                    <h3 className="font-semibold line-clamp-2">
+                      <Link to={`/blog/${popularPost.slug}`} className="hover:underline">{popularPost.title}</Link>
+                    </h3>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
           
           <div className="mt-12 border-t pt-8">
             <h2 className="text-xl font-semibold mb-4 flex items-center">

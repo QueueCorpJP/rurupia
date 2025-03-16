@@ -48,12 +48,12 @@ export const TherapistBookingRequests = ({ therapistId }: TherapistBookingReques
           serviceLocation: booking.location || "未指定",
           // Handle the case where meeting_method might not exist in the database
           meetingMethod: booking.notes?.includes("meetup") ? "meetup" : 
-                        booking.notes?.includes("hotel") ? "hotel" : 
-                        booking.notes?.includes("home") ? "home" : "meetup",
+                       booking.notes?.includes("hotel") ? "hotel" : 
+                       booking.notes?.includes("home") ? "home" : "meetup",
           status: booking.status === 'pending' ? "承認待ち" : 
-                 booking.status === 'confirmed' ? "確定" : 
-                 booking.status === 'cancelled' ? "キャンセル" : "完了",
-          notes: booking.notes,
+                booking.status === 'confirmed' ? "確定" : 
+                booking.status === 'cancelled' ? "キャンセル" : "完了",
+          notes: booking.notes || "",
           therapistId: booking.therapist_id
         }));
         
@@ -121,7 +121,7 @@ export const TherapistBookingRequests = ({ therapistId }: TherapistBookingReques
             現在、予約リクエストはありません
           </div>
         ) : (
-          bookingRequests.map(request => (
+          sortedRequests.map(request => (
             <TherapistBookingRequest 
               key={request.id} 
               request={request} 
@@ -133,3 +133,4 @@ export const TherapistBookingRequests = ({ therapistId }: TherapistBookingReques
     </div>
   );
 };
+

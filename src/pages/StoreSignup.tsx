@@ -1,12 +1,14 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const StoreSignup = () => {
   const [formData, setFormData] = useState({
@@ -18,16 +20,70 @@ const StoreSignup = () => {
     address: "",
     description: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Store signup submitted:", formData);
-    // Signup logic would go here
+    
+    try {
+      setIsLoading(true);
+      
+      // 1. Register the user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.ownerName,
+            role: 'store'
+          }
+        }
+      });
+      
+      if (authError) {
+        toast.error(authError.message);
+        return;
+      }
+      
+      if (!authData.user) {
+        toast.error("ユーザーの登録に失敗しました");
+        return;
+      }
+      
+      // 2. Create the store profile
+      const { error: storeError } = await supabase
+        .from('stores')
+        .insert({
+          id: authData.user.id,
+          name: formData.storeName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          description: formData.description,
+          status: 'pending' // Pending approval
+        });
+        
+      if (storeError) {
+        console.error("Error creating store profile:", storeError);
+        toast.error("店舗プロフィールの作成に失敗しました");
+        return;
+      }
+      
+      toast.success("登録が完了しました。確認のためメールをご確認ください。");
+      navigate("/store-login");
+      
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast.error("登録中にエラーが発生しました");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -135,7 +191,9 @@ const StoreSignup = () => {
                 <div className="text-sm text-muted-foreground">
                   <p>店舗登録には審査があります。審査完了までに数日かかる場合がございます。</p>
                 </div>
-                <Button type="submit" className="w-full">登録する</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "処理中..." : "登録する"}
+                </Button>
               </div>
             </form>
           </CardContent>

@@ -1,20 +1,64 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const StoreLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Store login submitted:", { email, password });
-    // Login logic would go here
+    
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      // Check if the user is a store
+      const { data: storeData, error: storeError } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('id', data.user?.id)
+        .maybeSingle();
+        
+      if (storeError) {
+        console.error("Error checking store status:", storeError);
+        toast.error("ログイン処理に失敗しました");
+        return;
+      }
+      
+      if (!storeData) {
+        // Not a store
+        await supabase.auth.signOut();
+        toast.error("店舗アカウントが見つかりませんでした");
+        return;
+      }
+
+      toast.success("ログインしました");
+      navigate("/store/dashboard");
+      
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("ログイン中にエラーが発生しました");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -65,7 +109,9 @@ const StoreLogin = () => {
                   パスワードをお忘れの方
                 </Link>
               </div>
-              <Button type="submit" className="w-full">ログイン</Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "処理中..." : "ログイン"}
+              </Button>
             </form>
           </CardContent>
           <CardFooter className="flex justify-center">

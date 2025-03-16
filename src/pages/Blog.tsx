@@ -46,6 +46,11 @@ const Blog = () => {
     new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   ).slice(0, 3);
   
+  // Sort posts by views to get the most popular ones
+  const popularPosts = [...blogPosts]
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 5);
+  
   return (
     <Layout>
       <div className="mb-8 text-center">
@@ -62,6 +67,16 @@ const Blog = () => {
         <BlogCard post={featuredPost} variant="featured" />
       </section>
       
+      {/* Popular posts section */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-6">人気の記事</h2>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {popularPosts.map(post => (
+            <BlogCard key={`popular-${post.id}`} post={post} />
+          ))}
+        </div>
+      </section>
+      
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           {searchTerm && (
@@ -76,6 +91,10 @@ const Blog = () => {
                 検索をクリア
               </button>
             </div>
+          )}
+          
+          {!searchTerm && (
+            <h2 className="text-2xl font-bold mb-6">最新の記事</h2>
           )}
           
           {filteredPosts.length === 0 ? (

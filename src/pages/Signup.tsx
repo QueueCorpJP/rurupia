@@ -18,7 +18,6 @@ const Signup = () => {
   const [idDocument, setIdDocument] = useState<File | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [session, setSession] = useState(null);
   const navigate = useNavigate();
 
   // Check if user is already logged in
@@ -51,11 +50,14 @@ const Signup = () => {
         options: {
           data: {
             name: name
-          }
+          },
+          // Add emailRedirectTo to ensure proper redirect after email verification
+          emailRedirectTo: `${window.location.origin}/login`
         }
       });
       
       if (authError) {
+        console.error("Auth error:", authError);
         toast.error(authError.message);
         return;
       }
@@ -67,31 +69,15 @@ const Signup = () => {
       
       console.log("User registered successfully:", authData.user.id);
       
-      // 2. Upload the ID document
+      // 2. Upload the ID document with proper path structure
       const fileExt = idDocument.name.split('.').pop();
-      const filePath = `${authData.user.id}-verification-document.${fileExt}`;
+      const userId = authData.user.id;
+      // Store files in user-specific folders
+      const filePath = `${userId}/${userId}-verification-document.${fileExt}`;
       
       console.log("Attempting to upload file to path:", filePath);
       
-      // Ensure the 'verification' bucket exists
-      try {
-        const { error: bucketError } = await supabase
-          .storage
-          .getBucket('verification');
-          
-        if (bucketError) {
-          // Create the bucket if it doesn't exist
-          await supabase
-            .storage
-            .createBucket('verification', {
-              public: false
-            });
-        }
-      } catch (error) {
-        console.log("Checking bucket:", error);
-      }
-      
-      // Upload the file to the verification bucket with simplified path
+      // Upload the file to the verification bucket
       const { data: uploadData, error: uploadError } = await supabase
         .storage
         .from('verification')
@@ -115,38 +101,53 @@ const Signup = () => {
       
       console.log("File public URL:", urlData);
       
-      // 3. Update the user profile with the verification document path
-      const { error: updateError } = await supabase
+      // 3. Create or update the user profile
+      const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({ 
-          id: authData.user.id,
-          verification_document: filePath,
+        .upsert({
+          id: userId,
           nickname: name,
-          email: email
+          email: email,
+          verification_document: filePath,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
         
-      if (updateError) {
-        console.error("Error updating profile:", updateError);
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
         toast.error("プロフィールの更新に失敗しました");
         return;
       }
       
-      // 4. Sign in the user automatically
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (signInError) {
-        console.error("Auto login failed:", signInError);
-        toast.warning("自動ログインに失敗しました。ログイン画面へ移動します。");
-        navigate("/login");
-        return;
+      // 4. Sign in the user automatically if they are confirmed
+      if (authData.session) {
+        // User was automatically signed in, navigate to home
+        toast.success("登録が完了しました！");
+        navigate("/");
+      } else {
+        // Check if email confirmation is required
+        if (authData.user.confirmation_sent_at || authData.user.email_confirmed_at === null) {
+          toast.success("登録が完了しました。メールアドレスを確認してください。");
+          navigate("/login");
+        } else {
+          // Try automatic login
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+          
+          if (signInError) {
+            console.error("Auto login failed:", signInError);
+            toast.warning("登録が完了しました。ログイン画面へ移動します。");
+            navigate("/login");
+            return;
+          }
+          
+          // Success - user is registered and logged in
+          toast.success("登録が完了しました！");
+          navigate("/");
+        }
       }
-      
-      // Success - user is registered and logged in
-      toast.success("登録が完了しました！");
-      navigate("/");
       
     } catch (error) {
       console.error("Signup error:", error);

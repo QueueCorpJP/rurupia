@@ -33,6 +33,10 @@ export interface TherapistProfile {
   serviceAreas?: { prefecture: string; cities: string[] };
   avatarUrl: string;
   galleryImages?: string[];
+  customPricing?: {
+    serviceId: number;
+    price: number;
+  }[];
 }
 
 export interface Service {
@@ -93,6 +97,8 @@ export interface StoreTherapist {
   reservations: number;
   totalSales: string;
   status: string;
+  newClients?: number;
+  repeatClients?: number;
 }
 
 export interface Reservation {

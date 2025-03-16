@@ -7,16 +7,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UploadCloud } from "lucide-react";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [idDocument, setIdDocument] = useState<File | null>(null);
+  const [idPreview, setIdPreview] = useState<string | null>(null);
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Signup submitted:", { email, password, name });
+    console.log("Signup submitted:", { email, password, name, idDocument });
     // Signup logic would go here
+  };
+
+  const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIdDocument(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIdPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -92,6 +107,47 @@ const Signup = () => {
                   required
                 />
               </div>
+              
+              {/* 身分証アップロード部分 */}
+              <div className="space-y-2">
+                <Label htmlFor="id-document">身分証明書のアップロード</Label>
+                <div className="mt-2">
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                      {idPreview ? (
+                        <div className="relative w-full h-full">
+                          <img 
+                            src={idPreview} 
+                            alt="ID Preview" 
+                            className="w-full h-full object-contain p-2"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity">
+                            <UploadCloud className="h-8 w-8 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <UploadCloud className="w-8 h-8 mb-2 text-gray-500" />
+                          <p className="text-sm text-gray-500">身分証明書をアップロード</p>
+                          <p className="text-xs text-gray-500 mt-1">（運転免許証・マイナンバーカード・パスポートなど）</p>
+                        </div>
+                      )}
+                      <input 
+                        id="id-document" 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleIdUpload}
+                        required
+                      />
+                    </label>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    本人確認のため、有効な身分証明書のアップロードが必要です。登録後の確認作業に使用され、厳重に管理されます。
+                  </p>
+                </div>
+              </div>
+              
               <Button type="submit" className="w-full">登録する</Button>
             </form>
           </CardContent>

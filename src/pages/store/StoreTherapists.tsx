@@ -50,7 +50,9 @@ import {
   Trash2, 
   Copy,
   Calendar,
-  RefreshCw
+  RefreshCw,
+  UserPlus,
+  Repeat
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -312,7 +314,19 @@ const StoreTherapists = () => {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">{therapist.bookings}</TableCell>
-                      <TableCell className="text-right">{therapist.newClients}/{therapist.repeatClients}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <span title="新規客" className="inline-flex items-center text-xs">
+                            <UserPlus className="h-3.5 w-3.5 mr-1 text-blue-500" />
+                            {therapist.newClients}
+                          </span>
+                          <span>/</span>
+                          <span title="リピート客" className="inline-flex items-center text-xs">
+                            <Repeat className="h-3.5 w-3.5 mr-1 text-green-500" />
+                            {therapist.repeatClients}
+                          </span>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -470,11 +484,21 @@ const StoreTherapists = () => {
                       <p className="text-2xl font-semibold">{therapistDetails.bookings}</p>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium mb-1">新規客</h4>
+                      <h4 className="text-sm font-medium mb-1">
+                        <span className="inline-flex items-center">
+                          <UserPlus className="h-4 w-4 mr-1 text-blue-500" />
+                          新規客
+                        </span>
+                      </h4>
                       <p className="text-2xl font-semibold">{therapistDetails.newClients}</p>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium mb-1">リピート</h4>
+                      <h4 className="text-sm font-medium mb-1">
+                        <span className="inline-flex items-center">
+                          <Repeat className="h-4 w-4 mr-1 text-green-500" />
+                          リピート
+                        </span>
+                      </h4>
                       <p className="text-2xl font-semibold">{therapistDetails.repeatClients}</p>
                     </div>
                   </div>

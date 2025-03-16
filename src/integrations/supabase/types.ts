@@ -9,7 +9,399 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      blog_posts: {
+        Row: {
+          author_avatar: string | null
+          author_name: string
+          category: string
+          content: string
+          cover_image: string | null
+          excerpt: string
+          id: string
+          published_at: string
+          read_time: number
+          slug: string
+          tags: string[]
+          title: string
+          views: number
+        }
+        Insert: {
+          author_avatar?: string | null
+          author_name: string
+          category: string
+          content: string
+          cover_image?: string | null
+          excerpt: string
+          id?: string
+          published_at?: string
+          read_time?: number
+          slug: string
+          tags?: string[]
+          title: string
+          views?: number
+        }
+        Update: {
+          author_avatar?: string | null
+          author_name?: string
+          category?: string
+          content?: string
+          cover_image?: string | null
+          excerpt?: string
+          id?: string
+          published_at?: string
+          read_time?: number
+          slug?: string
+          tags?: string[]
+          title?: string
+          views?: number
+        }
+        Relationships: []
+      }
+      bookings: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          location: string | null
+          notes: string | null
+          price: number
+          service_id: string | null
+          status: string
+          therapist_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          price: number
+          service_id?: string | null
+          status?: string
+          therapist_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          price?: number
+          service_id?: string | null
+          status?: string
+          therapist_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inquiries: {
+        Row: {
+          date: string
+          email: string
+          id: string
+          message: string
+          name: string
+          responded_at: string | null
+          response: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          date?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          responded_at?: string | null
+          response?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          date?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          responded_at?: string | null
+          response?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          id: string
+          image_url: string | null
+          is_read: boolean
+          receiver_id: string
+          sender_id: string
+          timestamp: string
+        }
+        Insert: {
+          content: string
+          id?: string
+          image_url?: string | null
+          is_read?: boolean
+          receiver_id: string
+          sender_id: string
+          timestamp?: string
+        }
+        Update: {
+          content?: string
+          id?: string
+          image_url?: string | null
+          is_read?: boolean
+          receiver_id?: string
+          sender_id?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          age: string | null
+          avatar_url: string | null
+          created_at: string
+          hobbies: string[] | null
+          id: string
+          is_verified: boolean | null
+          mbti: string | null
+          nickname: string | null
+          updated_at: string
+          verification_document: string | null
+        }
+        Insert: {
+          age?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          hobbies?: string[] | null
+          id: string
+          is_verified?: boolean | null
+          mbti?: string | null
+          nickname?: string | null
+          updated_at?: string
+          verification_document?: string | null
+        }
+        Update: {
+          age?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          hobbies?: string[] | null
+          id?: string
+          is_verified?: boolean | null
+          mbti?: string | null
+          nickname?: string | null
+          updated_at?: string
+          verification_document?: string | null
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration: number
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration: number
+          id?: string
+          name: string
+          price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
+      store_therapists: {
+        Row: {
+          id: string
+          schedule: string | null
+          status: string
+          store_id: string
+          therapist_id: string
+        }
+        Insert: {
+          id?: string
+          schedule?: string | null
+          status?: string
+          store_id: string
+          therapist_id: string
+        }
+        Update: {
+          id?: string
+          schedule?: string | null
+          status?: string
+          store_id?: string
+          therapist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_therapists_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_therapists_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          address: string
+          created_at: string
+          description: string | null
+          email: string
+          id: string
+          name: string
+          phone: string
+          status: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          description?: string | null
+          email: string
+          id?: string
+          name: string
+          phone: string
+          status?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          description?: string | null
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      therapist_services: {
+        Row: {
+          id: string
+          price: number | null
+          service_id: string
+          therapist_id: string
+        }
+        Insert: {
+          id?: string
+          price?: number | null
+          service_id: string
+          therapist_id: string
+        }
+        Update: {
+          id?: string
+          price?: number | null
+          service_id?: string
+          therapist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapist_services_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      therapists: {
+        Row: {
+          availability: string[]
+          created_at: string
+          description: string
+          experience: number
+          id: string
+          image_url: string | null
+          location: string
+          long_description: string | null
+          name: string
+          price: number
+          qualifications: string[]
+          rating: number
+          reviews: number
+          specialties: string[]
+        }
+        Insert: {
+          availability?: string[]
+          created_at?: string
+          description: string
+          experience?: number
+          id?: string
+          image_url?: string | null
+          location: string
+          long_description?: string | null
+          name: string
+          price: number
+          qualifications?: string[]
+          rating?: number
+          reviews?: number
+          specialties?: string[]
+        }
+        Update: {
+          availability?: string[]
+          created_at?: string
+          description?: string
+          experience?: number
+          id?: string
+          image_url?: string | null
+          location?: string
+          long_description?: string | null
+          name?: string
+          price?: number
+          qualifications?: string[]
+          rating?: number
+          reviews?: number
+          specialties?: string[]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

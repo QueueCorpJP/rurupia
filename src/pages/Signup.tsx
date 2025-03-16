@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -53,25 +52,15 @@ const Signup = () => {
       }
       
       // 2. Upload the ID document
+      // Create a folder path with the user's ID to ensure proper access control
       const fileExt = idDocument.name.split('.').pop();
-      const fileName = `${authData.user.id}-verification-document.${fileExt}`;
+      const filePath = `${authData.user.id}/${authData.user.id}-verification-document.${fileExt}`;
       
-      // Create a storage bucket if it doesn't exist yet
-      const { data: bucketData, error: bucketError } = await supabase
-        .storage
-        .createBucket('verification_documents', { public: false });
-        
-      if (bucketError && !bucketError.message.includes('already exists')) {
-        console.error("Error creating bucket:", bucketError);
-        toast.error("ストレージの準備に失敗しました");
-        return;
-      }
-      
-      // Upload the file
+      // Upload the file to the existing bucket
       const { data: uploadData, error: uploadError } = await supabase
         .storage
         .from('verification_documents')
-        .upload(fileName, idDocument);
+        .upload(filePath, idDocument);
         
       if (uploadError) {
         console.error("Error uploading file:", uploadError);
@@ -79,11 +68,17 @@ const Signup = () => {
         return;
       }
       
+      // Get the public URL for the uploaded file
+      const { data: urlData } = await supabase
+        .storage
+        .from('verification_documents')
+        .getPublicUrl(filePath);
+      
       // 3. Update the user profile with the verification document path
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
-          verification_document: fileName,
+          verification_document: filePath,
           nickname: name
         })
         .eq('id', authData.user.id);
@@ -284,3 +279,4 @@ const Signup = () => {
 };
 
 export default Signup;
+

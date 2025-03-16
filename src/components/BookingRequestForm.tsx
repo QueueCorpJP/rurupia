@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from '@/lib/utils';
+import { supabase } from "@/integrations/supabase/client";
 
 // Japanese prefecture list
 const prefectures = [
@@ -63,7 +64,7 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -74,29 +75,41 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
       return;
     }
 
-    // Format the date for display
-    const formattedDate = format(selectedDate, 'yyyy年MM月dd日', { locale: ja });
+    try {
+      // Combine date and time
+      const dateTimeString = `${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}:00`;
+      const dateTime = new Date(dateTimeString);
 
-    // In a real app, you would send this data to your backend
-    setTimeout(() => {
-      toast.success("予約リクエストを送信しました", {
-        description: `${therapist.name}へのリクエストが送信されました。確認後に連絡があります。`,
-      });
-      
-      console.log({
-        therapistId: therapist.id,
-        date: selectedDate,
-        time: selectedTime,
-        budget: parseInt(budget),
-        prefecture,
-        locationDetails,
-        meetingMethod,
-        notes,
-      });
-      
+      // Insert booking into Supabase
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert({
+          therapist_id: therapist.id.toString(), // Convert number to string if needed
+          date: dateTime.toISOString(),
+          price: parseInt(budget),
+          location: `${prefecture} ${locationDetails}`,
+          notes: notes,
+          status: 'pending'
+        });
+
+      if (error) {
+        console.error("Error submitting booking:", error);
+        toast.error("予約リクエストの送信に失敗しました", {
+          description: error.message,
+        });
+      } else {
+        toast.success("予約リクエストを送信しました", {
+          description: `${therapist.name}へのリクエストが送信されました。確認後に連絡があります。`,
+        });
+        
+        if (onClose) onClose();
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      toast.error("エラーが発生しました");
+    } finally {
       setIsSubmitting(false);
-      if (onClose) onClose();
-    }, 1500);
+    }
   };
 
   return (

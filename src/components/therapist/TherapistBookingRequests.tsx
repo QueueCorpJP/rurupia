@@ -1,19 +1,99 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BookingRequest } from "@/utils/types";
 import TherapistBookingRequest from "./TherapistBookingRequest";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TherapistBookingRequestsProps {
-  bookingRequests: BookingRequest[];
+  therapistId?: string;
 }
 
-export const TherapistBookingRequests = ({ bookingRequests: initialRequests }: TherapistBookingRequestsProps) => {
-  const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>(initialRequests);
+export const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps) => {
+  const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleStatusChange = (id: string, newStatus: "承認待ち" | "確定" | "キャンセル" | "完了") => {
-    setBookingRequests(bookingRequests.map(request => 
-      request.id === id ? { ...request, status: newStatus } : request
-    ));
+  useEffect(() => {
+    const fetchBookingRequests = async () => {
+      try {
+        let query = supabase
+          .from('bookings')
+          .select('*');
+        
+        // Filter by therapist ID if provided
+        if (therapistId) {
+          query = query.eq('therapist_id', therapistId);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching booking requests:", error);
+          toast.error("予約リクエストの取得に失敗しました");
+          return;
+        }
+        
+        // Transform the data to match BookingRequest type
+        const transformedData: BookingRequest[] = data.map(booking => ({
+          id: booking.id,
+          clientName: "クライアント", // This would ideally come from a join with the user profile
+          requestTime: new Date(booking.date).toLocaleString('ja-JP', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          servicePrice: booking.price,
+          serviceLocation: booking.location || "未指定",
+          meetingMethod: booking.meeting_method || "meetup",
+          status: booking.status === 'pending' ? "承認待ち" : 
+                 booking.status === 'confirmed' ? "確定" : 
+                 booking.status === 'cancelled' ? "キャンセル" : "完了",
+          notes: booking.notes,
+          therapistId: parseInt(booking.therapist_id)
+        }));
+        
+        setBookingRequests(transformedData);
+      } catch (error) {
+        console.error("Error in fetchBookingRequests:", error);
+        toast.error("エラーが発生しました");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBookingRequests();
+  }, [therapistId]);
+
+  const handleStatusChange = async (id: string, newStatus: "承認待ち" | "確定" | "キャンセル" | "完了") => {
+    try {
+      // Convert Japanese status to English for database
+      const dbStatus = newStatus === "承認待ち" ? "pending" : 
+                      newStatus === "確定" ? "confirmed" : 
+                      newStatus === "キャンセル" ? "cancelled" : "completed";
+      
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: dbStatus })
+        .eq('id', id);
+        
+      if (error) {
+        console.error("Error updating booking status:", error);
+        toast.error("ステータスの更新に失敗しました");
+        return;
+      }
+      
+      // Update local state
+      setBookingRequests(bookingRequests.map(request => 
+        request.id === id ? { ...request, status: newStatus } : request
+      ));
+      
+      toast.success(`ステータスを「${newStatus}」に更新しました`);
+    } catch (error) {
+      console.error("Error in handleStatusChange:", error);
+      toast.error("エラーが発生しました");
+    }
   };
 
   // Filter requests to show pending ones first
@@ -28,7 +108,12 @@ export const TherapistBookingRequests = ({ bookingRequests: initialRequests }: T
       <h2 className="text-2xl font-bold">予約リクエスト</h2>
       
       <div className="space-y-4">
-        {sortedRequests.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-10">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="mt-2 text-muted-foreground">データを読み込んでいます...</p>
+          </div>
+        ) : sortedRequests.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground">
             現在、予約リクエストはありません
           </div>

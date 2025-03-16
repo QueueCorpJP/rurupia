@@ -3,20 +3,57 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import TherapistCard from '../components/TherapistCard';
 import TherapistFilters from '../components/TherapistFilters';
-import { therapists } from '../utils/data';
-import { Therapist, Filters } from '../utils/types';
+import { Therapist, Filters } from '@/utils/types';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from 'sonner';
 
 const Therapists = () => {
-  const [filteredTherapists, setFilteredTherapists] = useState<Therapist[]>(therapists);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
+  const [filteredTherapists, setFilteredTherapists] = useState<Therapist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading for a smooth experience
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    
-    return () => clearTimeout(timer);
+    const fetchTherapists = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('therapists')
+          .select('*');
+        
+        if (error) {
+          console.error("Error fetching therapists:", error);
+          toast.error("セラピスト情報の取得に失敗しました");
+          return;
+        }
+        
+        // Transform data to match Therapist type
+        const transformedData: Therapist[] = data.map((item, index) => ({
+          id: parseInt(item.id) || index + 1,
+          name: item.name,
+          specialties: item.specialties,
+          experience: item.experience,
+          rating: parseFloat(item.rating),
+          reviews: item.reviews,
+          description: item.description,
+          longDescription: item.long_description || "",
+          location: item.location,
+          price: item.price,
+          availability: item.availability,
+          imageUrl: item.image_url || "/placeholder.svg",
+          services: [],
+          qualifications: item.qualifications
+        }));
+        
+        setTherapists(transformedData);
+        setFilteredTherapists(transformedData);
+      } catch (error) {
+        console.error("Error in fetchTherapists:", error);
+        toast.error("エラーが発生しました");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTherapists();
   }, []);
 
   const handleFilterChange = (filters: Filters) => {

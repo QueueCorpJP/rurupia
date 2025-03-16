@@ -5,49 +5,84 @@ A web application for connecting therapists and managing therapy-related service
 ## Live Demo
 The application is deployed and accessible at: [https://therapist-connectivity.vercel.app/](https://therapist-connectivity.vercel.app/)
 
+## Available Routes
+
+### Main Pages
+- `/` - Home/Landing page
+- `/therapists` - Browse all therapists
+- `/therapists/:id` - View specific therapist details
+- `/book/:id` - Book an appointment with a specific therapist
+- `/contact` - Contact page
+- `/blog` - Blog listing page
+- `/blog/:slug` - Individual blog post
+
+### User Routes
+- `/user-profile` - User profile management
+- `/user-bookings` - View and manage user bookings
+- `/messages` - Messages overview
+- `/messages/:id` - Individual message thread
+
+### Therapist Routes
+- `/therapist-dashboard` - Therapist's dashboard
+- `/therapist-login` - Therapist login
+- `/therapist-signup` - Therapist registration
+
+### Authentication Routes
+- `/login` - User login
+- `/signup` - User registration
+- `/store-login` - Store admin login
+- `/store-signup` - Store registration
+
+### Admin Panel Routes
+All admin routes are prefixed with `/admin`
+- `/admin` - Admin dashboard
+- `/admin/accounts` - Manage user accounts
+- `/admin/requests` - Handle requests
+- `/admin/inquiries` - Manage inquiries
+- `/admin/blog` - Blog management
+- `/admin/settings` - Admin settings
+
+### Store Management Routes
+All store routes are prefixed with `/store-admin`
+- `/store-admin` - Store dashboard
+- `/store-admin/therapists` - Manage therapists
+- `/store-admin/bookings` - Manage bookings
+- `/store-admin/courses` - Manage courses
+- `/store-admin/inquiries` - Handle store inquiries
+- `/store-admin/analytics` - View analytics
+
 ## API Endpoints
 
-### Authentication Endpoints
-- `POST /api/auth/login` - User login endpoint
+### Authentication
+- `POST /api/auth/login` - User login
 - `POST /api/auth/register` - New user registration
 - `POST /api/auth/logout` - User logout
-- `GET /api/auth/session` - Get current session information
+- `GET /api/auth/session` - Get current session
 
 ### User Management
-- `GET /api/users/profile` - Get user profile information
-- `PUT /api/users/profile` - Update user profile
-- `GET /api/users/therapists` - List all therapists
-- `GET /api/users/therapists/:id` - Get specific therapist details
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update profile
+- `GET /api/users/therapists` - List therapists
+- `GET /api/users/therapists/:id` - Get therapist details
 
-### Appointment Management
-- `GET /api/appointments` - List all appointments
-- `POST /api/appointments` - Create new appointment
-- `PUT /api/appointments/:id` - Update existing appointment
-- `DELETE /api/appointments/:id` - Cancel/delete appointment
-- `GET /api/appointments/:id` - Get specific appointment details
+### Appointments
+- `GET /api/appointments` - List appointments
+- `POST /api/appointments` - Create appointment
+- `PUT /api/appointments/:id` - Update appointment
+- `DELETE /api/appointments/:id` - Cancel appointment
+- `GET /api/appointments/:id` - Get appointment details
 
-### Availability Management
-- `GET /api/availability` - Get availability slots
-- `POST /api/availability` - Set availability
-- `PUT /api/availability/:id` - Update availability
-- `DELETE /api/availability/:id` - Remove availability slot
+### Messaging
+- `GET /api/messages` - Get messages
+- `POST /api/messages` - Send message
+- `GET /api/messages/:conversationId` - Get conversation
 
-### Communication
-- `GET /api/messages` - Get message history
-- `POST /api/messages` - Send new message
-- `GET /api/messages/:conversationId` - Get conversation messages
-
-## Pages/Routes
-
-- `/` - Home/Landing page
-- `/login` - Login page
-- `/register` - Registration page
-- `/dashboard` - User dashboard
-- `/profile` - User profile management
-- `/appointments` - Appointments management
-- `/therapists` - Therapist listing
-- `/messages` - Messaging interface
-- `/availability` - Availability management
+### Store Management
+- `GET /api/store/analytics` - Get store analytics
+- `GET /api/store/bookings` - Get store bookings
+- `GET /api/store/courses` - Get courses
+- `POST /api/store/courses` - Create course
+- `PUT /api/store/courses/:id` - Update course
 
 ## Tech Stack
 
@@ -55,6 +90,8 @@ The application is deployed and accessible at: [https://therapist-connectivity.v
 - React
 - TypeScript
 - Tailwind CSS
+- React Query
+- React Router DOM
 - Vercel (Deployment)
 
 ## Getting Started
@@ -75,7 +112,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+5. Open [http://localhost:8080](http://localhost:8080) in your browser
 
 ## Environment Variables
 

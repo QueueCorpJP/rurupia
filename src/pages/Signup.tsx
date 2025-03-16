@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -31,14 +30,16 @@ const Signup = () => {
     try {
       setIsLoading(true);
       
-      // 1. Register the user with Supabase Auth
+      // 1. Register the user with Supabase Auth (with auto confirmation)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name: name
-          }
+          },
+          // This ensures the user is immediately confirmed without email verification
+          emailRedirectTo: `${window.location.origin}`
         }
       });
       
@@ -98,7 +99,15 @@ const Signup = () => {
         return;
       }
       
-      // NEW: Sign in the user after successful registration
+      // Sign in the user directly after registration
+      // Check if user has email confirmation requirements
+      if (authData.user.email_confirmed_at === null && authData.user.confirmation_sent_at !== null) {
+        toast.success("登録が完了しました。確認のためメールをご確認ください。");
+        navigate("/login");
+        return;
+      }
+      
+      // Otherwise try to sign in automatically
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -106,7 +115,11 @@ const Signup = () => {
       
       if (signInError) {
         console.error("Error signing in:", signInError);
-        toast.error("自動ログインに失敗しました。ログインページに移動します。");
+        if (signInError.message.includes("Email not confirmed")) {
+          toast.error("メールアドレスの確認が必要です。受信トレイを確認してください。");
+        } else {
+          toast.error("自動ログインに失敗しました。ログインページに移動します。");
+        }
         navigate("/login");
         return;
       }
@@ -269,6 +282,7 @@ const Signup = () => {
                         accept="image/*"
                         onChange={handleIdUpload}
                         required
+                        name="id-document" // Added name attribute to fix focusable error
                       />
                     </label>
                   </div>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,40 +9,48 @@ import { toast } from 'sonner';
 // Mock data for demonstration
 const mockBookingRequests: BookingRequest[] = [
   {
-    id: "req-001",
-    clientName: "山田太郎",
-    requestTime: "2023年6月15日 14:00",
-    servicePrice: 15000,
+    id: "br1",
+    clientName: "鈴木太郎",
+    requestTime: "2023-11-15 14:00",
+    servicePrice: 8000,
     serviceLocation: "東京都渋谷区",
-    meetingMethod: "meetup",
-    status: "承認待ち"
+    meetingMethod: "ホテル",
+    status: "承認待ち",
+    notes: "初めての予約です。よろしくお願いします。",
+    therapistId: "t1"
   },
   {
-    id: "req-002",
-    clientName: "山田太郎",
-    requestTime: "2023年6月10日 18:00",
-    servicePrice: 20000,
+    id: "br2",
+    clientName: "田中花子",
+    requestTime: "2023-11-16 18:30",
+    servicePrice: 12000,
     serviceLocation: "東京都新宿区",
-    meetingMethod: "hotel",
-    status: "確定"
+    meetingMethod: "訪問",
+    status: "確定",
+    notes: "肩こりがひどいです。",
+    therapistId: "t2"
   },
   {
-    id: "req-003",
-    clientName: "山田太郎",
-    requestTime: "2023年5月25日 16:00",
-    servicePrice: 18000,
-    serviceLocation: "東京都中央区",
-    meetingMethod: "home",
-    status: "完了"
-  },
-  {
-    id: "req-004",
-    clientName: "山田太郎",
-    requestTime: "2023年5月20日 19:00",
-    servicePrice: 15000,
+    id: "br3",
+    clientName: "佐藤雅子",
+    requestTime: "2023-11-10 10:00",
+    servicePrice: 10000,
     serviceLocation: "東京都目黒区",
-    meetingMethod: "meetup",
-    status: "キャンセル"
+    meetingMethod: "ホテル",
+    status: "完了",
+    notes: "リラックスできました。ありがとうございました。",
+    therapistId: "t3"
+  },
+  {
+    id: "br4",
+    clientName: "山本健太",
+    requestTime: "2023-11-08 19:00",
+    servicePrice: 8000,
+    serviceLocation: "東京都港区",
+    meetingMethod: "訪問",
+    status: "キャンセル",
+    notes: "急用ができたためキャンセルします。申し訳ありません。",
+    therapistId: "t1"
   }
 ];
 
@@ -65,9 +72,9 @@ const UserBookings = () => {
   };
   
   const renderBookingCard = (booking: BookingRequest) => {
-    const therapistName = booking.id.includes('001') ? "佐藤健太" : 
-                          booking.id.includes('002') ? "田中優子" : 
-                          booking.id.includes('003') ? "鈴木一郎" : "高橋美咲";
+    const therapistName = booking.id.includes('br1') ? "鈴木太郎" : 
+                          booking.id.includes('br2') ? "田中花子" : 
+                          booking.id.includes('br3') ? "佐藤雅子" : "山本健太";
                           
     return (
       <div key={booking.id} className="border rounded-lg p-4 mb-4">

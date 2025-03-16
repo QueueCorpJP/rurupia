@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import TherapistCard from "../components/TherapistCard";
@@ -64,6 +63,10 @@ const Therapists = () => {
     fetchTherapists();
   }, [filters]);
 
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
   return (
     <Layout>
       <div className="container py-12">
@@ -71,7 +74,7 @@ const Therapists = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1">
-            <TherapistFilters filters={filters} setFilters={setFilters} />
+            <TherapistFilters onFilterChange={handleFilterChange} />
           </div>
           
           <div className="lg:col-span-3">

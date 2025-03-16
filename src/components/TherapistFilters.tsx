@@ -19,15 +19,17 @@ import {
   Star as StarIcon
 } from 'lucide-react';
 
-interface TherapistFiltersProps {
-  onFilterChange: (filters: Filters) => void;
-}
-
 import { Filters } from '../utils/types';
 
-const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
+interface TherapistFiltersProps {
+  onFilterChange: (filters: Filters) => void;
+  filters?: Filters;  // Making this optional for backward compatibility
+  setFilters?: React.Dispatch<React.SetStateAction<Filters>>;
+}
+
+const TherapistFilters = ({ onFilterChange, filters: externalFilters, setFilters: externalSetFilters }: TherapistFiltersProps) => {
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>({
+  const [internalFilters, setInternalFilters] = useState<Filters>({
     search: '',
     specialties: [],
     maxPrice: 150,
@@ -36,6 +38,10 @@ const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
     availability: [],
     location: [],
   });
+
+  // Use either external filters or internal state
+  const filters = externalFilters || internalFilters;
+  const setFilters = externalSetFilters || setInternalFilters;
 
   // Mock data for filter options
   const specialtyOptions = ['Swedish', 'Deep Tissue', 'Sports', 'Hot Stone', 'Aromatherapy', 'Shiatsu', 'Thai', 'Reflexology'];

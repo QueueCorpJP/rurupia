@@ -135,7 +135,7 @@ const UserProfile = () => {
       }
       
       // Upload avatar to storage
-      const filePath = `avatars/${user.id}/${Date.now()}_${file.name}`;
+      const filePath = `${user.id}/${Date.now()}_${file.name}`;
       const { data, error } = await supabase
         .storage
         .from('profiles')
@@ -183,7 +183,7 @@ const UserProfile = () => {
       }
       
       // Upload verification document to storage
-      const filePath = `verification/${user.id}/document_${Date.now()}.${file.name.split('.').pop()}`;
+      const filePath = `${user.id}/document_${Date.now()}.${file.name.split('.').pop()}`;
       const { data, error } = await supabase
         .storage
         .from('verification')
@@ -200,9 +200,18 @@ const UserProfile = () => {
         .getPublicUrl(filePath);
 
       // Update profile with document path
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          verification_document: filePath,
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
       setProfile({
         ...profile,
-        verification_document: publicUrlData.publicUrl,
+        verification_document: filePath,
       });
 
       toast.success("書類をアップロードしました！");

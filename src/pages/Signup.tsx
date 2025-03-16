@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -56,10 +57,10 @@ const Signup = () => {
       const fileExt = idDocument.name.split('.').pop();
       const filePath = `${authData.user.id}/${authData.user.id}-verification-document.${fileExt}`;
       
-      // Upload the file to the existing bucket
+      // Upload the file to the verification bucket
       const { data: uploadData, error: uploadError } = await supabase
         .storage
-        .from('verification_documents')
+        .from('verification')
         .upload(filePath, idDocument);
         
       if (uploadError) {
@@ -71,7 +72,7 @@ const Signup = () => {
       // Get the public URL for the uploaded file
       const { data: urlData } = await supabase
         .storage
-        .from('verification_documents')
+        .from('verification')
         .getPublicUrl(filePath);
       
       // 3. Update the user profile with the verification document path
@@ -79,7 +80,8 @@ const Signup = () => {
         .from('profiles')
         .update({ 
           verification_document: filePath,
-          nickname: name
+          nickname: name,
+          email: email
         })
         .eq('id', authData.user.id);
         
@@ -279,4 +281,3 @@ const Signup = () => {
 };
 
 export default Signup;
-

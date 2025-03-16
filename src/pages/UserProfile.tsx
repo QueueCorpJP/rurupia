@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -41,7 +40,6 @@ const UserProfile = () => {
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        // Get the current user
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
@@ -50,7 +48,6 @@ const UserProfile = () => {
           return;
         }
 
-        // Fetch the profile data
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -65,7 +62,7 @@ const UserProfile = () => {
             nickname: data.nickname,
             age: data.age,
             avatar_url: data.avatar_url,
-            email: user.email || "", // Get email from auth user
+            email: user.email || "",
             mbti: data.mbti,
             hobbies: data.hobbies,
             is_verified: data.is_verified,
@@ -87,7 +84,6 @@ const UserProfile = () => {
     setIsLoading(true);
     
     try {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -95,7 +91,6 @@ const UserProfile = () => {
         return;
       }
 
-      // Update the profile
       const { data, error } = await supabase
         .from('profiles')
         .update({
@@ -104,7 +99,6 @@ const UserProfile = () => {
           avatar_url: profile.avatar_url,
           mbti: profile.mbti,
           hobbies: profile.hobbies,
-          // Don't update verification status or document here
         })
         .eq('id', user.id);
 
@@ -126,7 +120,6 @@ const UserProfile = () => {
     setIsUploading(true);
     
     try {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -134,8 +127,12 @@ const UserProfile = () => {
         return;
       }
       
-      // Upload avatar to storage
-      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+      console.log("Uploading avatar for user:", user.id);
+      
+      const filePath = `${user.id}_avatar_${Date.now()}.${file.name.split('.').pop()}`;
+      
+      console.log("Attempting to upload avatar to path:", filePath);
+      
       const { data, error } = await supabase
         .storage
         .from('profiles')
@@ -143,15 +140,20 @@ const UserProfile = () => {
           upsert: true
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error uploading avatar:", error);
+        throw error;
+      }
 
-      // Get public URL
+      console.log("Avatar uploaded successfully:", data);
+
       const { data: publicUrlData } = supabase
         .storage
         .from('profiles')
         .getPublicUrl(filePath);
 
-      // Update profile
+      console.log("Avatar public URL:", publicUrlData);
+
       setProfile({
         ...profile,
         avatar_url: publicUrlData.publicUrl,
@@ -174,7 +176,6 @@ const UserProfile = () => {
     setVerificationFile(file);
     
     try {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -182,8 +183,12 @@ const UserProfile = () => {
         return;
       }
       
-      // Upload verification document to storage
-      const filePath = `${user.id}/document_${Date.now()}.${file.name.split('.').pop()}`;
+      console.log("Uploading verification document for user:", user.id);
+      
+      const filePath = `${user.id}_document_${Date.now()}.${file.name.split('.').pop()}`;
+      
+      console.log("Attempting to upload document to path:", filePath);
+      
       const { data, error } = await supabase
         .storage
         .from('verification')
@@ -191,15 +196,20 @@ const UserProfile = () => {
           upsert: true
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error uploading document:", error);
+        throw error;
+      }
 
-      // Get public URL
+      console.log("Document uploaded successfully:", data);
+
       const { data: publicUrlData } = supabase
         .storage
         .from('verification')
         .getPublicUrl(filePath);
 
-      // Update profile with document path
+      console.log("Document public URL:", publicUrlData);
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -207,7 +217,10 @@ const UserProfile = () => {
         })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Error updating profile with document:", updateError);
+        throw updateError;
+      }
 
       setProfile({
         ...profile,
@@ -227,7 +240,6 @@ const UserProfile = () => {
     setIsLoading(true);
     
     try {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -240,7 +252,6 @@ const UserProfile = () => {
         return;
       }
 
-      // Update verification status (this would normally be done by an admin)
       const { data, error } = await supabase
         .from('profiles')
         .update({

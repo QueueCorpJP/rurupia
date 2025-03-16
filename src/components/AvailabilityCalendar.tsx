@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 import { availableSlots } from '../utils/data';
 
 interface AvailabilityCalendarProps {
-  therapistId: number;
+  therapistId: string | number;
 }
 
 const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {

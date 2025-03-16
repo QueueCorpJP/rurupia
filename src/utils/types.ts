@@ -1,3 +1,4 @@
+
 // Update the types.ts file to ensure consistency in ID types
 
 export interface BookingRequest {
@@ -75,6 +76,7 @@ export interface UserProfile {
   hobbies?: string[];
   is_verified?: boolean;
   verification_document?: string;
+  email?: string; // Added email field
 }
 
 // Adding missing types

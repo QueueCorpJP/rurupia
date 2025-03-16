@@ -182,6 +182,7 @@ export type Database = {
           age: string | null
           avatar_url: string | null
           created_at: string
+          email: string | null
           hobbies: string[] | null
           id: string
           is_verified: boolean | null
@@ -194,6 +195,7 @@ export type Database = {
           age?: string | null
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           hobbies?: string[] | null
           id: string
           is_verified?: boolean | null
@@ -206,6 +208,7 @@ export type Database = {
           age?: string | null
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           hobbies?: string[] | null
           id?: string
           is_verified?: boolean | null

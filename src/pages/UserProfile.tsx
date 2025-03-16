@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -14,6 +15,7 @@ import {
   CheckCircle,
   User as UserIcon,
   UploadCloud,
+  Mail,
 } from 'lucide-react';
 import type { UserProfile as UserProfileType } from "@/utils/types";
 
@@ -22,33 +24,54 @@ const UserProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [verificationFile, setVerificationFile] = useState<File | null>(null);
   
   const [profile, setProfile] = useState<UserProfileType>({
     id: "user123",
     nickname: "ゆうこ",
     age: "30代",
-    avatar_url: "", // Using correct property name
+    avatar_url: "", 
+    email: "",
     mbti: "INFJ",
     hobbies: ["旅行", "料理", "ヨガ"],
-    is_verified: false, // Using correct property name
+    is_verified: false,
   });
 
   useEffect(() => {
     const fetchProfile = async () => {
       setIsLoading(true);
       try {
-        // Mock API call
-        // Replace with actual Supabase fetch
-        // const { data, error } = await supabase
-        //   .from('profiles')
-        //   .select('*')
-        //   .eq('id', 'user123')
-        //   .single();
+        // Get the current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast.error("ユーザー情報を取得できませんでした");
+          navigate("/login");
+          return;
+        }
 
-        // if (error) throw error;
+        // Fetch the profile data
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-        // setProfile(data);
-        setIsLoading(false);
+        if (error) throw error;
+
+        if (data) {
+          setProfile({
+            id: data.id,
+            nickname: data.nickname,
+            age: data.age,
+            avatar_url: data.avatar_url,
+            email: user.email || "", // Get email from auth user
+            mbti: data.mbti,
+            hobbies: data.hobbies,
+            is_verified: data.is_verified,
+            verification_document: data.verification_document,
+          });
+        }
       } catch (error) {
         console.error("Error fetching profile:", error);
         toast.error("プロフィールの取得に失敗しました");
@@ -58,24 +81,32 @@ const UserProfile = () => {
     };
 
     fetchProfile();
-  }, []);
+  }, [navigate]);
 
   const handleProfileUpdate = async () => {
     setIsLoading(true);
     
     try {
-      // Mock API call
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("ユーザー情報を取得できませんでした");
+        return;
+      }
+
+      // Update the profile
       const { data, error } = await supabase
         .from('profiles')
         .update({
           nickname: profile.nickname,
           age: profile.age,
-          avatar_url: profile.avatar_url, // Using correct property name 
+          avatar_url: profile.avatar_url,
           mbti: profile.mbti,
           hobbies: profile.hobbies,
-          // Don't update verification status here
+          // Don't update verification status or document here
         })
-        .eq('id', profile.id);
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -88,25 +119,90 @@ const UserProfile = () => {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    
+    try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("ユーザー情報を取得できませんでした");
+        return;
+      }
+      
+      // Upload avatar to storage
+      const filePath = `avatars/${user.id}/${Date.now()}_${file.name}`;
+      const { data, error } = await supabase
+        .storage
+        .from('profiles')
+        .upload(filePath, file, {
+          upsert: true
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+
+      // Update profile
+      setProfile({
+        ...profile,
+        avatar_url: publicUrlData.publicUrl,
+      });
+
+      toast.success("プロフィール画像をアップロードしました！");
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast.error("画像のアップロードに失敗しました");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
-    setFile(file);
+    setVerificationFile(file);
     
     try {
-      // Mock verification document upload
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("ユーザー情報を取得できませんでした");
+        return;
+      }
+      
+      // Upload verification document to storage
+      const filePath = `verification/${user.id}/document_${Date.now()}.${file.name.split('.').pop()}`;
       const { data, error } = await supabase
         .storage
         .from('verification')
-        .upload(`${profile.id}/document.jpg`, file);
+        .upload(filePath, file, {
+          upsert: true
+        });
 
       if (error) throw error;
 
+      // Get public URL
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('verification')
+        .getPublicUrl(filePath);
+
+      // Update profile with document path
       setProfile({
         ...profile,
-        verification_document: data?.path || "", // Using correct property name
+        verification_document: publicUrlData.publicUrl,
       });
 
       toast.success("書類をアップロードしました！");
@@ -122,19 +218,32 @@ const UserProfile = () => {
     setIsLoading(true);
     
     try {
-      // Mock API call
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("ユーザー情報を取得できませんでした");
+        return;
+      }
+
+      if (!profile.verification_document) {
+        toast.error("認証書類をアップロードしてください");
+        return;
+      }
+
+      // Update verification status (this would normally be done by an admin)
       const { data, error } = await supabase
         .from('profiles')
         .update({
-          is_verified: true, // Using correct property name
+          is_verified: true,
         })
-        .eq('id', profile.id);
+        .eq('id', user.id);
 
       if (error) throw error;
 
       setProfile({
         ...profile,
-        is_verified: true, // Using correct property name
+        is_verified: true,
       });
 
       toast.success("アカウントが認証されました！");
@@ -253,7 +362,13 @@ const UserProfile = () => {
                 <div>
                   <Label htmlFor="profile-image" className="cursor-pointer bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors">
                     画像をアップロード
-                    <input type="file" id="profile-image" className="hidden" />
+                    <input 
+                      type="file" 
+                      id="profile-image" 
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                      accept="image/*"
+                    />
                   </Label>
                   <p className="text-sm text-gray-500 mt-2">推奨サイズ：300x300px</p>
                 </div>
@@ -271,6 +386,17 @@ const UserProfile = () => {
                     value={profile.nickname || ""}
                     onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
                   />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="email" className="block text-sm font-medium text-gray-700">メールアドレス</Label>
+                <div className="mt-1">
+                  <div className="flex items-center h-10 px-3 rounded-md border border-input bg-background">
+                    <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {profile.email || "未設定"}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">メールアドレスは認証で使用されます。変更には再認証が必要です。</p>
                 </div>
               </div>
               
@@ -319,7 +445,7 @@ const UserProfile = () => {
               </div>
             </div>
             
-            <div className="mb-8 bg-gray-50 p-6 rounded-lg border">
+            <div className="mb-8 bg-gray-50 p-6 rounded-lg border mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium">アカウント認証</h3>
                 <Badge variant={profile.is_verified ? "secondary" : "outline"}>
@@ -332,6 +458,17 @@ const UserProfile = () => {
                   <p className="text-sm text-gray-600 mb-4">
                     あなたのアカウントは認証されています。認証済みユーザーはプラットフォーム内でより高い信頼性を得られます。
                   </p>
+                  {profile.verification_document && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium text-gray-700">アップロード済み書類:</p>
+                      <div className="mt-1 flex items-center">
+                        <a href={profile.verification_document} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
+                          <UploadCloud className="mr-1 h-4 w-4" />
+                          認証書類を表示
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -342,15 +479,30 @@ const UserProfile = () => {
                   <div className="mb-4">
                     <Label htmlFor="verification-document" className="block text-sm font-medium text-gray-700">身分証明書</Label>
                     <div className="mt-1 flex items-center">
-                      <input type="file" id="verification-document" className="hidden" onChange={handleDocumentUpload} />
+                      <input 
+                        type="file" 
+                        id="verification-document" 
+                        className="hidden" 
+                        onChange={handleDocumentUpload}
+                        accept="image/*,application/pdf" 
+                      />
                       <Label htmlFor="verification-document" className="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors">
-                        {file ? file.name : "書類を選択"}
+                        {verificationFile ? verificationFile.name : "書類を選択"}
                       </Label>
                       {isUploading && <span className="ml-2 text-sm text-gray-500">アップロード中...</span>}
                     </div>
+                    {profile.verification_document && (
+                      <div className="mt-2">
+                        <a href={profile.verification_document} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
+                          <UploadCloud className="mr-1 h-4 w-4" />
+                          アップロード済み書類を表示
+                        </a>
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-500 mt-2">有効な身分証明書には、運転免許証、パスポート、マイナンバーカードなどが含まれます。</p>
                   </div>
                   
-                  <Button onClick={handleVerificationRequest} disabled={isLoading} className="bg-green-500 text-green-50 hover:bg-green-600 transition-colors">
+                  <Button onClick={handleVerificationRequest} disabled={isLoading || !profile.verification_document} className="bg-green-500 text-green-50 hover:bg-green-600 transition-colors">
                     認証をリクエスト
                   </Button>
                 </div>

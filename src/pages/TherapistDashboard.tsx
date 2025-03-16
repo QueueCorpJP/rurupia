@@ -11,10 +11,11 @@ import { TherapistProfileForm } from "@/components/therapist/TherapistProfileFor
 import { TherapistPostForm } from "@/components/therapist/TherapistPostForm";
 import { TherapistBookingRequests } from "@/components/therapist/TherapistBookingRequests";
 import { TherapistLayout } from "@/components/therapist/TherapistLayout";
+import { TherapistProfile } from "@/utils/types";
 
 const TherapistDashboard = () => {
-  // Mock therapist data
-  const therapistProfile = {
+  // Mock therapist data with all required properties from TherapistProfile interface
+  const therapistProfile: TherapistProfile = {
     id: "t1",
     name: "よしひろ",
     therapistId: "p2r0G",
@@ -29,7 +30,16 @@ const TherapistDashboard = () => {
     weight: 67,
     hobbies: ["映画鑑賞", "料理", "旅行"],
     serviceAreas: { prefecture: "東京都", cities: ["渋谷区", "新宿区"] },
-    avatarUrl: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3"
+    avatarUrl: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&q=80&w=1470&ixlib=rb-4.0.3",
+    description: "東京を拠点に活動するマッサージセラピスト",
+    long_description: "5年間の経験を持つプロフェッショナルなマッサージセラピストです。",
+    qualifications: ["国家資格マッサージ師", "アロマセラピスト"],
+    specialties: ["リラクゼーション", "スポーツマッサージ", "ヘッドスパ"],
+    price: 8000,
+    rating: 4.8,
+    reviews: 42,
+    experience: 5,
+    availability: ["月", "水", "金", "土"]
   };
 
   // Mock post

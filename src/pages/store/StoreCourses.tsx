@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -105,7 +104,10 @@ const StoreCourses = () => {
       return;
     }
 
-    const newId = Math.max(0, ...courses.map(course => course.id)) + 1;
+    // Fix here: Ensure that we explicitly convert to number
+    const courseIds = courses.map(course => typeof course.id === 'string' ? parseInt(course.id) : course.id);
+    const newId = Math.max(0, ...courseIds) + 1;
+    
     setCourses([
       ...courses,
       {
@@ -147,7 +149,7 @@ const StoreCourses = () => {
     });
   };
 
-  const handleDeleteCourse = (id: number) => {
+  const handleDeleteCourse = (id: string | number) => {
     setCourses(courses.filter(course => course.id !== id));
     
     toast({

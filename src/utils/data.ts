@@ -1,3 +1,4 @@
+
 import { Therapist, BookingSlot } from "./types";
 
 export const therapists: Therapist[] = [
@@ -87,7 +88,7 @@ export const bookingSlots: BookingSlot[] = [
   { id: 9, date: "2023-11-18", time: "19:00", therapistId: 4, available: true }
 ];
 
-export const availableSlots: Record<number, { date: string; timeSlots: string[] }[]> = {
+export const availableSlots: Record<number | string, { date: string; timeSlots: string[] }[]> = {
   1: [
     { date: "2023-11-15", timeSlots: ["10:00", "11:00", "13:00"] },
     { date: "2023-11-16", timeSlots: ["14:00", "15:00"] },

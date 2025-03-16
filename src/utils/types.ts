@@ -1,4 +1,3 @@
-
 // Update the types.ts file to ensure consistency in ID types
 
 export interface BookingRequest {
@@ -14,7 +13,7 @@ export interface BookingRequest {
 }
 
 export interface TherapistProfile {
-  id: string;
+  id: string | number;
   name: string;
   image_url?: string;
   description: string;
@@ -44,6 +43,9 @@ export interface TherapistProfile {
   pricePerHour: number;
   bio: string;
   avatarUrl?: string;
+  therapistId?: string;
+  area?: string;
+  detailedArea?: string;
 }
 
 export interface StoreProfile {

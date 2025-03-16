@@ -81,10 +81,10 @@ const TherapistDetail = () => {
   // Japanese posts
   const japanesePosts = [
     { id: 1, content: "今日は新しいアロマオイルを使った施術をしました���お客様にも大好評でした！", image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?ixlib=rb-4.0.3", date: "2日前" },
-    { id: 2, content: "マッサージの技術向上のための研修に参加してきました。新しい知識をセッションに活かせるのが楽しみです。", image: "https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?ixlib=rb-4.0.3", date: "1週間前" }
+    { id: 2, content: "マッサージの技術向上のための研修に参加してきました。新しい知識をセッションに活��せるのが楽しみです。", image: "https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?ixlib=rb-4.0.3", date: "1週間前" }
   ];
 
-  const japaneseName = `${therapist.name}（${therapist.name.split(' ')[0]}）`;
+  const japaneseName = `${therapist?.name}（${therapist?.name?.split(' ')[0]}）`;
 
   return (
     <Layout>
@@ -99,27 +99,21 @@ const TherapistDetail = () => {
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
           <div className="rounded-lg overflow-hidden border">
-            {/* Therapist Gallery */}
             <TherapistGallery therapist={therapist} />
             
             <div className="p-6">
-              {/* Profile Information */}
               <TherapistProfile 
                 therapist={therapist} 
                 isFollowing={isFollowing}
                 onToggleFollow={() => setIsFollowing(!isFollowing)}
               />
               
-              {/* Qualifications and Availability */}
               <TherapistQualifications therapist={therapist} />
               
-              {/* Services */}
               <TherapistServices therapist={therapist} />
               
-              {/* Reviews */}
               <TherapistReviews reviews={japaneseReviews} />
               
-              {/* SNS Posts */}
               <TherapistPosts posts={japanesePosts} therapistName={japaneseName} />
             </div>
           </div>
@@ -133,9 +127,9 @@ const TherapistDetail = () => {
                   <h2 className="text-xl font-semibold mb-4">予約</h2>
                   <div className="space-y-4">
                     <p className="text-muted-foreground">
-                      {therapist.name}さんの施術を予約しましょう。
+                      {therapist?.name}さんの施術を予約しましょう。
                     </p>
-                    <Link to={`/book/${therapist.id}`}>
+                    <Link to={`/book/${therapist?.id}`}>
                       <Button className="w-full" size="lg">
                         <Calendar className="mr-2 h-5 w-5" />
                         予約ページへ進む
@@ -164,7 +158,7 @@ const TherapistDetail = () => {
                 
                 <TabsContent value="availability" className="p-0 m-0 pt-4">
                   <h3 className="font-semibold mb-3">空き状況</h3>
-                  <AvailabilityCalendar therapistId={therapist.id} />
+                  <AvailabilityCalendar therapistId={therapist ? therapist.id : 0} />
                 </TabsContent>
                 
                 <TabsContent value="message" className="p-0 m-0 pt-4">

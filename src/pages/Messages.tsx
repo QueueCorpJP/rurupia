@@ -27,14 +27,15 @@ const Messages = () => {
     // Simulate API call to fetch therapist data
     setTimeout(() => {
       if (id) {
-        const foundTherapist = therapists.find(t => t.id === parseInt(id));
+        // Ensure proper comparison by converting types appropriately
+        const foundTherapist = therapists.find(t => String(t.id) === id);
         setTherapist(foundTherapist || null);
         
         if (foundTherapist) {
           // Generate a few mock messages for this therapist
           const mockMessages: Message[] = [
             {
-              id: 1,
+              id: '1',
               senderId: foundTherapist.id,
               receiverId: 0, // User ID
               content: "こんにちは！セッションのご予約ありがとうございます。お役に立てることがあれば、お気軽にお問い合わせください。",
@@ -43,7 +44,7 @@ const Messages = () => {
               imageUrl: null
             },
             {
-              id: 2,
+              id: '2',
               senderId: 0,
               receiverId: foundTherapist.id,
               content: "ありがとうございます。マッサージの予約をしたいのですが、来週の空き状況を教えていただけますか？",
@@ -52,7 +53,7 @@ const Messages = () => {
               imageUrl: null
             },
             {
-              id: 3,
+              id: '3',
               senderId: foundTherapist.id,
               receiverId: 0,
               content: "もちろんです。来週は火曜日の午後2時と、木曜日の午前10時に空きがあります。ご都合はいかがでしょうか？",
@@ -81,7 +82,7 @@ const Messages = () => {
     
     // Create a new message
     const userMessage: Message = {
-      id: Date.now(),
+      id: `msg-${Date.now()}`,
       senderId: 0, // User ID
       receiverId: therapist.id,
       content: newMessage,
@@ -98,7 +99,7 @@ const Messages = () => {
     // Simulate therapist response after a short delay
     setTimeout(() => {
       const therapistResponse: Message = {
-        id: Date.now() + 1,
+        id: `msg-${Date.now() + 1}`,
         senderId: therapist.id,
         receiverId: 0,
         content: "ご連絡ありがとうございます。できるだけ早くご返信いたします。",

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -29,7 +28,7 @@ const TherapistDetail = () => {
     // Simulate loading for a smooth experience
     const timer = setTimeout(() => {
       if (id) {
-        const foundTherapist = therapists.find(t => t.id === parseInt(id));
+        const foundTherapist = therapists.find(t => String(t.id) === id);
         setTherapist(foundTherapist || null);
       }
       setIsLoading(false);
@@ -81,7 +80,7 @@ const TherapistDetail = () => {
   
   // Japanese posts
   const japanesePosts = [
-    { id: 1, content: "今日は新しいアロマオイルを使った施術をしました。お客様にも大好評でした！", image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?ixlib=rb-4.0.3", date: "2日前" },
+    { id: 1, content: "今日は新しいアロマオイルを使った施術をしました���お客様にも大好評でした！", image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?ixlib=rb-4.0.3", date: "2日前" },
     { id: 2, content: "マッサージの技術向上のための研修に参加してきました。新しい知識をセッションに活かせるのが楽しみです。", image: "https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?ixlib=rb-4.0.3", date: "1週間前" }
   ];
 

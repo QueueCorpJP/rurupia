@@ -86,3 +86,23 @@ export const bookingSlots: BookingSlot[] = [
   { id: 8, date: "2023-11-18", time: "18:00", therapistId: 4, available: true },
   { id: 9, date: "2023-11-18", time: "19:00", therapistId: 4, available: true }
 ];
+
+export const availableSlots: Record<number, { date: string; timeSlots: string[] }[]> = {
+  1: [
+    { date: "2023-11-15", timeSlots: ["10:00", "11:00", "13:00"] },
+    { date: "2023-11-16", timeSlots: ["14:00", "15:00"] },
+    { date: "2023-11-17", timeSlots: ["09:00", "16:00"] }
+  ],
+  2: [
+    { date: "2023-11-15", timeSlots: ["09:00", "10:00"] },
+    { date: "2023-11-18", timeSlots: ["13:00", "14:00", "15:00"] }
+  ],
+  3: [
+    { date: "2023-11-16", timeSlots: ["11:00", "12:00"] },
+    { date: "2023-11-19", timeSlots: ["16:00", "17:00"] }
+  ],
+  4: [
+    { date: "2023-11-17", timeSlots: ["10:00", "11:00"] },
+    { date: "2023-11-20", timeSlots: ["13:00", "14:00"] }
+  ]
+};

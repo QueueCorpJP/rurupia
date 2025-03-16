@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { therapists } from '../utils/data';
@@ -7,10 +6,10 @@ import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Search } from 'lucide-react';
 
-// Mock data for conversations
+// Fixed mockConversations to use string IDs, not multiplying by number
 const mockConversations = therapists.map(therapist => {
   const lastMessage = {
-    id: therapist.id * 100,
+    id: `msg-${therapist.id}`,
     senderId: therapist.id,
     receiverId: 0, // User ID
     content: "こんにちは！セッションのご予約ありがとうございます。お役に立てることがあれば、お気軽にお問い合わせください。",
@@ -45,7 +44,7 @@ const MessageList = () => {
     convo => convo.therapist.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleConversationClick = (therapistId: number) => {
+  const handleConversationClick = (therapistId: number | string) => {
     navigate(`/messages/${therapistId}`);
   };
 

@@ -1,4 +1,5 @@
 
+// Update the types.ts file to ensure consistency in ID types
 
 export interface BookingRequest {
   id: string;
@@ -76,7 +77,7 @@ export interface UserProfile {
 
 // Adding missing types
 export interface Therapist {
-  id: number | string;
+  id: string | number;  // Allow both string and number for flexibility
   name: string;
   imageUrl: string;
   description: string;
@@ -91,7 +92,7 @@ export interface Therapist {
 }
 
 export interface Service {
-  id: string | number;
+  id: string | number;  // Allow both string and number for flexibility
   name: string;
   price: number;
   duration: number;
@@ -99,9 +100,9 @@ export interface Service {
 }
 
 export interface Message {
-  id: number;
-  senderId: number;
-  receiverId: number;
+  id: string | number;  // Allow both string and number for flexibility
+  senderId: string | number;
+  receiverId: string | number;
   content: string;
   timestamp: string;
   isRead: boolean;
@@ -109,7 +110,7 @@ export interface Message {
 }
 
 export interface BlogPost {
-  id: number;
+  id: number | string;
   title: string;
   slug: string;
   excerpt: string;
@@ -135,10 +136,9 @@ export interface Filters {
 }
 
 export interface BookingSlot {
-  id: number;
+  id: number | string;
   date: string;
   time: string;
-  therapistId: number;
+  therapistId: number | string;
   available: boolean;
 }
-

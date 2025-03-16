@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -97,8 +98,21 @@ const Signup = () => {
         return;
       }
       
-      toast.success("登録が完了しました。確認のためメールをご確認ください。");
-      navigate("/login");
+      // NEW: Sign in the user after successful registration
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (signInError) {
+        console.error("Error signing in:", signInError);
+        toast.error("自動ログインに失敗しました。ログインページに移動します。");
+        navigate("/login");
+        return;
+      }
+      
+      toast.success("登録とログインが完了しました！");
+      navigate("/"); // Navigate to home page after successful login
       
     } catch (error) {
       console.error("Signup error:", error);

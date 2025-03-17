@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -68,6 +67,21 @@ const Signup = () => {
       }
       
       console.log("User registered successfully:", authData.user.id);
+
+      // Immediately sign in after registration for better UX
+      if (!authData.session) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (signInError) {
+          console.error("Sign in error after registration:", signInError);
+          toast.error("ログインに失敗しました");
+        } else if (signInData.session) {
+          authData.session = signInData.session;
+        }
+      }
       
       // 2. Upload the ID document with proper path structure
       const fileExt = idDocument.name.split('.').pop();
@@ -101,52 +115,36 @@ const Signup = () => {
       
       console.log("File public URL:", urlData);
       
-      // 3. Create or update the user profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          nickname: name,
-          email: email,
-          verification_document: filePath,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-        
-      if (profileError) {
-        console.error("Error updating profile:", profileError);
-        toast.error("プロフィールの更新に失敗しました");
-        return;
+      // Note: The profile should automatically be created by the trigger we set up
+      // However, we'll update it with additional information
+      if (authData.session) {
+        // Try to update the profile with the session token
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            nickname: name,
+            email: email,
+            verification_document: filePath,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+          
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+          // Don't fail the registration if profile update fails
+          // The handle_new_user trigger should have created the basic profile
+        }
       }
       
-      // 4. Sign in the user automatically if they are confirmed
+      // 4. Handle session and navigation
       if (authData.session) {
         // User was automatically signed in, navigate to home
         toast.success("登録が完了しました！");
         navigate("/");
       } else {
         // Check if email confirmation is required
-        if (authData.user.confirmation_sent_at || authData.user.email_confirmed_at === null) {
-          toast.success("登録が完了しました。メールアドレスを確認してください。");
-          navigate("/login");
-        } else {
-          // Try automatic login
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
-          
-          if (signInError) {
-            console.error("Auto login failed:", signInError);
-            toast.warning("登録が完了しました。ログイン画面へ移動します。");
-            navigate("/login");
-            return;
-          }
-          
-          // Success - user is registered and logged in
-          toast.success("登録が完了しました！");
-          navigate("/");
-        }
+        toast.success("登録が完了しました。メールアドレスを確認してください。");
+        navigate("/login");
       }
       
     } catch (error) {

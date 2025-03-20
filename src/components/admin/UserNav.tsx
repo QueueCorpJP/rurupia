@@ -18,11 +18,22 @@ import { toast } from "sonner";
 export function UserNav() {
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userType, setUserType] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserEmail(user?.email || null);
+      
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .single();
+        
+        setUserType(data?.user_type || null);
+      }
     };
     
     getUser();
@@ -36,6 +47,17 @@ export function UserNav() {
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('ログアウトに失敗しました');
+    }
+  };
+
+  const handleSettings = () => {
+    // Navigate to different settings pages based on user type
+    if (userType === 'store') {
+      navigate('/store-settings');
+    } else if (userType === 'therapist') {
+      navigate('/therapist-settings');
+    } else {
+      navigate('/user-profile');
     }
   };
 
@@ -54,14 +76,17 @@ export function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">店舗管理者</p>
+            <p className="text-sm font-medium leading-none">
+              {userType === 'store' ? '店舗管理者' : 
+               userType === 'therapist' ? 'セラピスト' : 'ユーザー'}
+            </p>
             <p className="text-xs leading-none text-muted-foreground">
               {userEmail || '読み込み中...'}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/store-settings')}>
+        <DropdownMenuItem onClick={handleSettings}>
           <Settings className="mr-2 h-4 w-4" />
           <span>アカウント設定</span>
         </DropdownMenuItem>

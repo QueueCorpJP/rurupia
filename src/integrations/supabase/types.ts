@@ -215,6 +215,7 @@ export type Database = {
           email: string | null
           hobbies: string[] | null
           id: string
+          invited_by_store_id: string | null
           is_verified: boolean | null
           mbti: string | null
           name: string | null
@@ -233,6 +234,7 @@ export type Database = {
           email?: string | null
           hobbies?: string[] | null
           id: string
+          invited_by_store_id?: string | null
           is_verified?: boolean | null
           mbti?: string | null
           name?: string | null
@@ -251,6 +253,7 @@ export type Database = {
           email?: string | null
           hobbies?: string[] | null
           id?: string
+          invited_by_store_id?: string | null
           is_verified?: boolean | null
           mbti?: string | null
           name?: string | null
@@ -261,7 +264,15 @@ export type Database = {
           user_type?: string | null
           verification_document?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_invited_by_store_id_fkey"
+            columns: ["invited_by_store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       services: {
         Row: {

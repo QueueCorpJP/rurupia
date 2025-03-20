@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -24,10 +25,33 @@ const formSchema = z.object({
 
 const TherapistSignup = () => {
   const [loading, setLoading] = useState(false);
+  const [invitingStore, setInvitingStore] = useState<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const storeId = searchParams.get('store');
+
+  useEffect(() => {
+    const fetchStoreDetails = async () => {
+      if (storeId) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', storeId)
+          .eq('user_type', 'store')
+          .single();
+
+        if (error) {
+          console.error('Error fetching store details:', error);
+          toast.error('店舗情報の取得に失敗しました');
+        } else if (data) {
+          setInvitingStore(data);
+        }
+      }
+    };
+
+    fetchStoreDetails();
+  }, [storeId]);
 
   const {
     register,
@@ -65,13 +89,18 @@ const TherapistSignup = () => {
 
       if (signUpError) throw signUpError;
 
+      if (!user) {
+        toast.error('ユーザー登録に失敗しました');
+        return;
+      }
+
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           user_type: 'therapist',
           name: data.name,
           invited_by_store_id: storeId,
-          phone_number: data.phone_number,
+          phone: data.phone_number,
           gender: data.gender,
           date_of_birth: data.date_of_birth?.toISOString(),
           address: data.address,
@@ -80,6 +109,35 @@ const TherapistSignup = () => {
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+
+      // Create therapist entry if it doesn't exist yet
+      const { error: therapistError } = await supabase.from('therapists').insert({
+        id: user.id,
+        name: data.name,
+        description: data.introduction || `${data.name}はプロフェッショナルなセラピストです`,
+        location: data.address || '東京',
+        price: 5000, // Default price
+        specialties: [],
+        qualifications: [],
+        availability: []
+      }).single();
+
+      if (therapistError && !therapistError.message.includes('duplicate')) {
+        console.error('Error creating therapist entry:', therapistError);
+      }
+
+      // Create store_therapist relationship
+      if (storeId) {
+        const { error: relationError } = await supabase.from('store_therapists').insert({
+          store_id: storeId,
+          therapist_id: user.id,
+          status: 'pending'
+        });
+
+        if (relationError) {
+          console.error('Error creating store-therapist relationship:', relationError);
+        }
+      }
 
       toast.success('アカウントを作成しました');
       navigate('/therapist-dashboard');
@@ -97,7 +155,9 @@ const TherapistSignup = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl">セラピスト登録</CardTitle>
           <CardDescription>
-            必要な情報を入力して、セラピストアカウントを作成してください。
+            {invitingStore 
+              ? `${invitingStore.name}からの招待で登録しています。` 
+              : '必要な情報を入力して、セラピストアカウントを作成してください。'}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -136,9 +196,16 @@ const TherapistSignup = () => {
               <p className="text-sm text-destructive">{errors.name.message}</p>
             )}
           </div>
+          
+          {storeId && invitingStore && (
+            <div className="mt-2 p-3 bg-primary/10 rounded-md">
+              <p className="text-sm font-medium">招待元の店舗: {invitingStore.name}</p>
+              <p className="text-xs text-muted-foreground">{invitingStore.email}</p>
+            </div>
+          )}
         </CardContent>
         <CardFooter>
-          <Button disabled={loading} onClick={handleSubmit(handleSignup)}>
+          <Button disabled={loading} onClick={handleSubmit(handleSignup)} className="w-full">
             {loading ? 'お待ちください...' : 'アカウントを作成'}
           </Button>
         </CardFooter>

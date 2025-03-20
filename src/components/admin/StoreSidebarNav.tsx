@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+
+import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard,
@@ -12,6 +13,9 @@ import {
   Copy,
   Calendar
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface StoreSidebarNavProps {
   isOpen: boolean;

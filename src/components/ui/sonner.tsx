@@ -1,16 +1,19 @@
 
-import { useTheme } from "next-themes"
-import { Toaster as Sonner } from "sonner"
+import { Toast, Toaster as Sonner } from "sonner"
+
+import { cn } from "@/lib/utils"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      theme="system"
+      className={cn(
+        "toaster group fixed",
+        "[&_li:has([data-sonner-toast])]:overflow-hidden",
+        "[&_li:has([data-sonner-toast])]:group-[.toaster]:!text-foreground"
+      )}
       toastOptions={{
         classNames: {
           toast:

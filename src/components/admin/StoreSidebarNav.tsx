@@ -1,63 +1,39 @@
 
-import { NavLink, useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard,
-  Users,
-  BookOpen,
-  MessageSquare,
-  BarChart2,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Calendar
-} from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  DashboardIcon,
+  PersonIcon,
+  CalendarIcon,
+  FilePlusIcon,
+  EnvelopeClosedIcon,
+  ActivityLogIcon,
+  GearIcon,
+  ExitIcon,
+} from "@radix-ui/react-icons";
+import { UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Copy } from "lucide-react";
 
-interface StoreSidebarNavProps {
-  isOpen: boolean;
-  toggleSidebar: () => void;
-}
-
-export function StoreSidebarNav({ isOpen, toggleSidebar }: StoreSidebarNavProps) {
+export function StoreSidebarNav() {
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState("");
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
-  const [storeId, setStoreId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const getStoreId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', user.id)
-          .single();
-        
-        if (data) {
-          setStoreId(data.id);
-        }
-      }
-    };
-    
-    getStoreId();
-  }, []);
-
-  const handleCopyInviteLink = async () => {
-    if (!storeId) {
-      toast.error('招待リンクの生成に失敗しました');
-      return;
-    }
-
-    const inviteLink = `${window.location.origin}/therapist-signup?store=${storeId}`;
-    await navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    toast.success('招待リンクをコピーしました');
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleLogout = async () => {
     try {
@@ -70,100 +46,183 @@ export function StoreSidebarNav({ isOpen, toggleSidebar }: StoreSidebarNavProps)
     }
   };
 
-  const navItems = [
-    { title: 'ダッシュボード', href: '/store-admin', icon: LayoutDashboard },
-    { title: '予約管理', href: '/store-admin/bookings', icon: Calendar },
-    { title: 'セラピスト管理', href: '/store-admin/therapists', icon: Users },
-    { title: 'コース管理', href: '/store-admin/courses', icon: BookOpen },
-    { title: 'お問い合わせ', href: '/store-admin/inquiries', icon: MessageSquare },
-    { title: '分析・統計', href: '/store-admin/analytics', icon: BarChart2 },
-  ];
+  const generateInviteLink = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("ログインしていません");
+        return;
+      }
+      
+      // Generate invite link with store ID
+      const baseUrl = window.location.origin;
+      const link = `${baseUrl}/therapist-signup?store=${user.id}`;
+      
+      setInviteLink(link);
+      setIsInviteDialogOpen(true);
+    } catch (error) {
+      console.error("Error generating invite link:", error);
+      toast.error("招待リンクの生成に失敗しました");
+    }
+  };
+
+  const copyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    toast.success("招待リンクをコピーしました");
+  };
 
   return (
-    <aside
-      className={cn(
-        "fixed inset-y-0 left-0 z-20 flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out",
-        isOpen ? "w-64" : "w-20"
-      )}
-    >
-      <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-primary text-primary-foreground">
-        <span className={cn("font-semibold whitespace-nowrap overflow-hidden transition-all", 
-          isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
-        )}>
-          店舗管理システム
-        </span>
-        <button
-          onClick={toggleSidebar}
-          className="inline-flex items-center justify-center rounded-md p-2 text-primary-foreground bg-primary hover:bg-primary/90"
+    <>
+      <nav className="grid items-start gap-2 text-sm">
+        <NavLink
+          to="/store-admin"
+          className={({ isActive }) =>
+            cn(
+              buttonVariants({ variant: "ghost" }),
+              isActive
+                ? "bg-muted hover:bg-muted"
+                : "hover:bg-transparent hover:underline",
+              "justify-start"
+            )
+          }
         >
-          {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-        </button>
-      </div>
-
-      <nav className="flex-1 overflow-y-auto py-4">
-        <ul className="space-y-1 px-2">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <NavLink
-                to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
-                    isActive 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-                    !isOpen && "justify-center"
-                  )
-                }
-                end={item.href === '/store-admin'}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                <span className={cn("truncate transition-all", 
-                  isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
-                )}>
-                  {item.title}
-                </span>
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+          <DashboardIcon className="mr-2 h-4 w-4" />
+          ダッシュボード
+        </NavLink>
+        <NavLink
+          to="/store-admin/therapists"
+          className={({ isActive }) =>
+            cn(
+              buttonVariants({ variant: "ghost" }),
+              isActive
+                ? "bg-muted hover:bg-muted"
+                : "hover:bg-transparent hover:underline",
+              "justify-start"
+            )
+          }
+        >
+          <PersonIcon className="mr-2 h-4 w-4" />
+          セラピスト
+        </NavLink>
+        <NavLink
+          to="/store-admin/bookings"
+          className={({ isActive }) =>
+            cn(
+              buttonVariants({ variant: "ghost" }),
+              isActive
+                ? "bg-muted hover:bg-muted"
+                : "hover:bg-transparent hover:underline",
+              "justify-start"
+            )
+          }
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          予約管理
+        </NavLink>
+        <NavLink
+          to="/store-admin/courses"
+          className={({ isActive }) =>
+            cn(
+              buttonVariants({ variant: "ghost" }),
+              isActive
+                ? "bg-muted hover:bg-muted"
+                : "hover:bg-transparent hover:underline",
+              "justify-start"
+            )
+          }
+        >
+          <FilePlusIcon className="mr-2 h-4 w-4" />
+          メニュー管理
+        </NavLink>
+        <NavLink
+          to="/store-admin/inquiries"
+          className={({ isActive }) =>
+            cn(
+              buttonVariants({ variant: "ghost" }),
+              isActive
+                ? "bg-muted hover:bg-muted"
+                : "hover:bg-transparent hover:underline",
+              "justify-start"
+            )
+          }
+        >
+          <EnvelopeClosedIcon className="mr-2 h-4 w-4" />
+          問い合わせ
+        </NavLink>
+        <NavLink
+          to="/store-admin/analytics"
+          className={({ isActive }) =>
+            cn(
+              buttonVariants({ variant: "ghost" }),
+              isActive
+                ? "bg-muted hover:bg-muted"
+                : "hover:bg-transparent hover:underline",
+              "justify-start"
+            )
+          }
+        >
+          <ActivityLogIcon className="mr-2 h-4 w-4" />
+          分析
+        </NavLink>
+        <NavLink
+          to="/store-admin/settings"
+          className={({ isActive }) =>
+            cn(
+              buttonVariants({ variant: "ghost" }),
+              isActive
+                ? "bg-muted hover:bg-muted"
+                : "hover:bg-transparent hover:underline",
+              "justify-start"
+            )
+          }
+        >
+          <GearIcon className="mr-2 h-4 w-4" />
+          設定
+        </NavLink>
         
-        <div className="mt-auto">
-          <div className="px-2 py-4">
-            <button
-              onClick={handleCopyInviteLink}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-                !isOpen && "justify-center"
-              )}
-            >
-              <Copy className="h-5 w-5 flex-shrink-0" />
-              <span className={cn("truncate transition-all", 
-                isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
-              )}>
-                {copied ? '招待リンクをコピーしました' : '招待リンクをコピー'}
-              </span>
-            </button>
-          </div>
-          
-          <div className="border-t border-sidebar-border px-2 py-4">
-            <button
-              onClick={handleLogout}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-md px-3 py-2 text-destructive hover:bg-destructive/10",
-                !isOpen && "justify-center"
-              )}
-            >
-              <LogOut className="h-5 w-5 flex-shrink-0" />
-              <span className={cn("truncate transition-all", 
-                isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
-              )}>
-                ログアウト
-              </span>
-            </button>
-          </div>
-        </div>
+        <Button
+          variant="outline"
+          className="mt-4 justify-start"
+          onClick={generateInviteLink}
+        >
+          <UserPlus className="mr-2 h-4 w-4" />
+          セラピストを招待
+        </Button>
+        
+        <Button
+          variant="ghost"
+          className="mt-2 text-destructive justify-start hover:text-destructive hover:bg-destructive/10"
+          onClick={handleLogout}
+        >
+          <ExitIcon className="mr-2 h-4 w-4" />
+          ログアウト
+        </Button>
       </nav>
-    </aside>
+      
+      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>セラピスト招待</DialogTitle>
+            <DialogDescription>
+              以下の招待リンクを共有して、新しいセラピストを招待できます。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 mt-4">
+            <Input 
+              readOnly 
+              value={inviteLink} 
+              className="flex-1"
+            />
+            <Button onClick={copyInviteLink}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button onClick={() => setIsInviteDialogOpen(false)}>閉じる</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

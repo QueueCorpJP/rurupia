@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-
+import Layout from "@/components/Layout";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,18 +34,23 @@ const TherapistSignup = () => {
   useEffect(() => {
     const fetchStoreDetails = async () => {
       if (storeId) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('name, email')
-          .eq('id', storeId)
-          .eq('user_type', 'store')
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', storeId)
+            .eq('user_type', 'store')
+            .single();
 
-        if (error) {
-          console.error('Error fetching store details:', error);
-          toast.error('店舗情報の取得に失敗しました');
-        } else if (data) {
-          setInvitingStore(data);
+          if (error) {
+            console.error('Error fetching store details:', error);
+            toast.error('店舗情報の取得に失敗しました');
+          } else if (data) {
+            setInvitingStore(data);
+          }
+        } catch (error) {
+          console.error('Error in fetchStoreDetails:', error);
+          toast.error('エラーが発生しました');
         }
       }
     };
@@ -94,6 +99,7 @@ const TherapistSignup = () => {
         return;
       }
 
+      // Update profile data
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -110,7 +116,7 @@ const TherapistSignup = () => {
 
       if (profileError) throw profileError;
 
-      // Create therapist entry if it doesn't exist yet
+      // Create therapist entry
       const { error: therapistError } = await supabase.from('therapists').insert({
         id: user.id,
         name: data.name,
@@ -119,14 +125,17 @@ const TherapistSignup = () => {
         price: 5000, // Default price
         specialties: [],
         qualifications: [],
-        availability: []
-      }).single();
+        availability: ['月', '火', '水', '木', '金', '土', '日'],
+        rating: 0,
+        reviews: 0,
+        experience: 0
+      });
 
       if (therapistError && !therapistError.message.includes('duplicate')) {
         console.error('Error creating therapist entry:', therapistError);
       }
 
-      // Create store_therapist relationship
+      // Create store_therapist relationship if invited by a store
       if (storeId) {
         const { error: relationError } = await supabase.from('store_therapists').insert({
           store_id: storeId,
@@ -140,7 +149,19 @@ const TherapistSignup = () => {
       }
 
       toast.success('アカウントを作成しました');
-      navigate('/therapist-dashboard');
+      
+      // Log the user in
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      
+      if (loginError) {
+        console.error('Error logging in after signup:', loginError);
+        navigate('/therapist-login');
+      } else {
+        navigate('/therapist-dashboard');
+      }
     } catch (error) {
       console.error('Signup error:', error);
       toast.error('アカウント作成に失敗しました');
@@ -150,67 +171,69 @@ const TherapistSignup = () => {
   };
 
   return (
-    <div className="container max-w-md py-12">
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">セラピスト登録</CardTitle>
-          <CardDescription>
-            {invitingStore 
-              ? `${invitingStore.name}からの招待で登録しています。` 
-              : '必要な情報を入力して、セラピストアカウントを作成してください。'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="email">メールアドレス</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="メールアドレスを入力してください"
-              {...register('email')}
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">パスワード</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="パスワードを入力してください"
-              {...register('password')}
-            />
-            {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="name">名前</Label>
-            <Input
-              id="name"
-              placeholder="名前を入力してください"
-              {...register('name')}
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-          
-          {storeId && invitingStore && (
-            <div className="mt-2 p-3 bg-primary/10 rounded-md">
-              <p className="text-sm font-medium">招待元の店舗: {invitingStore.name}</p>
-              <p className="text-xs text-muted-foreground">{invitingStore.email}</p>
+    <Layout>
+      <div className="container max-w-md py-12">
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl">セラピスト登録</CardTitle>
+            <CardDescription>
+              {invitingStore 
+                ? `${invitingStore.name}からの招待で登録しています。` 
+                : '必要な情報を入力して、セラピストアカウントを作成してください。'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">メールアドレス</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="メールアドレスを入力してください"
+                {...register('email')}
+              />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email.message}</p>
+              )}
             </div>
-          )}
-        </CardContent>
-        <CardFooter>
-          <Button disabled={loading} onClick={handleSubmit(handleSignup)} className="w-full">
-            {loading ? 'お待ちください...' : 'アカウントを作成'}
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">パスワード</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="パスワードを入力してください"
+                {...register('password')}
+              />
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password.message}</p>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="name">名前</Label>
+              <Input
+                id="name"
+                placeholder="名前を入力してください"
+                {...register('name')}
+              />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name.message}</p>
+              )}
+            </div>
+            
+            {storeId && invitingStore && (
+              <div className="mt-2 p-3 bg-primary/10 rounded-md">
+                <p className="text-sm font-medium">招待元の店舗: {invitingStore.name}</p>
+                <p className="text-xs text-muted-foreground">{invitingStore.email}</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button disabled={loading} onClick={handleSubmit(handleSignup)} className="w-full">
+              {loading ? 'お待ちください...' : 'アカウントを作成'}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </Layout>
   );
 };
 

@@ -95,6 +95,7 @@ const App = () => (
             <Route path="courses" element={<StoreCourses />} />
             <Route path="inquiries" element={<StoreInquiries />} />
             <Route path="analytics" element={<StoreAnalytics />} />
+            <Route path="settings" element={<StoreSettings />} />
           </Route>
           
           {/* User routes */}

@@ -44,10 +44,19 @@ const TherapistLogin = () => {
       }
       
       if (!therapistData) {
-        // Not a therapist
-        await supabase.auth.signOut();
-        toast.error("セラピストアカウントが見つかりませんでした");
-        return;
+        // Try checking profiles table with user_type
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', data.user?.id)
+          .single();
+          
+        if (profileError || profileData.user_type !== 'therapist') {
+          // Not a therapist
+          await supabase.auth.signOut();
+          toast.error("セラピストアカウントが見つかりませんでした");
+          return;
+        }
       }
 
       toast.success("ログインしました");

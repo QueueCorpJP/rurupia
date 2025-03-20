@@ -1,6 +1,5 @@
 
-import { Toast, Toaster as Sonner } from "sonner"
-
+import { Toaster as Sonner } from "sonner"
 import { cn } from "@/lib/utils"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
@@ -27,7 +26,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       closeButton={true}
       duration={3000}
-      // Removed the dismissible prop as it's not supported
       {...props}
     />
   )

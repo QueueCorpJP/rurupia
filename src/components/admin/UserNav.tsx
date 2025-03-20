@@ -53,9 +53,9 @@ export function UserNav() {
   const handleSettings = () => {
     // Navigate to different settings pages based on user type
     if (userType === 'store') {
-      navigate('/store-settings');
+      navigate('/store-admin/settings');
     } else if (userType === 'therapist') {
-      navigate('/therapist-settings');
+      navigate('/therapist-dashboard');
     } else {
       navigate('/user-profile');
     }

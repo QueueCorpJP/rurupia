@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const formSchema = z.object({
   email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
@@ -26,6 +27,8 @@ const formSchema = z.object({
 const TherapistSignup = () => {
   const [loading, setLoading] = useState(false);
   const [invitingStore, setInvitingStore] = useState<any>(null);
+  const [storeLoading, setStoreLoading] = useState(true);
+  const [storeError, setStoreError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -41,40 +44,42 @@ const TherapistSignup = () => {
 
   useEffect(() => {
     const fetchStoreDetails = async () => {
-      if (storeId) {
-        try {
-          // First try to get from stores table
-          let { data, error } = await supabase
+      if (!storeId) return;
+      
+      setStoreLoading(true);
+      setStoreError(null);
+      
+      try {
+        // Try to get from profiles table first (this is most likely where the store info will be)
+        const profileResult = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .eq('id', storeId)
+          .single();
+          
+        if (profileResult.error) {
+          // If not found in profiles, try stores table
+          const storeResult = await supabase
             .from('stores')
-            .select('name, email')
+            .select('id, name, email')
             .eq('id', storeId)
             .single();
-
-          if (error || !data) {
-            // If not found in stores, try profiles table
-            const profileResult = await supabase
-              .from('profiles')
-              .select('name, email')
-              .eq('id', storeId)
-              .eq('user_type', 'store')
-              .single();
-              
-            if (profileResult.error) {
-              console.error('Error fetching store details:', profileResult.error);
-              toast.error('店舗情報の取得に失敗しました');
-              return;
-            }
             
-            data = profileResult.data;
+          if (storeResult.error) {
+            console.error('Error fetching store details:', storeResult.error);
+            setStoreError('店舗情報の取得に失敗しました。有効な招待リンクを確認してください。');
+            return;
           }
-
-          if (data) {
-            setInvitingStore(data);
-          }
-        } catch (error) {
-          console.error('Error in fetchStoreDetails:', error);
-          toast.error('エラーが発生しました');
+          
+          setInvitingStore(storeResult.data);
+        } else {
+          setInvitingStore(profileResult.data);
         }
+      } catch (error) {
+        console.error('Error in fetchStoreDetails:', error);
+        setStoreError('店舗情報の取得中にエラーが発生しました。');
+      } finally {
+        setStoreLoading(false);
       }
     };
 
@@ -105,6 +110,85 @@ const TherapistSignup = () => {
         return;
       }
 
+      // First check if user already exists
+      const { data: existingUser, error: checkError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (existingUser?.user) {
+        // User exists and password is correct
+        // Update their profile and create the store-therapist relationship
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            user_type: 'therapist',
+            name: data.name,
+            invited_by_store_id: storeId,
+            phone: data.phone_number,
+            gender: data.gender,
+            date_of_birth: data.date_of_birth?.toISOString(),
+            address: data.address,
+            introduction: data.introduction,
+          })
+          .eq('id', existingUser.user.id);
+
+        if (profileError) throw profileError;
+
+        // Create therapist entry if it doesn't exist
+        const { data: existingTherapist } = await supabase
+          .from('therapists')
+          .select('id')
+          .eq('id', existingUser.user.id)
+          .single();
+
+        if (!existingTherapist) {
+          const { error: therapistError } = await supabase.from('therapists').insert({
+            id: existingUser.user.id,
+            name: data.name,
+            description: data.introduction || `${data.name}はプロフェッショナルなセラピストです`,
+            location: data.address || '東京',
+            price: 5000, // Default price
+            specialties: [],
+            qualifications: [],
+            availability: ['月', '火', '水', '木', '金', '土', '日'],
+            rating: 0,
+            reviews: 0,
+            experience: 0
+          });
+
+          if (therapistError) console.error('Error creating therapist entry:', therapistError);
+        }
+
+        // Create store_therapist relationship if it doesn't exist
+        const { data: existingRelation } = await supabase
+          .from('store_therapists')
+          .select('id')
+          .eq('store_id', storeId)
+          .eq('therapist_id', existingUser.user.id)
+          .single();
+
+        if (!existingRelation) {
+          const { error: relationError } = await supabase.from('store_therapists').insert({
+            store_id: storeId,
+            therapist_id: existingUser.user.id,
+            status: 'pending'
+          });
+
+          if (relationError) console.error('Error creating store-therapist relationship:', relationError);
+        }
+
+        toast.success('アカウントにログインしました');
+        navigate('/therapist-dashboard');
+        return;
+      } else if (checkError && checkError.message !== 'Invalid login credentials') {
+        // Some other error occurred
+        console.error('Error checking existing user:', checkError);
+        throw checkError;
+      }
+
+      // User doesn't exist or password is wrong, proceed with signup
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -122,7 +206,14 @@ const TherapistSignup = () => {
         },
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
+          toast.error('このメールアドレスは既に登録されています。ログインしてください。');
+          navigate('/therapist-login');
+          return;
+        }
+        throw signUpError;
+      }
 
       if (!user) {
         toast.error('ユーザー登録に失敗しました');
@@ -205,57 +296,70 @@ const TherapistSignup = () => {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl">セラピスト登録</CardTitle>
             <CardDescription>
-              {invitingStore 
-                ? `${invitingStore.name}からの招待で登録しています。` 
-                : '招待された店舗の情報を読み込んでいます...'}
+              {storeLoading ? '招待された店舗の情報を読み込んでいます...' : 
+                storeError ? '店舗情報を取得できませんでした' : 
+                invitingStore ? `${invitingStore.name}からの招待で登録しています。` : 
+                '招待された店舗の情報が見つかりません'}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">メールアドレス</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="メールアドレスを入力してください"
-                {...register('email')}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">パスワード</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="パスワードを入力してください"
-                {...register('password')}
-              />
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password.message}</p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="name">名前</Label>
-              <Input
-                id="name"
-                placeholder="名前を入力してください"
-                {...register('name')}
-              />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name.message}</p>
-              )}
-            </div>
+            {storeError && (
+              <Alert variant="destructive">
+                <AlertDescription>{storeError}</AlertDescription>
+              </Alert>
+            )}
             
-            {storeId && invitingStore && (
-              <div className="mt-2 p-3 bg-primary/10 rounded-md">
-                <p className="text-sm font-medium">招待元の店舗: {invitingStore.name}</p>
-                <p className="text-xs text-muted-foreground">{invitingStore.email}</p>
-              </div>
+            {!storeLoading && !storeError && invitingStore && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">メールアドレス</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="メールアドレスを入力してください"
+                    {...register('email')}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email.message}</p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">パスワード</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="パスワードを入力してください"
+                    {...register('password')}
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password.message}</p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="name">名前</Label>
+                  <Input
+                    id="name"
+                    placeholder="名前を入力してください"
+                    {...register('name')}
+                  />
+                  {errors.name && (
+                    <p className="text-sm text-destructive">{errors.name.message}</p>
+                  )}
+                </div>
+                
+                <div className="mt-2 p-3 bg-primary/10 rounded-md">
+                  <p className="text-sm font-medium">招待元の店舗: {invitingStore.name}</p>
+                  <p className="text-xs text-muted-foreground">{invitingStore.email}</p>
+                </div>
+              </>
             )}
           </CardContent>
           <CardFooter>
-            <Button disabled={loading || !storeId} onClick={handleSubmit(handleSignup)} className="w-full">
+            <Button 
+              disabled={loading || !storeId || storeLoading || !!storeError || !invitingStore} 
+              onClick={handleSubmit(handleSignup)} 
+              className="w-full"
+            >
               {loading ? 'お待ちください...' : 'アカウントを作成'}
             </Button>
           </CardFooter>

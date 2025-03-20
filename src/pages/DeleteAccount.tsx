@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 
+// Define a proper interface for the RPC function parameters
 interface DeleteUserParams {
   user_id: string;
 }
@@ -26,10 +27,10 @@ const DeleteAccount = () => {
         return;
       }
       
-      // Call the RPC function to delete the user
-      const { error } = await supabase.rpc<any, DeleteUserParams>('delete_user', {
+      // Call the RPC function to delete the user with proper typing
+      const { error } = await supabase.rpc('delete_user', {
         user_id: user.id
-      });
+      } as DeleteUserParams);
 
       if (error) throw error;
       

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,9 +51,10 @@ import {
   Calendar,
   RefreshCw,
   UserPlus,
-  Repeat
+  Repeat,
+  Check
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 // サンプルデータ
@@ -112,7 +112,6 @@ const initialTherapistsData = [
 ];
 
 const StoreTherapists = () => {
-  const { toast } = useToast();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isStatusUpdateOpen, setIsStatusUpdateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,6 +121,7 @@ const StoreTherapists = () => {
   const [therapistDetails, setTherapistDetails] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
   
   // Fetch store ID for generating invite link
   useEffect(() => {
@@ -136,6 +136,13 @@ const StoreTherapists = () => {
     fetchStoreId();
   }, []);
   
+  // Reset linkCopied state when dialog is closed
+  useEffect(() => {
+    if (!isInviteOpen) {
+      setLinkCopied(false);
+    }
+  }, [isInviteOpen]);
+
   // Real-time status simulation
   useEffect(() => {
     const interval = setInterval(() => {
@@ -179,9 +186,9 @@ const StoreTherapists = () => {
 
   const copyInviteLink = () => {
     navigator.clipboard.writeText(inviteLink);
-    toast({
-      title: "招待リンクをコピーしました",
-      description: "招待リンクをセラピスト候補に共有してください",
+    setLinkCopied(true);
+    toast.success("招待リンクをコピーしました", {
+      description: "招待リンクをセラピスト候補に共有してください"
     });
   };
 
@@ -244,15 +251,22 @@ const StoreTherapists = () => {
                   以下の招待リンクを共有して、新しいセラピストを招待できます。
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex items-center space-x-2 mt-4">
-                <Input 
-                  readOnly 
-                  value={inviteLink} 
-                  className="flex-1"
-                />
-                <Button onClick={copyInviteLink}>
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div className="flex flex-col gap-4 mt-4">
+                <div className="flex items-center space-x-2">
+                  <Input 
+                    readOnly 
+                    value={inviteLink} 
+                    className="flex-1"
+                  />
+                  <Button onClick={copyInviteLink} variant={linkCopied ? "outline" : "default"}>
+                    {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {linkCopied && (
+                  <div className="bg-green-50 text-green-800 px-4 py-2 rounded-md text-sm">
+                    招待リンクがコピーされました！
+                  </div>
+                )}
               </div>
               <DialogFooter className="mt-6">
                 <Button onClick={() => setIsInviteOpen(false)}>閉じる</Button>

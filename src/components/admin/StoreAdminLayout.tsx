@@ -26,7 +26,7 @@ const StoreAdminLayout = () => {
           <UserNav />
         </header>
         
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 max-w-7xl mx-auto">
           <Outlet />
         </main>
       </div>

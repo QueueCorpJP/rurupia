@@ -81,7 +81,7 @@ function App() {
           <Route path="settings" element={<StoreSettings />} />
         </Route>
         
-        {/* Therapist Routes - keep only the login and therapist-specific pages */}
+        {/* Therapist Routes - ONLY keep signup and login routes */}
         <Route path="/therapist-login" element={<TherapistLogin />} />
         <Route path="/therapist-signup" element={<TherapistSignup />} />
         <Route path="/therapist-dashboard" element={<TherapistDashboard />} />

@@ -50,30 +50,42 @@ const TherapistSignup = () => {
       setStoreError(null);
       
       try {
-        // Try to get from profiles table first (this is most likely where the store info will be)
-        const profileResult = await supabase
-          .from('profiles')
+        // Try to get from stores table first
+        const storeResult = await supabase
+          .from('stores')
           .select('id, name, email')
           .eq('id', storeId)
-          .single();
+          .maybeSingle();
           
-        if (profileResult.error) {
-          // If not found in profiles, try stores table
-          const storeResult = await supabase
-            .from('stores')
+        if (storeResult.error) {
+          console.error('Error fetching from stores table:', storeResult.error);
+          
+          // If not found in stores, try profiles table
+          const profileResult = await supabase
+            .from('profiles')
             .select('id, name, email')
             .eq('id', storeId)
-            .single();
+            .maybeSingle();
             
-          if (storeResult.error) {
-            console.error('Error fetching store details:', storeResult.error);
+          if (profileResult.error) {
+            console.error('Error fetching from profiles table:', profileResult.error);
             setStoreError('店舗情報の取得に失敗しました。有効な招待リンクを確認してください。');
             return;
           }
           
-          setInvitingStore(storeResult.data);
-        } else {
+          if (!profileResult.data) {
+            setStoreError('招待された店舗が見つかりません。有効な招待リンクを確認してください。');
+            return;
+          }
+          
           setInvitingStore(profileResult.data);
+        } else {
+          if (!storeResult.data) {
+            setStoreError('招待された店舗が見つかりません。有効な招待リンクを確認してください。');
+            return;
+          }
+          
+          setInvitingStore(storeResult.data);
         }
       } catch (error) {
         console.error('Error in fetchStoreDetails:', error);
@@ -111,12 +123,12 @@ const TherapistSignup = () => {
       }
 
       // First check if user already exists
-      const { data: existingUser, error: checkError } = await supabase.auth.signInWithPassword({
+      const { data: existingUserData, error: checkError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
-      if (existingUser?.user) {
+      if (existingUserData?.user) {
         // User exists and password is correct
         // Update their profile and create the store-therapist relationship
         
@@ -132,7 +144,7 @@ const TherapistSignup = () => {
             address: data.address,
             introduction: data.introduction,
           })
-          .eq('id', existingUser.user.id);
+          .eq('id', existingUserData.user.id);
 
         if (profileError) throw profileError;
 
@@ -140,12 +152,12 @@ const TherapistSignup = () => {
         const { data: existingTherapist } = await supabase
           .from('therapists')
           .select('id')
-          .eq('id', existingUser.user.id)
-          .single();
+          .eq('id', existingUserData.user.id)
+          .maybeSingle();
 
         if (!existingTherapist) {
           const { error: therapistError } = await supabase.from('therapists').insert({
-            id: existingUser.user.id,
+            id: existingUserData.user.id,
             name: data.name,
             description: data.introduction || `${data.name}はプロフェッショナルなセラピストです`,
             location: data.address || '東京',
@@ -166,13 +178,13 @@ const TherapistSignup = () => {
           .from('store_therapists')
           .select('id')
           .eq('store_id', storeId)
-          .eq('therapist_id', existingUser.user.id)
-          .single();
+          .eq('therapist_id', existingUserData.user.id)
+          .maybeSingle();
 
         if (!existingRelation) {
           const { error: relationError } = await supabase.from('store_therapists').insert({
             store_id: storeId,
-            therapist_id: existingUser.user.id,
+            therapist_id: existingUserData.user.id,
             status: 'pending'
           });
 
@@ -208,8 +220,7 @@ const TherapistSignup = () => {
 
       if (signUpError) {
         if (signUpError.message.includes('already registered')) {
-          toast.error('このメールアドレスは既に登録されています。ログインしてください。');
-          navigate('/therapist-login');
+          toast.error('このメールアドレスは既に登録されています。パスワードが異なる可能性があります。');
           return;
         }
         throw signUpError;
@@ -310,7 +321,7 @@ const TherapistSignup = () => {
             )}
             
             {!storeLoading && !storeError && invitingStore && (
-              <>
+              <form onSubmit={handleSubmit(handleSignup)} className="space-y-4">
                 <div className="grid gap-2">
                   <Label htmlFor="email">メールアドレス</Label>
                   <Input
@@ -351,18 +362,17 @@ const TherapistSignup = () => {
                   <p className="text-sm font-medium">招待元の店舗: {invitingStore.name}</p>
                   <p className="text-xs text-muted-foreground">{invitingStore.email}</p>
                 </div>
-              </>
+                
+                <Button 
+                  type="submit"
+                  disabled={loading} 
+                  className="w-full mt-4"
+                >
+                  {loading ? 'お待ちください...' : 'アカウントを作成'}
+                </Button>
+              </form>
             )}
           </CardContent>
-          <CardFooter>
-            <Button 
-              disabled={loading || !storeId || storeLoading || !!storeError || !invitingStore} 
-              onClick={handleSubmit(handleSignup)} 
-              className="w-full"
-            >
-              {loading ? 'お待ちください...' : 'アカウントを作成'}
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     </Layout>

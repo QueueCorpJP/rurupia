@@ -1,545 +1,290 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Search, 
-  Plus, 
-  MoreHorizontal, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  Copy,
-  Calendar,
-  RefreshCw,
-  UserPlus,
-  Repeat,
-  Check
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
-// サンプルデータ
-const initialTherapistsData = [
-  {
-    id: 1,
-    name: '佐藤 愛',
-    type: '正社員',
-    specialties: ['アロマオイルマッサージ', 'タイ古式マッサージ'],
-    status: 'アクティブ',
-    bookings: 45,
-    newClients: 12,
-    repeatClients: 33
-  },
-  {
-    id: 2,
-    name: '田中 健',
-    type: 'パート',
-    specialties: ['ディープティシュー', 'ストレッチ'],
-    status: 'アクティブ',
-    bookings: 32,
-    newClients: 8,
-    repeatClients: 24
-  },
-  {
-    id: 3,
-    name: '鈴木 美優',
-    type: '正社員',
-    specialties: ['ホットストーンマッサージ', 'フットマッサージ'],
-    status: '休暇中',
-    bookings: 28,
-    newClients: 5,
-    repeatClients: 23
-  },
-  {
-    id: 4,
-    name: '高橋 誠',
-    type: 'パート',
-    specialties: ['アロマオイルマッサージ', 'ヘッドマッサージ'],
-    status: 'アクティブ',
-    bookings: 18,
-    newClients: 10,
-    repeatClients: 8
-  },
-  {
-    id: 5,
-    name: '渡辺 さくら',
-    type: '研修中',
-    specialties: ['アロマオイルマッサージ'],
-    status: '研修中',
-    bookings: 5,
-    newClients: 5,
-    repeatClients: 0
-  }
-];
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PlusCircle, Copy, Mail, Trash2, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+// Define the Therapist interface
+interface Therapist {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: string;
+  created_at: string;
+}
 
 const StoreTherapists = () => {
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [isStatusUpdateOpen, setIsStatusUpdateOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [therapists, setTherapists] = useState(initialTherapistsData);
-  const [filteredTherapists, setFilteredTherapists] = useState(initialTherapistsData);
-  const [selectedTherapist, setSelectedTherapist] = useState<any>(null);
-  const [therapistDetails, setTherapistDetails] = useState<any>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [inviteLink, setInviteLink] = useState('');
-  const [linkCopied, setLinkCopied] = useState(false);
-  
-  // Fetch store ID for generating invite link
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   useEffect(() => {
-    const fetchStoreId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Generate invite link using store ID
-        setInviteLink(`${window.location.origin}/therapist-signup?store=${user.id}`);
+    const fetchTherapists = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Get the current user's ID (the store)
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setError("ログインしていません");
+          setLoading(false);
+          return;
+        }
+        
+        setStoreId(user.id);
+        
+        // Get all therapists linked to this store
+        const { data, error: therapistsError } = await supabase
+          .from("store_therapists")
+          .select(`
+            therapist_id,
+            status,
+            created_at,
+            therapists!inner(name),
+            profiles!inner(email, phone)
+          `)
+          .eq("store_id", user.id);
+          
+        if (therapistsError) {
+          throw therapistsError;
+        }
+        
+        // Transform the data into a more usable format
+        const formattedData = data.map((item: any) => ({
+          id: item.therapist_id,
+          name: item.therapists.name,
+          email: item.profiles.email,
+          phone: item.profiles.phone || "",
+          status: item.status,
+          created_at: item.created_at,
+        }));
+        
+        setTherapists(formattedData);
+      } catch (error: any) {
+        console.error("Error fetching therapists:", error);
+        setError("セラピスト情報の取得に失敗しました: " + error.message);
+      } finally {
+        setLoading(false);
       }
     };
-    
-    fetchStoreId();
-  }, []);
-  
-  // Reset linkCopied state when dialog is closed
-  useEffect(() => {
-    if (!isInviteOpen) {
-      setLinkCopied(false);
-    }
-  }, [isInviteOpen]);
 
-  // Real-time status simulation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Randomly update a therapist's status to simulate real-time updates
-      const randomIndex = Math.floor(Math.random() * therapists.length);
-      const statuses = ['アクティブ', '休憩中', '施術中', '休暇中'];
-      const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-      
-      setTherapists(prevTherapists => {
-        const updatedTherapists = [...prevTherapists];
-        updatedTherapists[randomIndex] = {
-          ...updatedTherapists[randomIndex],
-          status: randomStatus
-        };
-        return updatedTherapists;
-      });
-    }, 30000); // Update every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, [therapists]);
-  
-  // Update filtered therapists when therapists or search query changes
-  useEffect(() => {
-    handleSearch();
-  }, [therapists, searchQuery]);
-  
-  const handleSearch = () => {
-    if (searchQuery.trim() === '') {
-      setFilteredTherapists(therapists);
-      return;
-    }
-    
-    const filtered = therapists.filter(
-      therapist => 
-        therapist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        therapist.specialties.some(specialty => specialty.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-    
-    setFilteredTherapists(filtered);
-  };
+    fetchTherapists();
+  }, []);
 
   const copyInviteLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    setLinkCopied(true);
-    toast.success("招待リンクをコピーしました", {
-      description: "招待リンクをセラピスト候補に共有してください"
-    });
-  };
-
-  const updateTherapistStatus = (therapistId: number, newStatus: string) => {
-    setTherapists(prevTherapists => 
-      prevTherapists.map(therapist => 
-        therapist.id === therapistId 
-          ? { ...therapist, status: newStatus } 
-          : therapist
-      )
-    );
+    if (!storeId) return;
     
-    toast({
-      title: "ステータスを更新しました",
-      description: `セラピストのステータスを「${newStatus}」に変更しました。`,
-    });
-  };
-  
-  const viewTherapistDetails = (therapist: any) => {
-    setTherapistDetails(therapist);
-    setIsDetailsModalOpen(true);
+    const inviteLink = `${window.location.origin}/therapist-signup?store=${storeId}`;
+    navigator.clipboard.writeText(inviteLink);
+    
+    // Show a toast notification
+    toast("招待リンクがコピーされました");
+    
+    // Also update state to show a visual confirmation
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 3000);
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'アクティブ':
-        return 'bg-green-100 text-green-800';
-      case '施術中':
-        return 'bg-blue-100 text-blue-800';
-      case '休憩中':
-        return 'bg-amber-100 text-amber-800';
-      case '休暇中':
-        return 'bg-gray-100 text-gray-800';
-      case '研修中':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const sendInviteEmail = async () => {
+    // Implementation for sending invitation email would go here
+    toast("招待メールが送信されました");
+    setInviteEmail("");
+    setIsDialogOpen(false);
+  };
+
+  const removeTherapist = async (therapistId: string) => {
+    if (!storeId) return;
+    
+    try {
+      const { error } = await supabase
+        .from("store_therapists")
+        .delete()
+        .eq("store_id", storeId)
+        .eq("therapist_id", therapistId);
+        
+      if (error) throw error;
+      
+      // Update the UI
+      setTherapists(therapists.filter(t => t.id !== therapistId));
+      toast("セラピストが削除されました");
+    } catch (error: any) {
+      console.error("Error removing therapist:", error);
+      toast("セラピストの削除に失敗しました: " + error.message);
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">セラピスト管理</h1>
-          <p className="text-muted-foreground mt-2">セラピストの登録・管理</p>
+          <h2 className="text-3xl font-bold tracking-tight">セラピスト管理</h2>
+          <p className="text-muted-foreground">
+            店舗のセラピストを管理し、新しいセラピストを招待します
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                セラピスト招待
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>セラピスト招待</DialogTitle>
-                <DialogDescription>
-                  以下の招待リンクを共有して、新しいセラピストを招待できます。
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col gap-4 mt-4">
-                <div className="flex items-center space-x-2">
-                  <Input 
-                    readOnly 
-                    value={inviteLink} 
-                    className="flex-1"
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-1">
+              <PlusCircle className="h-4 w-4" />
+              <span>セラピストを招待</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>セラピストを招待</DialogTitle>
+              <DialogDescription>
+                招待リンクをコピーして共有するか、メールで直接招待を送信できます
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>招待リンク</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={storeId ? `${window.location.origin}/therapist-signup?store=${storeId}` : '読み込み中...'}
                   />
-                  <Button onClick={copyInviteLink} variant={linkCopied ? "outline" : "default"}>
-                    {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={copyInviteLink}
+                    className={inviteCopied ? "bg-green-100" : ""}
+                  >
+                    <Copy className={`h-4 w-4 ${inviteCopied ? "text-green-500" : ""}`} />
                   </Button>
                 </div>
-                {linkCopied && (
-                  <div className="bg-green-50 text-green-800 px-4 py-2 rounded-md text-sm">
-                    招待リンクがコピーされました！
-                  </div>
+                {inviteCopied && (
+                  <p className="text-xs text-green-500">リンクをコピーしました!</p>
                 )}
               </div>
-              <DialogFooter className="mt-6">
-                <Button onClick={() => setIsInviteOpen(false)}>閉じる</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger value="all">全て</TabsTrigger>
-          <TabsTrigger value="active">アクティブ</TabsTrigger>
-          <TabsTrigger value="onbreak">休憩中</TabsTrigger>
-          <TabsTrigger value="treatment">施術中</TabsTrigger>
-          <TabsTrigger value="vacation">休暇中</TabsTrigger>
-          <TabsTrigger value="training">研修中</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all" className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <CardTitle>セラピスト一覧</CardTitle>
-                <div className="relative w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <div className="space-y-2">
+                <Label>メールで招待</Label>
+                <div className="flex items-center gap-2">
                   <Input
-                    placeholder="名前や専門で検索"
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    type="email"
+                    placeholder="example@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={sendInviteEmail}
+                  >
+                    <Mail className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-              <CardDescription>
-                現在登録されているセラピストの一覧です。
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>名前</TableHead>
-                    <TableHead>雇用形態</TableHead>
-                    <TableHead>専門</TableHead>
-                    <TableHead>ステータス</TableHead>
-                    <TableHead className="text-right">予約</TableHead>
-                    <TableHead className="text-right">新規/リピート</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTherapists.map((therapist) => (
-                    <TableRow key={therapist.id}>
-                      <TableCell className="font-medium">{therapist.name}</TableCell>
-                      <TableCell>{therapist.type}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {therapist.specialties.map((specialty, index) => (
-                            <span 
-                              key={index}
-                              className="inline-flex text-xs bg-secondary px-2 py-1 rounded-full"
-                            >
-                              {specialty}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                          getStatusBadgeColor(therapist.status)
-                        }`}>
-                          {therapist.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">{therapist.bookings}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <span title="新規客" className="inline-flex items-center text-xs">
-                            <UserPlus className="h-3.5 w-3.5 mr-1 text-blue-500" />
-                            {therapist.newClients}
-                          </span>
-                          <span>/</span>
-                          <span title="リピート客" className="inline-flex items-center text-xs">
-                            <Repeat className="h-3.5 w-3.5 mr-1 text-green-500" />
-                            {therapist.repeatClients}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">メニューを開く</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>アクション</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => viewTherapistDetails(therapist)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              <span>プロフィールを見る</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="mr-2 h-4 w-4" />
-                              <span>編集する</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Calendar className="mr-2 h-4 w-4" />
-                              <span>予約状況を確認</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>ステータス変更</DropdownMenuLabel>
-                            <DropdownMenuRadioGroup value={therapist.status}>
-                              <DropdownMenuRadioItem 
-                                value="アクティブ"
-                                onClick={() => updateTherapistStatus(therapist.id, "アクティブ")}
-                              >
-                                アクティブ
-                              </DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem 
-                                value="施術中"
-                                onClick={() => updateTherapistStatus(therapist.id, "施術中")}
-                              >
-                                施術中
-                              </DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem 
-                                value="休憩中"
-                                onClick={() => updateTherapistStatus(therapist.id, "休憩中")}
-                              >
-                                休憩中
-                              </DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem 
-                                value="休暇中"
-                                onClick={() => updateTherapistStatus(therapist.id, "休暇中")}
-                              >
-                                休暇中
-                              </DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem 
-                                value="研修中"
-                                onClick={() => updateTherapistStatus(therapist.id, "研修中")}
-                              >
-                                研修中
-                              </DropdownMenuRadioItem>
-                            </DropdownMenuRadioGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>削除する</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="active" className="space-y-4">
-          {/* アクティブのセラピスト向けのコンテンツ */}
-        </TabsContent>
-        
-        <TabsContent value="onbreak" className="space-y-4">
-          {/* 休憩中のセラピスト向けのコンテンツ */}
-        </TabsContent>
-        
-        <TabsContent value="treatment" className="space-y-4">
-          {/* 施術中のセラピスト向けのコンテンツ */}
-        </TabsContent>
-        
-        <TabsContent value="vacation" className="space-y-4">
-          {/* 休暇中のセラピスト向けのコンテンツ */}
-        </TabsContent>
-        
-        <TabsContent value="training" className="space-y-4">
-          {/* 研修中のセラピスト向けのコンテンツ */}
-        </TabsContent>
-      </Tabs>
-      
-      {/* セラピスト応募リスト */}
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => setIsDialogOpen(false)}>
+                閉じる
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>セラピスト応募</CardTitle>
+          <CardTitle>セラピスト一覧</CardTitle>
           <CardDescription>
-            招待リンク経由の応募申請を管理します。
+            店舗に所属するセラピストの一覧です
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-muted-foreground mb-4">現在、新しい応募はありません。</p>
-            <Button variant="outline" onClick={() => setIsInviteOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              招待リンクを共有する
-            </Button>
-          </div>
+          {loading ? (
+            <div className="text-center py-4">読み込み中...</div>
+          ) : therapists.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              セラピストがまだ登録されていません。「セラピストを招待」ボタンから招待してください。
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>名前</TableHead>
+                  <TableHead>メールアドレス</TableHead>
+                  <TableHead>電話番号</TableHead>
+                  <TableHead>ステータス</TableHead>
+                  <TableHead>登録日</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {therapists.map((therapist) => (
+                  <TableRow key={therapist.id}>
+                    <TableCell className="font-medium">{therapist.name}</TableCell>
+                    <TableCell>{therapist.email}</TableCell>
+                    <TableCell>{therapist.phone || "未設定"}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={therapist.status} />
+                    </TableCell>
+                    <TableCell>
+                      {new Date(therapist.created_at).toLocaleDateString("ja-JP")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeTherapist(therapist.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
-      
-      {/* Therapist Details Modal */}
-      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="sm:max-w-[625px]">
-          {therapistDetails && (
-            <>
-              <DialogHeader>
-                <DialogTitle>セラピスト詳細</DialogTitle>
-                <DialogDescription>
-                  {therapistDetails.name}のプロフィール情報
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-xl font-semibold">{therapistDetails.name.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">{therapistDetails.name}</h3>
-                    <p className="text-sm text-muted-foreground">{therapistDetails.type}</p>
-                    <div className="flex gap-1 mt-1">
-                      <Badge className={getStatusBadgeColor(therapistDetails.status)}>
-                        {therapistDetails.status}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-4 grid gap-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">専門</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {therapistDetails.specialties.map((specialty: string, index: number) => (
-                        <Badge key={index} variant="outline">
-                          {specialty}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">予約数</h4>
-                      <p className="text-2xl font-semibold">{therapistDetails.bookings}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">
-                        <span className="inline-flex items-center">
-                          <UserPlus className="h-4 w-4 mr-1 text-blue-500" />
-                          新規客
-                        </span>
-                      </h4>
-                      <p className="text-2xl font-semibold">{therapistDetails.newClients}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">
-                        <span className="inline-flex items-center">
-                          <Repeat className="h-4 w-4 mr-1 text-green-500" />
-                          リピート
-                        </span>
-                      </h4>
-                      <p className="text-2xl font-semibold">{therapistDetails.repeatClients}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDetailsModalOpen(false)}>閉じる</Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

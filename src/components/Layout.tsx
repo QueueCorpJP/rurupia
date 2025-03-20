@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings } from 'lucide-react';
@@ -25,13 +24,11 @@ const Layout = ({ children }: LayoutProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check authentication state
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Fetch user profile to get user_type
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -46,12 +43,10 @@ const Layout = ({ children }: LayoutProps) => {
 
     checkAuth();
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Fetch user profile on auth change
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -69,7 +64,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate("/"); // Navigate to index after logout
+    navigate("/");
   };
 
   const getUserDashboardLink = () => {
@@ -84,7 +79,7 @@ const Layout = ({ children }: LayoutProps) => {
         return "/user-profile";
     }
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
@@ -118,7 +113,6 @@ const Layout = ({ children }: LayoutProps) => {
             
             <div className="h-6 w-px bg-border mx-1"></div>
             
-            {/* Conditional rendering based on auth state */}
             {!loading && (
               <>
                 {user ? (
@@ -213,9 +207,6 @@ const Layout = ({ children }: LayoutProps) => {
                               <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
                                 ユーザー登録
                               </Link>
-                              <Link to="/therapist-signup" className="block p-2 hover:bg-muted rounded-md">
-                                セラピスト登録
-                              </Link>
                               <Link to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
                                 店舗登録
                               </Link>
@@ -230,7 +221,6 @@ const Layout = ({ children }: LayoutProps) => {
             )}
           </nav>
 
-          {/* Mobile menu button */}
           <Button variant="ghost" className="ml-auto md:hidden px-0 h-9 w-9">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="4" x2="20" y1="12" y2="12" />

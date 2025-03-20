@@ -28,9 +28,9 @@ const DeleteAccount = () => {
       }
       
       // Call the RPC function to delete the user with proper typing
-      const { error } = await supabase.rpc<any>('delete_user', {
+      const { error } = await supabase.rpc<void, DeleteUserParams>('delete_user', {
         user_id: user.id
-      } as DeleteUserParams);
+      });
 
       if (error) throw error;
       

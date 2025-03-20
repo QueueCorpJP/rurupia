@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -10,7 +9,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Search } from 'lucide-react';
+import { MoreHorizontal, Search, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,8 +20,7 @@ import {
 export interface Column {
   key: string;
   label: string;
-  accessorKey?: string;
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: any) => React.ReactNode;
 }
 
 interface DataTableProps {
@@ -34,6 +32,7 @@ interface DataTableProps {
   onSortChange?: (value: string) => void;
   actionMenuItems?: { label: string, onClick: (row: any) => void }[];
   onRowClick?: (row: any) => void;
+  isLoading?: boolean;
 }
 
 export function DataTable({
@@ -44,7 +43,8 @@ export function DataTable({
   onSearchChange,
   onSortChange,
   actionMenuItems,
-  onRowClick
+  onRowClick,
+  isLoading = false
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -73,10 +73,11 @@ export function DataTable({
             className="pl-9"
             value={searchTerm}
             onChange={handleSearch}
+            disabled={isLoading}
           />
         </div>
         {sortOptions && (
-          <Select onValueChange={onSortChange}>
+          <Select onValueChange={onSortChange} disabled={isLoading}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="並び替え" />
             </SelectTrigger>
@@ -102,7 +103,16 @@ export function DataTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length + (actionMenuItems ? 1 : 0)} className="h-24 text-center">
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="ml-2">読み込み中...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length + (actionMenuItems ? 1 : 0)} className="h-24 text-center">
                   データがありません
@@ -117,11 +127,7 @@ export function DataTable({
                 >
                   {columns.map((column) => (
                     <TableCell key={column.key}>
-                      {column.render 
-                        ? column.render(column.accessorKey ? row[column.accessorKey] : null, row) 
-                        : column.accessorKey 
-                          ? row[column.accessorKey] 
-                          : null}
+                      {column.render ? column.render(row[column.key]) : row[column.key]}
                     </TableCell>
                   ))}
                   {actionMenuItems && (

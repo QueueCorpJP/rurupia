@@ -68,6 +68,38 @@ const Signup = () => {
       
       console.log("User registered successfully:", authData.user.id);
 
+      // Check if a profile already exists before creating one
+      const { data: existingProfile, error: checkProfileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authData.user.id)
+        .single();
+        
+      if (checkProfileError && checkProfileError.code !== 'PGRST116') {
+        // PGRST116 means "not found", which is expected if profile doesn't exist
+        console.error("Error checking for existing profile:", checkProfileError);
+      }
+      
+      // Only create a new profile if one doesn't exist yet
+      if (!existingProfile) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: authData.user.id,
+              name: name,
+              email: email
+              // Don't set created_at and updated_at - let the database handle this
+            }
+          ]);
+
+        if (profileError) {
+          console.error("Profile creation error:", profileError);
+          // Don't fail the registration if profile creation fails
+          // The trigger might have already created the profile
+        }
+      }
+
       // Immediately sign in after registration for better UX
       if (!authData.session) {
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -118,19 +150,22 @@ const Signup = () => {
       // Note: The profile should automatically be created by the trigger we set up
       // However, we'll update it with additional information
       if (authData.session) {
-        // Try to update the profile with the session token
-        const { error: profileError } = await supabase
+        // Use upsert instead of update to handle both cases
+        const { error: profileUpdateError } = await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            id: userId,
             nickname: name,
             email: email,
             verification_document: filePath,
             updated_at: new Date().toISOString()
-          })
-          .eq('id', userId);
+          }, { 
+            onConflict: 'id',  // Specify the constraint
+            ignoreDuplicates: false  // Update if exists
+          });
           
-        if (profileError) {
-          console.error("Error updating profile:", profileError);
+        if (profileUpdateError) {
+          console.error("Error updating profile:", profileUpdateError);
           // Don't fail the registration if profile update fails
           // The handle_new_user trigger should have created the basic profile
         }

@@ -6,6 +6,24 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export interface Profile {
+  id: string;
+  name?: string;
+  nickname?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  user_type?: string;
+  status?: string;
+  created_at: string;
+  updated_at: string;
+  auth_users?: {
+    email: string;
+    created_at: string;
+    last_sign_in_at: string;
+  };
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -178,46 +196,9 @@ export type Database = {
         Relationships: []
       }
       profiles: {
-        Row: {
-          age: string | null
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          hobbies: string[] | null
-          id: string
-          is_verified: boolean | null
-          mbti: string | null
-          nickname: string | null
-          updated_at: string
-          verification_document: string | null
-        }
-        Insert: {
-          age?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          hobbies?: string[] | null
-          id: string
-          is_verified?: boolean | null
-          mbti?: string | null
-          nickname?: string | null
-          updated_at?: string
-          verification_document?: string | null
-        }
-        Update: {
-          age?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          hobbies?: string[] | null
-          id?: string
-          is_verified?: boolean | null
-          mbti?: string | null
-          nickname?: string | null
-          updated_at?: string
-          verification_document?: string | null
-        }
-        Relationships: []
+        Row: Profile;
+        Insert: Omit<Profile, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<Profile, 'id'>>;
       }
       services: {
         Row: {

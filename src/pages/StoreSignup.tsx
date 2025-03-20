@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -54,6 +53,26 @@ const StoreSignup = () => {
       if (!authData.user) {
         toast.error("ユーザーの登録に失敗しました");
         return;
+      }
+      
+      // Create or update the profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authData.user.id,
+          name: formData.ownerName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          user_type: 'store'
+        }, {
+          onConflict: 'id',
+          ignoreDuplicates: false
+        });
+        
+      if (profileError) {
+        console.error("Error creating/updating profile:", profileError);
+        // Continue with store creation even if profile update fails
       }
       
       // 2. Create the store profile

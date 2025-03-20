@@ -24,7 +24,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       closeButton={true}
       duration={3000}
-      dismissible={true}
+      // Removed the dismissible prop as it's not supported
       {...props}
     />
   )

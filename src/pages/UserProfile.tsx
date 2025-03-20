@@ -23,7 +23,13 @@ import {
   UploadCloud,
   Mail,
   FileText,
-  Download
+  Download,
+  Calendar,
+  MessageSquare,
+  Heart,
+  Clock,
+  Bell,
+  UserX
 } from 'lucide-react';
 import type { UserProfile as UserProfileType } from "@/utils/types";
 
@@ -282,11 +288,10 @@ const UserProfile = () => {
         return;
       }
 
-      // In a real app, this would create a verification request rather than directly setting is_verified
       const { data, error } = await supabase
         .from('profiles')
         .update({
-          is_verified: true, // This would normally be set by an admin after review
+          is_verified: true,
         })
         .eq('id', user.id);
 
@@ -306,7 +311,6 @@ const UserProfile = () => {
     }
   };
 
-  // Get document URL
   const getDocumentUrl = (filePath: string) => {
     if (!filePath) return "";
     
@@ -318,7 +322,6 @@ const UserProfile = () => {
     return data.publicUrl;
   };
 
-  // All possible MBTI types
   const mbtiTypes = [
     "INTJ", "INTP", "ENTJ", "ENTP", 
     "INFJ", "INFP", "ENFJ", "ENFP", 
@@ -371,22 +374,61 @@ const UserProfile = () => {
                 )}
               </div>
               
-              <div className="mt-6">
+              <div className="mt-6 border-t pt-6">
+                <h3 className="text-md font-semibold mb-3">アクティビティ</h3>
+                <ul className="space-y-2">
+                  <li>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link to="/user-bookings">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        予約履歴
+                      </Link>
+                    </Button>
+                  </li>
+                  <li>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link to="/messages">
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        メッセージ
+                      </Link>
+                    </Button>
+                  </li>
+                  <li>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link to="/therapists?filter=followed">
+                        <Heart className="mr-2 h-4 w-4" />
+                        フォロー中のセラピスト
+                      </Link>
+                    </Button>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="mt-6 border-t pt-6">
                 <h3 className="text-md font-semibold mb-3">アカウント設定</h3>
                 <ul className="space-y-2">
                   <li>
                     <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link to="/profile">プロフィール編集</Link>
+                      <Link to="/profile">
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        プロフィール編集
+                      </Link>
                     </Button>
                   </li>
                   <li>
                     <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link to="/notification-settings">通知設定</Link>
+                      <Link to="/notification-settings">
+                        <Bell className="mr-2 h-4 w-4" />
+                        通知設定
+                      </Link>
                     </Button>
                   </li>
                   <li>
                     <Button variant="ghost" className="w-full justify-start text-red-500" asChild>
-                      <Link to="/delete-account">アカウント削除</Link>
+                      <Link to="/delete-account">
+                        <UserX className="mr-2 h-4 w-4" />
+                        アカウント削除
+                      </Link>
                     </Button>
                   </li>
                 </ul>

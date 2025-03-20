@@ -60,7 +60,7 @@ const AdminAccounts = () => {
         throw error;
       }
 
-      const formattedAccounts: FormattedAccount[] = (profiles as Tables['profiles'][]).map(profile => ({
+      const formattedAccounts: FormattedAccount[] = profiles.map(profile => ({
         id: profile.id,
         name: profile.name || profile.nickname || 'No Name',
         email: profile.auth_users?.email || profile.email || '',

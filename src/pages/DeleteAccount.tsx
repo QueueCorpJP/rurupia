@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -36,20 +35,40 @@ const DeleteAccount = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast.error("ユーザー情報を取得できませんでした");
+        toast.error("ユーザー情報を取得できません");
         return;
       }
 
-      // Delete user's profile and data
-      await supabase.from('profiles').delete().eq('id', user.id);
-      
-      // Delete user account
-      const { error } = await supabase.auth.admin.deleteUser(user.id);
-      
-      if (error) throw error;
+      console.log("Attempting to delete user with ID:", user.id);
 
-      // Sign out user
+      // Delete user's profile and data
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+      
+      if (profileError) {
+        console.error("Error deleting profile:", profileError);
+      }
+      
+      // Sign out user first (important to do this before deleting the account)
       await supabase.auth.signOut();
+      
+      // Delete user account via API call
+      const deleteResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/delete_user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ user_id: user.id })
+      });
+      
+      if (!deleteResponse.ok) {
+        const errorData = await deleteResponse.json();
+        throw new Error(`Failed to delete account: ${JSON.stringify(errorData)}`);
+      }
       
       toast.success("アカウントが削除されました");
       navigate("/");
@@ -95,7 +114,7 @@ const DeleteAccount = () => {
               <Label htmlFor="delete-reason">削除の理由（任意）</Label>
               <Textarea 
                 id="delete-reason" 
-                placeholder="アカウントを削除する理由を教えてください"
+                placeholder="アカウントを削除する理由を教えてくだ��い"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               />

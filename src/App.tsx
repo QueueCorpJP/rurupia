@@ -39,13 +39,15 @@ import TherapistLogin from "./pages/TherapistLogin";
 import TherapistSignup from "./pages/TherapistSignup";
 import StoreLogin from "./pages/StoreLogin";
 import StoreSignup from "./pages/StoreSignup";
+import NotificationSettings from "./pages/NotificationSettings";
+import DeleteAccount from "./pages/DeleteAccount";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
+      <Toaster position="top-right" richColors />
       <Sonner />
       <BrowserRouter>
         <Routes>
@@ -94,6 +96,9 @@ const App = () => (
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/notification-settings" element={<NotificationSettings />} />
+          <Route path="/delete-account" element={<DeleteAccount />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

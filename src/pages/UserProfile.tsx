@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -7,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertCircle,
@@ -15,6 +22,8 @@ import {
   User as UserIcon,
   UploadCloud,
   Mail,
+  FileText,
+  Download
 } from 'lucide-react';
 import type { UserProfile as UserProfileType } from "@/utils/types";
 
@@ -26,14 +35,15 @@ const UserProfile = () => {
   const [verificationFile, setVerificationFile] = useState<File | null>(null);
   
   const [profile, setProfile] = useState<UserProfileType>({
-    id: "user123",
-    nickname: "ゆうこ",
-    age: "30代",
+    id: "",
+    nickname: "",
+    age: "",
     avatar_url: "", 
     email: "",
-    mbti: "INFJ",
-    hobbies: ["旅行", "料理", "ヨガ"],
+    mbti: "",
+    hobbies: [],
     is_verified: false,
+    verification_document: ""
   });
 
   useEffect(() => {
@@ -48,25 +58,32 @@ const UserProfile = () => {
           return;
         }
 
+        console.log("Fetching profile for user:", user.id);
+
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching profile:", error);
+          throw error;
+        }
+
+        console.log("Fetched profile data:", data);
 
         if (data) {
           setProfile({
             id: data.id,
-            nickname: data.nickname,
-            age: data.age,
-            avatar_url: data.avatar_url,
+            nickname: data.nickname || "",
+            age: data.age || "",
+            avatar_url: data.avatar_url || "",
             email: user.email || "",
-            mbti: data.mbti,
-            hobbies: data.hobbies,
-            is_verified: data.is_verified,
-            verification_document: data.verification_document,
+            mbti: data.mbti || "",
+            hobbies: data.hobbies || [],
+            is_verified: data.is_verified || false,
+            verification_document: data.verification_document || "",
           });
         }
       } catch (error) {
@@ -91,6 +108,15 @@ const UserProfile = () => {
         return;
       }
 
+      console.log("Updating profile for user:", user.id);
+      console.log("Profile data to update:", {
+        nickname: profile.nickname,
+        age: profile.age,
+        avatar_url: profile.avatar_url,
+        mbti: profile.mbti,
+        hobbies: profile.hobbies,
+      });
+
       const { data, error } = await supabase
         .from('profiles')
         .update({
@@ -102,8 +128,12 @@ const UserProfile = () => {
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating profile:", error);
+        throw error;
+      }
 
+      console.log("Profile updated successfully:", data);
       toast.success("プロフィールを更新しました！");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -185,7 +215,7 @@ const UserProfile = () => {
       
       console.log("Uploading verification document for user:", user.id);
       
-      const filePath = `${user.id}_document_${Date.now()}.${file.name.split('.').pop()}`;
+      const filePath = `${user.id}/${user.id}-verification-document.${file.name.split('.').pop()}`;
       
       console.log("Attempting to upload document to path:", filePath);
       
@@ -252,10 +282,11 @@ const UserProfile = () => {
         return;
       }
 
+      // In a real app, this would create a verification request rather than directly setting is_verified
       const { data, error } = await supabase
         .from('profiles')
         .update({
-          is_verified: true,
+          is_verified: true, // This would normally be set by an admin after review
         })
         .eq('id', user.id);
 
@@ -266,14 +297,34 @@ const UserProfile = () => {
         is_verified: true,
       });
 
-      toast.success("アカウントが認証されました！");
+      toast.success("アカウント認証リクエストを送信しました！管理者の確認をお待ちください。");
     } catch (error) {
       console.error("Error requesting verification:", error);
-      toast.error("アカウント認証に失敗しました");
+      toast.error("アカウント認証リクエストに失敗しました");
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Get document URL
+  const getDocumentUrl = (filePath: string) => {
+    if (!filePath) return "";
+    
+    const { data } = supabase
+      .storage
+      .from('verification')
+      .getPublicUrl(filePath);
+      
+    return data.publicUrl;
+  };
+
+  // All possible MBTI types
+  const mbtiTypes = [
+    "INTJ", "INTP", "ENTJ", "ENTP", 
+    "INFJ", "INFP", "ENFJ", "ENFP", 
+    "ISTJ", "ISFJ", "ESTJ", "ESFJ", 
+    "ISTP", "ISFP", "ESTP", "ESFP"
+  ];
 
   return (
     <Layout>
@@ -318,40 +369,24 @@ const UserProfile = () => {
                     <span className="text-sm">未認証</span>
                   </div>
                 )}
-                
-                <div className="mt-4 flex justify-between w-full text-sm">
-                  <div>
-                    <span className="font-semibold">125</span>
-                    <span className="text-gray-500">フォロワー</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold">50</span>
-                    <span className="text-gray-500">フォロー中</span>
-                  </div>
-                </div>
               </div>
               
               <div className="mt-6">
                 <h3 className="text-md font-semibold mb-3">アカウント設定</h3>
                 <ul className="space-y-2">
                   <li>
-                    <Button variant="ghost" className="w-full justify-start">
-                      プロフィール編集
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link to="/profile">プロフィール編集</Link>
                     </Button>
                   </li>
                   <li>
-                    <Button variant="ghost" className="w-full justify-start">
-                      セキュリティ
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link to="/notification-settings">通知設定</Link>
                     </Button>
                   </li>
                   <li>
-                    <Button variant="ghost" className="w-full justify-start">
-                      通知設定
-                    </Button>
-                  </li>
-                  <li>
-                    <Button variant="ghost" className="w-full justify-start text-red-500">
-                      アカウント削除
+                    <Button variant="ghost" className="w-full justify-start text-red-500" asChild>
+                      <Link to="/delete-account">アカウント削除</Link>
                     </Button>
                   </li>
                 </ul>
@@ -423,7 +458,7 @@ const UserProfile = () => {
               <div>
                 <Label htmlFor="age" className="block text-sm font-medium text-gray-700">年齢</Label>
                 <div className="mt-1">
-                  <Select value={profile.age} onValueChange={(value) => setProfile({ ...profile, age: value })}>
+                  <Select value={profile.age || ""} onValueChange={(value) => setProfile({ ...profile, age: value })}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="年齢を選択" />
                     </SelectTrigger>
@@ -442,13 +477,20 @@ const UserProfile = () => {
               <div>
                 <Label htmlFor="mbti" className="block text-sm font-medium text-gray-700">MBTI</Label>
                 <div className="mt-1">
-                  <Input
-                    type="text"
-                    id="mbti"
-                    placeholder="MBTI"
-                    value={profile.mbti || ""}
-                    onChange={(e) => setProfile({ ...profile, mbti: e.target.value })}
-                  />
+                  <Select 
+                    value={profile.mbti || ""} 
+                    onValueChange={(value) => setProfile({ ...profile, mbti: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="MBTIタイプを選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mbtiTypes.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500 mt-1">MBTIは心理学的な性格分類システムです</p>
                 </div>
               </div>
               
@@ -481,10 +523,17 @@ const UserProfile = () => {
                   {profile.verification_document && (
                     <div className="mt-2">
                       <p className="text-sm font-medium text-gray-700">アップロード済み書類:</p>
-                      <div className="mt-1 flex items-center">
-                        <a href={profile.verification_document} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
-                          <UploadCloud className="mr-1 h-4 w-4" />
-                          認証書類を表示
+                      <div className="mt-1 flex items-center p-3 bg-white border rounded-md">
+                        <FileText className="h-5 w-5 text-blue-500 mr-2" />
+                        <span className="flex-1 text-sm">身分証明書</span>
+                        <a 
+                          href={getDocumentUrl(profile.verification_document)} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary hover:underline flex items-center ml-4"
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          表示
                         </a>
                       </div>
                     </div>
@@ -496,35 +545,50 @@ const UserProfile = () => {
                     アカウントを認証すると、他のユーザーからの信頼性が向上します。身分証明書をアップロードして認証をリクエストしてください。
                   </p>
                   
-                  <div className="mb-4">
-                    <Label htmlFor="verification-document" className="block text-sm font-medium text-gray-700">身分証明書</Label>
-                    <div className="mt-1 flex items-center">
-                      <input 
-                        type="file" 
-                        id="verification-document" 
-                        className="hidden" 
-                        onChange={handleDocumentUpload}
-                        accept="image/*,application/pdf" 
-                      />
-                      <Label htmlFor="verification-document" className="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors">
-                        {verificationFile ? verificationFile.name : "書類を選択"}
-                      </Label>
-                      {isUploading && <span className="ml-2 text-sm text-gray-500">アップロード中...</span>}
-                    </div>
-                    {profile.verification_document && (
-                      <div className="mt-2">
-                        <a href={profile.verification_document} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
-                          <UploadCloud className="mr-1 h-4 w-4" />
-                          アップロード済み書類を表示
+                  {profile.verification_document ? (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700">アップロード済み書類:</p>
+                      <div className="mt-1 flex items-center p-3 bg-white border rounded-md">
+                        <FileText className="h-5 w-5 text-blue-500 mr-2" />
+                        <span className="flex-1 text-sm">身分証明書</span>
+                        <a 
+                          href={getDocumentUrl(profile.verification_document)} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary hover:underline flex items-center ml-4"
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          表示
                         </a>
                       </div>
-                    )}
-                    <p className="text-sm text-gray-500 mt-2">有効な身分証明書には、運転免許証、パスポート、マイナンバーカードなどが含まれます。</p>
-                  </div>
-                  
-                  <Button onClick={handleVerificationRequest} disabled={isLoading || !profile.verification_document} className="bg-green-500 text-green-50 hover:bg-green-600 transition-colors">
-                    認証をリクエスト
-                  </Button>
+                      
+                      <Button 
+                        onClick={handleVerificationRequest} 
+                        disabled={isLoading} 
+                        className="bg-green-500 text-green-50 hover:bg-green-600 transition-colors mt-4"
+                      >
+                        認証をリクエスト
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mb-4">
+                      <Label htmlFor="verification-document" className="block text-sm font-medium text-gray-700">身分証明書</Label>
+                      <div className="mt-1 flex items-center">
+                        <input 
+                          type="file" 
+                          id="verification-document" 
+                          className="hidden" 
+                          onChange={handleDocumentUpload}
+                          accept="image/*,application/pdf" 
+                        />
+                        <Label htmlFor="verification-document" className="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors">
+                          {verificationFile ? verificationFile.name : "書類を選択"}
+                        </Label>
+                        {isUploading && <span className="ml-2 text-sm text-gray-500">アップロード中...</span>}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2">有効な身分証明書には、運転免許証、パスポート、マイナンバーカードなどが含まれます。</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

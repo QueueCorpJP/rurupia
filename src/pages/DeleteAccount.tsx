@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -35,47 +36,34 @@ const DeleteAccount = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast.error("ユーザー情報を取得できません");
+        toast.error("ユーザー情報を取得できません", {
+          duration: 3000,
+        });
         return;
       }
 
       console.log("Attempting to delete user with ID:", user.id);
-
-      // Delete user's profile and data
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
       
-      if (profileError) {
-        console.error("Error deleting profile:", profileError);
-      }
-      
-      // Sign out user first (important to do this before deleting the account)
-      await supabase.auth.signOut();
-      
-      // Delete user account via API call
-      const deleteResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/delete_user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({ user_id: user.id })
+      // Call the delete_user RPC function
+      const { error } = await supabase.rpc('delete_user', {
+        user_id: user.id
       });
       
-      if (!deleteResponse.ok) {
-        const errorData = await deleteResponse.json();
-        throw new Error(`Failed to delete account: ${JSON.stringify(errorData)}`);
+      if (error) {
+        console.error("Error calling delete_user function:", error);
+        throw error;
       }
       
-      toast.success("アカウントが削除されました");
+      toast.success("アカウントが削除されました", {
+        duration: 3000,
+      });
       navigate("/");
       
     } catch (error) {
       console.error("Error deleting account:", error);
-      toast.error("アカウントの削除に失敗しました");
+      toast.error("アカウントの削除に失敗しました", {
+        duration: 3000,
+      });
     } finally {
       setLoading(false);
       setShowDialog(false);
@@ -114,7 +102,7 @@ const DeleteAccount = () => {
               <Label htmlFor="delete-reason">削除の理由（任意）</Label>
               <Textarea 
                 id="delete-reason" 
-                placeholder="アカウントを削除する理由を教えてくだ��い"
+                placeholder="アカウントを削除する理由を教えてください"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               />

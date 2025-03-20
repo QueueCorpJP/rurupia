@@ -1,6 +1,7 @@
+
 import { ReactNode, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -18,7 +19,9 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,14 +29,39 @@ const Layout = ({ children }: LayoutProps) => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Fetch user profile to get user_type
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        setUserProfile(profile);
+      }
+      
       setLoading(false);
     };
 
     checkAuth();
 
     // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Fetch user profile on auth change
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        setUserProfile(profile);
+      } else {
+        setUserProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -41,6 +69,20 @@ const Layout = ({ children }: LayoutProps) => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    navigate("/"); // Navigate to index after logout
+  };
+
+  const getUserDashboardLink = () => {
+    if (!userProfile) return "/user-profile";
+    
+    switch (userProfile.user_type) {
+      case 'store':
+        return "/store-admin";
+      case 'therapist':
+        return "/therapist-dashboard";
+      default:
+        return "/user-profile";
+    }
   };
   
   return (
@@ -89,16 +131,45 @@ const Layout = ({ children }: LayoutProps) => {
                         </NavigationMenuTrigger>
                         <NavigationMenuContent>
                           <div className="grid w-[200px] gap-2 p-4">
-                            <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
-                              プロフィール
-                            </Link>
-                            <Link to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
-                              予約履歴
+                            {userProfile?.user_type === 'store' ? (
+                              <>
+                                <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
+                                  <Store className="h-4 w-4 inline mr-2" />
+                                  店舗管理
+                                </Link>
+                              </>
+                            ) : userProfile?.user_type === 'therapist' ? (
+                              <>
+                                <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
+                                  <User className="h-4 w-4 inline mr-2" />
+                                  セラピストダッシュボード
+                                </Link>
+                              </>
+                            ) : (
+                              <>
+                                <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
+                                  <User className="h-4 w-4 inline mr-2" />
+                                  プロフィール
+                                </Link>
+                                <Link to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
+                                  <Calendar className="h-4 w-4 inline mr-2" />
+                                  予約履歴
+                                </Link>
+                                <Link to="/messages" className="block p-2 hover:bg-muted rounded-md">
+                                  <MessageSquare className="h-4 w-4 inline mr-2" />
+                                  メッセージ
+                                </Link>
+                              </>
+                            )}
+                            <Link to="/notification-settings" className="block p-2 hover:bg-muted rounded-md">
+                              <Settings className="h-4 w-4 inline mr-2" />
+                              通知設定
                             </Link>
                             <button
                               onClick={handleSignOut}
                               className="w-full text-left p-2 hover:bg-muted rounded-md text-red-500"
                             >
+                              <LogOut className="h-4 w-4 inline mr-2" />
                               ログアウト
                             </button>
                           </div>

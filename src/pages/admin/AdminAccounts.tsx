@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
@@ -44,17 +43,10 @@ const AdminAccounts = () => {
     try {
       setIsLoading(true);
       
-      // Fetch users from auth.users and join with profiles
+      // Fetch profiles directly without trying to join with auth.users
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          auth_users:id (
-            email,
-            created_at,
-            last_sign_in_at
-          )
-        `);
+        .select('*');
 
       if (error) {
         throw error;
@@ -63,9 +55,9 @@ const AdminAccounts = () => {
       const formattedAccounts: FormattedAccount[] = profiles.map(profile => ({
         id: profile.id,
         name: profile.name || profile.nickname || 'No Name',
-        email: profile.auth_users?.email || profile.email || '',
+        email: profile.email || '',
         type: profile.user_type || 'Customer',
-        registered: new Date(profile.auth_users?.created_at || profile.created_at).toLocaleString('ja-JP'),
+        registered: new Date(profile.created_at).toLocaleString('ja-JP'),
         status: profile.status || 'アクティブ',
         phone: profile.phone || '',
         address: profile.address || '',

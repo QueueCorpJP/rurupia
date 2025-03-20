@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -26,17 +25,45 @@ const Login = () => {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message, {
+          duration: 3000,
+        });
         return;
       }
 
       if (data) {
-        toast.success("ログインしました");
-        navigate("/");
+        toast.success("ログインしました", {
+          duration: 3000,
+          dismissible: true,
+        });
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profile) {
+          switch (profile.user_type) {
+            case 'store':
+              navigate("/store-admin");
+              break;
+            case 'therapist':
+              navigate("/therapist-dashboard");
+              break;
+            default:
+              navigate("/");
+              break;
+          }
+        } else {
+          navigate("/");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("ログイン中にエラーが発生しました");
+      toast.error("ログイン中にエラーが発生しました", {
+        duration: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -53,11 +80,15 @@ const Login = () => {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message, {
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error("Google login error:", error);
-      toast.error("Googleログイン中にエラーが発生しました");
+      toast.error("Googleログイン中にエラーが発生しました", {
+        duration: 3000,
+      });
     } finally {
       setIsLoading(false);
     }

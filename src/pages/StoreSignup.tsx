@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -46,12 +47,18 @@ const StoreSignup = () => {
       });
       
       if (authError) {
-        toast.error(authError.message);
+        toast.error(authError.message, {
+          duration: 3000,
+          dismissible: true,
+        });
         return;
       }
       
       if (!authData.user) {
-        toast.error("ユーザーの登録に失敗しました");
+        toast.error("ユーザーの登録に失敗しました", {
+          duration: 3000,
+          dismissible: true,
+        });
         return;
       }
       
@@ -90,16 +97,27 @@ const StoreSignup = () => {
         
       if (storeError) {
         console.error("Error creating store profile:", storeError);
-        toast.error("店舗プロフィールの作成に失敗しました");
+        toast.error("店舗プロフィールの作成に失敗しました", {
+          duration: 3000,
+          dismissible: true,
+        });
         return;
       }
       
-      toast.success("登録が完了しました。確認のためメールをご確認ください。");
-      navigate("/store-login");
+      toast.success("登録が完了しました", {
+        duration: 3000,
+        dismissible: true,
+      });
+      
+      // Redirect to store admin after successful signup
+      navigate("/store-admin");
       
     } catch (error) {
       console.error("Signup error:", error);
-      toast.error("登録中にエラーが発生しました");
+      toast.error("登録中にエラーが発生しました", {
+        duration: 3000,
+        dismissible: true,
+      });
     } finally {
       setIsLoading(false);
     }

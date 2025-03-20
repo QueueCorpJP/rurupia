@@ -111,6 +111,35 @@ export type Database = {
           },
         ]
       }
+      followed_therapists: {
+        Row: {
+          created_at: string
+          id: string
+          therapist_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          therapist_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          therapist_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followed_therapists_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inquiries: {
         Row: {
           date: string

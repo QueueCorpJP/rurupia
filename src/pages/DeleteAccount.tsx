@@ -1,71 +1,75 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Layout from "../components/Layout";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import Layout from '@/components/Layout';
 
 const DeleteAccount = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
   const handleDeleteAccount = async () => {
-    if (!window.confirm("アカウントを削除してもよろしいですか？この操作は元に戻せません。")) {
-      return;
-    }
-
     try {
-      setIsLoading(true);
-      // Call RPC function without passing any parameters since it uses auth.uid() internally
-      const { error } = await supabase.rpc('delete_user');
-    
-      if (error) throw error;
+      setIsDeleting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('ユーザー情報が見つかりません');
+        return;
+      }
+      
+      // Call the RPC function to delete the user
+      const { error } = await supabase.rpc('delete_user', {
+        user_id: user.id
+      });
 
-      await supabase.auth.signOut();
-      navigate("/");
-      toast.success("アカウントが正常に削除されました");
+      if (error) throw error;
+      
+      toast.success('アカウントが削除されました');
+      navigate('/');
     } catch (error) {
-      console.error("Error deleting account:", error);
-      toast.error("アカウントの削除中にエラーが発生しました");
+      console.error('Error deleting account:', error);
+      toast.error('アカウント削除に失敗しました');
     } finally {
-      setIsLoading(false);
+      setIsDeleting(false);
     }
   };
 
   return (
     <Layout>
       <div className="container max-w-md py-12">
-        <Card className="border-destructive">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl text-destructive">アカウント削除</CardTitle>
-            <CardDescription>
-              アカウントを削除すると、すべてのデータが削除されます。
-              この操作は元に戻せません。
-            </CardDescription>
+        <Card>
+          <CardHeader>
+            <CardTitle>アカウント削除</CardTitle>
+            <CardDescription>一度削除すると、アカウントを復元することはできません</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p>
-              アカウントを削除すると、以下の情報がすべて削除されます。
-            </p>
-            <ul className="list-disc pl-5">
-              <li>プロフィール情報</li>
-              <li>予約履歴</li>
-              <li>メッセージ</li>
-              <li>その他すべてのデータ</li>
-            </ul>
-            <p>
-              本当にアカウントを削除してもよろしいですか？
-            </p>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertTitle>警告</AlertTitle>
+              <AlertDescription>
+                アカウントを削除すると、すべてのプロフィール情報、予約履歴、メッセージが完全に消去されます。この操作は取り消せません。
+              </AlertDescription>
+            </Alert>
           </CardContent>
-          <CardFooter className="flex justify-center">
+          <CardFooter className="flex flex-col gap-4">
             <Button 
               variant="destructive" 
-              onClick={handleDeleteAccount}
-              disabled={isLoading}
+              onClick={handleDeleteAccount} 
+              disabled={isDeleting}
+              className="w-full"
             >
-              {isLoading ? "削除中..." : "アカウントを削除"}
+              {isDeleting ? '処理中...' : 'アカウントを完全に削除する'}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(-1)}
+              className="w-full"
+            >
+              キャンセル
             </Button>
           </CardFooter>
         </Card>

@@ -373,6 +373,41 @@ export type Database = {
         }
         Relationships: []
       }
+      therapist_posts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          likes: number | null
+          therapist_id: string
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          likes?: number | null
+          therapist_id: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          likes?: number | null
+          therapist_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_posts_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       therapist_services: {
         Row: {
           id: string

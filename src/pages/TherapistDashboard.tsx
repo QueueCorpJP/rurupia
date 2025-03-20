@@ -1,20 +1,38 @@
 
 import { useState, useEffect } from "react";
-import { 
-  Calendar, Clock, DollarSign, Heart, MapPin, Upload, UploadCloud, Image, Building, Users, MessageSquare
+import { Link, useNavigate } from "react-router-dom";
+import {
+  CalendarCheck,
+  MessageSquare,
+  Users,
+  Image as ImageIcon,
+  Calendar,
+  Settings,
+  ChevronRight,
+  Edit,
+  Trash,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { TherapistBookingRequests } from "@/components/therapist/TherapistBookingRequests";
 import { TherapistProfileForm } from "@/components/therapist/TherapistProfileForm";
 import { TherapistPostForm } from "@/components/therapist/TherapistPostForm";
-import { TherapistBookingRequests } from "@/components/therapist/TherapistBookingRequests";
-import { TherapistLayout } from "@/components/therapist/TherapistLayout";
-import { TherapistProfile } from "@/utils/types";
 import { supabase } from "@/integrations/supabase/client";
+import TherapistLayout from "@/components/therapist/TherapistLayout";
 import { toast } from "sonner";
-import { Link, useNavigate } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TherapistPost {
   id: string;
@@ -26,434 +44,702 @@ interface TherapistPost {
 }
 
 const TherapistDashboard = () => {
-  const [therapistProfile, setTherapistProfile] = useState<TherapistProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<TherapistPost[]>([]);
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [therapistData, setTherapistData] = useState<any>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [bookings, setBookings] = useState([]);
+  const [posts, setPosts] = useState<TherapistPost[]>([]);
+  const [newPostTitle, setNewPostTitle] = useState("");
+  const [newPostContent, setNewPostContent] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileData, setProfileData] = useState<any>(null);
   const navigate = useNavigate();
 
-  // Current active tab
-  const [activeTab, setActiveTab] = useState("profile");
-
   useEffect(() => {
-    const checkAuth = async () => {
+    const fetchTherapistData = async () => {
+      try {
+        setIsLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast.error("ログインが必要です");
+          navigate("/therapist-login");
+          return;
+        }
+
+        // Fetch therapist data
+        const { data: therapistData, error: therapistError } = await supabase
+          .from("therapists")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (therapistError && therapistError.code !== "PGRST116") {
+          console.error("Error fetching therapist data:", therapistError);
+          toast.error("セラピスト情報の取得に失敗しました");
+        }
+
+        if (therapistData) {
+          setTherapistData(therapistData);
+        }
+
+        // Fetch profile data
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError) {
+          console.error("Error fetching profile data:", profileError);
+          toast.error("プロフィール情報の取得に失敗しました");
+        } else {
+          setProfileData(profileData);
+        }
+
+        // Fetch unread messages count
+        const { data: messagesData, error: messagesError } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("receiver_id", user.id)
+          .eq("is_read", false);
+
+        if (messagesError) {
+          console.error("Error fetching messages:", messagesError);
+        } else {
+          setUnreadMessages(messagesData?.length || 0);
+        }
+
+        // Fetch bookings
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from("bookings")
+          .select("*")
+          .eq("therapist_id", user.id);
+
+        if (bookingsError) {
+          console.error("Error fetching bookings:", bookingsError);
+        } else {
+          setBookings(bookingsData || []);
+        }
+
+        // Fetch posts
+        const { data: postsData, error: postsError } = await supabase
+          .from("therapist_posts")
+          .select("*")
+          .eq("therapist_id", user.id);
+
+        if (postsError) {
+          console.error("Error fetching posts:", postsError);
+        } else {
+          setPosts(postsData || []);
+        }
+      } catch (error) {
+        console.error("Error in fetchTherapistData:", error);
+        toast.error("データの取得中にエラーが発生しました");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTherapistData();
+
+    // Set up real-time subscription for new messages
+    const messagesSubscription = supabase
+      .channel("messages-channel")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_id=eq.${supabase.auth.getUser().then(({ data }) => data.user?.id)}`,
+        },
+        (payload) => {
+          setUnreadMessages((prev) => prev + 1);
+          toast("新しいメッセージが届きました", {
+            description: "確認するにはメッセージ画面に移動してください",
+            action: {
+              label: "確認する",
+              onClick: () => navigate("/messages"),
+            },
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messagesSubscription);
+    };
+  }, [navigate]);
+
+  const handleCreatePost = async () => {
+    try {
+      if (!newPostTitle.trim() || !newPostContent.trim()) {
+        toast.error("タイトルと内容を入力してください");
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         toast.error("ログインが必要です");
-        navigate("/therapist-login");
         return;
       }
-      
-      // Check if the user is a therapist
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', user.id)
-        .maybeSingle();
-        
-      if (!profile || profile.user_type !== 'therapist') {
-        toast.error("セラピストアカウントでログインしてください");
-        navigate("/therapist-login");
-        return;
-      }
-    };
-    
-    checkAuth();
-  }, [navigate]);
 
-  // Fetch therapist profile data
-  useEffect(() => {
-    const fetchTherapistProfile = async () => {
-      try {
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) return;
-        
-        // Get profile data
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (profileError) throw profileError;
-        
-        // Get therapist data
-        const { data: therapistData, error: therapistError } = await supabase
-          .from('therapists')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (therapistError && !therapistError.message.includes('No rows found')) {
-          throw therapistError;
-        }
-        
-        // Combine profile and therapist data
-        const combinedData: TherapistProfile = {
-          id: user.id,
-          name: profileData.name || "セラピスト",
-          therapistId: user.id.slice(0, 5),
-          location: therapistData?.location || profileData.address || "未設定",
-          area: therapistData?.location?.split('、')[0] || "未設定",
-          detailedArea: therapistData?.location || "未設定",
-          workingDays: therapistData?.availability || ["未設定"],
-          workingHours: { start: "9:00", end: "18:00" },
-          pricePerHour: therapistData?.price || 0,
-          bio: therapistData?.description || "",
-          height: 0,
-          weight: 0,
-          hobbies: profileData.hobbies || [],
-          serviceAreas: { prefecture: "未設定", cities: [] },
-          avatarUrl: profileData.avatar_url || "",
-          description: therapistData?.description || "",
-          long_description: therapistData?.long_description || "",
-          qualifications: therapistData?.qualifications || [],
-          specialties: therapistData?.specialties || [],
-          price: therapistData?.price || 0,
-          rating: therapistData?.rating || 0,
-          reviews: therapistData?.reviews || 0,
-          experience: therapistData?.experience || 0,
-          availability: therapistData?.availability || []
-        };
-        
-        setTherapistProfile(combinedData);
-      } catch (error) {
-        console.error("Error fetching therapist profile:", error);
-        toast.error("プロフィール情報の取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchTherapistProfile();
-  }, []);
+      const { data, error } = await supabase.from("therapist_posts").insert({
+        therapist_id: user.id,
+        title: newPostTitle,
+        content: newPostContent,
+      }).select();
 
-  // Fetch posts
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) return;
-        
-        // Fetch posts from Supabase
-        const { data, error } = await supabase
-          .from('therapist_posts')
-          .select('*')
-          .eq('therapist_id', user.id)
-          .order('created_at', { ascending: false });
-          
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          setPosts(data);
-        } else {
-          // If no posts, show a sample post
-          const mockPost: TherapistPost = {
-            id: "p1",
-            content: "今日はセミナーに参加しました。皆さんにお会いできて良かったです！",
-            created_at: new Date().toISOString(),
-            likes: 0,
-            therapist_id: user.id,
-            title: "初めての投稿"
-          };
-          
-          setPosts([mockPost]);
-        }
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-        toast.error("投稿の取得に失敗しました");
+      if (error) {
+        throw error;
       }
-    };
-    
-    if (therapistProfile) {
-      fetchPosts();
-    }
-  }, [therapistProfile]);
 
-  // Fetch unread message count
-  useEffect(() => {
-    const fetchUnreadMessageCount = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) return;
-        
-        const { count, error } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('receiver_id', user.id)
-          .eq('is_read', false);
-          
-        if (error) throw error;
-        
-        setUnreadMessages(count || 0);
-      } catch (error) {
-        console.error("Error fetching unread messages:", error);
-      }
-    };
-    
-    fetchUnreadMessageCount();
-    
-    // Set up real-time subscription for new messages
-    const setupSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const channel = supabase
-        .channel('public:messages')
-        .on('postgres_changes', { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'messages',
-          filter: `receiver_id=eq.${user.id}`
-        }, fetchUnreadMessageCount)
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-    
-    const unsubscribe = setupSubscription();
-    return () => {
-      if (unsubscribe && typeof unsubscribe.then === 'function') {
-        unsubscribe.then(fn => fn && fn());
-      }
-    };
-  }, []);
-
-  // Handle quick action buttons
-  const handleQuickAction = (action: string) => {
-    switch(action) {
-      case "schedule":
-        setActiveTab("bookings");
-        break;
-      case "customers":
-        // For now, just navigate to bookings which has customer info
-        setActiveTab("bookings");
-        break;
-      case "gallery":
-        setActiveTab("gallery");
-        break;
-      default:
-        break;
+      toast.success("投稿が作成されました");
+      setPosts([...(data || []), ...posts]);
+      setNewPostTitle("");
+      setNewPostContent("");
+      setIsCreatingPost(false);
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast.error("投稿の作成に失敗しました");
     }
   };
 
-  if (loading) {
+  const handleDeletePost = async (postId: string) => {
+    try {
+      const { error } = await supabase
+        .from("therapist_posts")
+        .delete()
+        .eq("id", postId);
+
+      if (error) {
+        throw error;
+      }
+
+      setPosts(posts.filter((post) => post.id !== postId));
+      toast.success("投稿が削除されました");
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      toast.error("投稿の削除に失敗しました");
+    }
+  };
+
+  // QuickAction component
+  const QuickAction = ({ icon, title, count, onClick }: any) => (
+    <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={onClick}>
+      <CardContent className="p-6 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+          {icon}
+        </div>
+        <div className="flex-1">
+          <h3 className="font-medium">{title}</h3>
+          {count !== undefined && (
+            <p className="text-sm text-muted-foreground">{count}</p>
+          )}
+        </div>
+        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+      </CardContent>
+    </Card>
+  );
+
+  if (isLoading) {
     return (
       <TherapistLayout>
-        <div className="flex justify-center items-center h-[60vh]">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-          <span className="ml-2">読み込み中...</span>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
       </TherapistLayout>
     );
   }
 
-  if (!therapistProfile) {
+  if (!therapistData && !isEditing) {
     return (
       <TherapistLayout>
-        <div className="text-center py-10">
-          <p>プロフィール情報が見つかりませんでした。</p>
-          <Button 
-            onClick={() => setActiveTab("profile")} 
-            className="mt-4"
-          >
-            プロフィールを作成する
-          </Button>
-        </div>
-      </TherapistLayout>
-    );
-  }
-
-  return (
-    <TherapistLayout>
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
-        {/* Left sidebar with therapist info */}
-        <div className="space-y-6">
-          <Card className="p-6 flex flex-col items-center text-center">
-            <Avatar className="h-32 w-32 mb-4">
-              <AvatarImage src={therapistProfile.avatarUrl} alt={therapistProfile.name} />
-              <AvatarFallback>{therapistProfile.name.slice(0, 2)}</AvatarFallback>
-            </Avatar>
-            <h2 className="text-2xl font-bold">{therapistProfile.name}</h2>
-            <p className="text-sm text-muted-foreground">セラピストID: {therapistProfile.therapistId}</p>
-            
-            <div className="w-full mt-6 space-y-3">
-              <div className="flex items-center text-sm">
-                <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{therapistProfile.location}</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{therapistProfile.area}</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{therapistProfile.workingDays.join(' · ')}</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{therapistProfile.workingHours.start}〜{therapistProfile.workingHours.end}</span>
-              </div>
-              <div className="flex items-center text-sm">
-                <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>60分:¥{therapistProfile.pricePerHour.toLocaleString()}〜</span>
-              </div>
-            </div>
+        <div className="container max-w-4xl py-12">
+          <Card>
+            <CardHeader>
+              <CardTitle>プロフィール未設定</CardTitle>
+              <CardDescription>
+                セラピストプロフィールをまだ設定していません。セラピスト情報を入力して、お客様に自分をアピールしましょう。
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Button onClick={() => setIsEditing(true)}>
+                今すぐプロフィールを設定する
+              </Button>
+            </CardFooter>
           </Card>
+        </div>
+      </TherapistLayout>
+    );
+  }
 
-          <Card className="p-6">
-            <h3 className="font-medium mb-4">クイックアクション</h3>
-            <div className="space-y-2">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => handleQuickAction("schedule")}
+  if (isEditing) {
+    return (
+      <TherapistLayout>
+        <div className="container max-w-4xl py-12">
+          <TherapistProfileForm
+            existingData={therapistData}
+            onCancel={() => setIsEditing(false)}
+            onSuccess={(data) => {
+              setTherapistData(data);
+              setIsEditing(false);
+              toast.success("プロフィールが更新されました");
+            }}
+          />
+        </div>
+      </TherapistLayout>
+    );
+  }
+
+  const pendingBookingsCount =
+    bookings?.filter((booking: any) => booking.status === "pending")?.length || 0;
+
+  if (activeSection === "dashboard") {
+    return (
+      <TherapistLayout>
+        <div className="container max-w-7xl py-12">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">セラピストダッシュボード</h1>
+              <p className="text-muted-foreground">
+                {therapistData?.name}さん、おはようございます。最新の情報をチェックしましょう。
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+                className="h-10"
               >
-                <Calendar className="mr-2 h-4 w-4" />
-                スケジュール管理
+                <Edit className="mr-2 h-4 w-4" />
+                プロフィール編集
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => handleQuickAction("customers")}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                顧客リスト
+              <Button onClick={() => navigate("/messages")} className="h-10">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                メッセージ {unreadMessages > 0 && `(${unreadMessages})`}
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => handleQuickAction("gallery")}
-              >
-                <Image className="mr-2 h-4 w-4" />
-                ギャラリー管理
-              </Button>
-              <Link to="/messages">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start relative"
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <QuickAction
+              icon={<CalendarCheck className="w-6 h-6" />}
+              title="スケジュール管理"
+              count={`${pendingBookingsCount}件の新規予約`}
+              onClick={() => setActiveSection("bookings")}
+            />
+            <QuickAction
+              icon={<Users className="w-6 h-6" />}
+              title="顧客リスト"
+              count="お客様情報を管理"
+              onClick={() => setActiveSection("customers")}
+            />
+            <QuickAction
+              icon={<ImageIcon className="w-6 h-6" />}
+              title="ギャラリー管理"
+              count="写真・動画の投稿"
+              onClick={() => setActiveSection("posts")}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>最近の予約</CardTitle>
+                <CardDescription>最新の予約状況と承認待ちの確認</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {bookings && bookings.length > 0 ? (
+                  <div className="space-y-4">
+                    {bookings
+                      .sort(
+                        (a: any, b: any) =>
+                          new Date(b.created_at).getTime() -
+                          new Date(a.created_at).getTime()
+                      )
+                      .slice(0, 5)
+                      .map((booking: any) => (
+                        <div
+                          key={booking.id}
+                          className="flex items-center justify-between border-b pb-4"
+                        >
+                          <div>
+                            <p className="font-medium">
+                              {new Date(booking.date).toLocaleDateString(
+                                "ja-JP",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {booking.status === "pending"
+                                ? "承認待ち"
+                                : booking.status === "confirmed"
+                                ? "確定"
+                                : booking.status === "cancelled"
+                                ? "キャンセル"
+                                : "完了"}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">
+                              {booking.price.toLocaleString()}円
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-6 text-muted-foreground">
+                    予約がありません
+                  </p>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveSection("bookings")}
+                  className="w-full"
                 >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  <span>メッセージ</span>
-                  {unreadMessages > 0 && (
-                    <span className="absolute right-2 top-2 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {unreadMessages}
-                    </span>
-                  )}
+                  すべての予約を見る
                 </Button>
-              </Link>
-            </div>
-          </Card>
-        </div>
+              </CardFooter>
+            </Card>
 
-        {/* Main content area */}
-        <div>
-          <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-4 mb-6">
-              <TabsTrigger value="profile">プロフィール設定</TabsTrigger>
-              <TabsTrigger value="posts">投稿</TabsTrigger>
-              <TabsTrigger value="gallery">ギャラリー</TabsTrigger>
-              <TabsTrigger value="bookings">予約</TabsTrigger>
+            <Card>
+              <CardHeader>
+                <CardTitle>メッセージ</CardTitle>
+                <CardDescription>最新のメッセージ通知</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {unreadMessages > 0 ? (
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
+                      <MessageSquare className="w-6 h-6" />
+                    </div>
+                    <p className="font-medium text-center">
+                      {unreadMessages}件の未読メッセージがあります
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-center py-6 text-muted-foreground">
+                    新しいメッセージはありません
+                  </p>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/messages")}
+                  className="w-full"
+                >
+                  メッセージを確認する
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>最近の投稿</CardTitle>
+                    <CardDescription>
+                      あなたの投稿したブログ記事やギャラリー
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => setActiveSection("posts")}>
+                    すべての投稿を見る
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {posts && posts.length > 0 ? (
+                  <div className="space-y-6">
+                    {posts
+                      .sort(
+                        (a, b) =>
+                          new Date(b.created_at).getTime() -
+                          new Date(a.created_at).getTime()
+                      )
+                      .slice(0, 3)
+                      .map((post) => (
+                        <div key={post.id} className="border-b pb-6">
+                          <h3 className="text-lg font-medium mb-2">
+                            {post.title}
+                          </h3>
+                          <p className="text-muted-foreground mb-4">
+                            {post.content.length > 100
+                              ? `${post.content.substring(0, 100)}...`
+                              : post.content}
+                          </p>
+                          <div className="flex justify-between items-center">
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(post.created_at).toLocaleDateString(
+                                "ja-JP",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeletePost(post.id)}
+                              >
+                                <Trash className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">
+                      まだ投稿がありません
+                    </p>
+                    <Button onClick={() => setIsCreatingPost(true)}>
+                      最初の投稿を作成する
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </TherapistLayout>
+    );
+  }
+
+  if (activeSection === "bookings") {
+    return (
+      <TherapistLayout>
+        <div className="container max-w-7xl py-12">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">予約管理</h1>
+              <p className="text-muted-foreground">
+                予約の確認と管理を行うことができます
+              </p>
+            </div>
+            <Button onClick={() => setActiveSection("dashboard")}>
+              ダッシュボードに戻る
+            </Button>
+          </div>
+
+          <TherapistBookingRequests therapistId={profileData?.id} />
+        </div>
+      </TherapistLayout>
+    );
+  }
+
+  if (activeSection === "posts") {
+    return (
+      <TherapistLayout>
+        <div className="container max-w-7xl py-12">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">投稿管理</h1>
+              <p className="text-muted-foreground">
+                ブログやギャラリーの投稿を管理できます
+              </p>
+            </div>
+            <Button onClick={() => setActiveSection("dashboard")}>
+              ダッシュボードに戻る
+            </Button>
+          </div>
+
+          <Tabs defaultValue="all">
+            <TabsList className="mb-8">
+              <TabsTrigger value="all">すべての投稿</TabsTrigger>
+              <TabsTrigger value="create">新規投稿</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="profile" className="space-y-6">
-              <TherapistProfileForm therapist={therapistProfile} />
-            </TabsContent>
-
-            <TabsContent value="posts" className="space-y-6">
-              <TherapistPostForm />
-              
-              <div className="mt-8">
-                {posts.length > 0 ? (
-                  posts.map(post => (
-                    <div key={post.id} className="border rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={therapistProfile.avatarUrl} />
-                          <AvatarFallback>{therapistProfile.name.slice(0, 2)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h4 className="font-medium">{therapistProfile.name}</h4>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(post.created_at).toLocaleDateString('ja-JP', {
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
+            <TabsContent value="all">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {posts && posts.length > 0 ? (
+                  posts.map((post) => (
+                    <Card key={post.id}>
+                      <CardHeader>
+                        <CardTitle>{post.title}</CardTitle>
+                        <CardDescription>
+                          {new Date(post.created_at).toLocaleDateString(
+                            "ja-JP",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            }
+                          )}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <p>{post.content}</p>
+                      </CardContent>
+                      <CardFooter className="flex justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          いいね: {post.likes}
                         </div>
-                      </div>
-                      <p className="mt-3">{post.content}</p>
-                      <div className="flex items-center mt-4 text-sm">
-                        <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
-                          <Heart className="h-4 w-4" />
-                          <span>{post.likes || 0}</span>
-                        </button>
-                      </div>
-                    </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeletePost(post.id)}
+                        >
+                          <Trash className="h-4 w-4 mr-2" />
+                          削除
+                        </Button>
+                      </CardFooter>
+                    </Card>
                   ))
                 ) : (
-                  <div className="text-center py-10 text-muted-foreground">
-                    投稿がありません
+                  <div className="md:col-span-2 text-center py-12">
+                    <p className="text-muted-foreground mb-4">
+                      まだ投稿がありません
+                    </p>
+                    <Button onClick={() => setIsCreatingPost(true)}>
+                      最初の投稿を作成する
+                    </Button>
                   </div>
                 )}
               </div>
             </TabsContent>
 
-            <TabsContent value="gallery">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">ギャラリー</h2>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <UploadCloud className="h-4 w-4" />
-                    <span>新規アップロード</span>
+            <TabsContent value="create">
+              <Card>
+                <CardHeader>
+                  <CardTitle>新規投稿を作成</CardTitle>
+                  <CardDescription>
+                    お客様に見てもらいたい内容を投稿しましょう
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">タイトル</Label>
+                    <Input
+                      id="title"
+                      value={newPostTitle}
+                      onChange={(e) => setNewPostTitle(e.target.value)}
+                      placeholder="投稿のタイトルを入力してください"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="content">内容</Label>
+                    <Textarea
+                      id="content"
+                      value={newPostContent}
+                      onChange={(e) => setNewPostContent(e.target.value)}
+                      placeholder="投稿の内容を入力してください"
+                      rows={8}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setIsCreatingPost(false)}>
+                    キャンセル
                   </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Gallery images will be loaded from database */}
-                  <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg border-gray-300 p-8">
-                    <div className="text-center">
-                      <Image className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-sm font-semibold text-gray-900">画像がありません</h3>
-                      <p className="mt-1 text-sm text-gray-500">ギャラリーに画像をアップロードしてください</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg border-gray-300 p-8">
-                  <div className="text-center">
-                    <Image className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-semibold text-gray-900">新しい画像</h3>
-                    <p className="mt-1 text-sm text-gray-500">ドラッグ&ドロップまたはクリックしてアップロード</p>
-                    <div className="mt-4">
-                      <Button variant="outline" size="sm">
-                        <UploadCloud className="mr-2 h-4 w-4" />
-                        ギャラリーに追加
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="bookings">
-              <TherapistBookingRequests therapistId={String(therapistProfile.id)} />
+                  <Button onClick={handleCreatePost}>投稿する</Button>
+                </CardFooter>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-    </TherapistLayout>
-  );
+      </TherapistLayout>
+    );
+  }
+
+  if (activeSection === "customers") {
+    // Fetch and display customer information
+    return (
+      <TherapistLayout>
+        <div className="container max-w-7xl py-12">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">顧客管理</h1>
+              <p className="text-muted-foreground">
+                予約したお客様の情報を確認できます
+              </p>
+            </div>
+            <Button onClick={() => setActiveSection("dashboard")}>
+              ダッシュボードに戻る
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>顧客リスト</CardTitle>
+              <CardDescription>予約履歴のあるお客様の一覧</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {bookings && bookings.length > 0 ? (
+                <div className="space-y-4">
+                  {Array.from(
+                    new Set(bookings.map((booking: any) => booking.user_id))
+                  ).map((userId: any) => {
+                    const userBookings = bookings.filter(
+                      (booking: any) => booking.user_id === userId
+                    );
+                    const lastBooking = userBookings.sort(
+                      (a: any, b: any) =>
+                        new Date(b.date).getTime() - new Date(a.date).getTime()
+                    )[0];
+
+                    return (
+                      <div
+                        key={userId}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-4">
+                          <Avatar>
+                            <AvatarFallback>
+                              {userId ? userId.substring(0, 2).toUpperCase() : "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">顧客 ID: {userId?.substring(0, 8)}...</p>
+                            <p className="text-sm text-muted-foreground">
+                              最終予約日:{" "}
+                              {new Date(lastBooking.date).toLocaleDateString(
+                                "ja-JP"
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          メッセージ
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center py-6 text-muted-foreground">
+                  顧客データはまだありません
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </TherapistLayout>
+    );
+  }
+
+  return null;
 };
 
 export default TherapistDashboard;

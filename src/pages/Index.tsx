@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { 
   ArrowRight, 
@@ -31,6 +31,36 @@ import {
 import { DateTimePicker } from '@/components/DateTimePicker';
 
 const Index = () => {
+  const navigate = useNavigate();
+
+  // Handle 404 redirects from sessionStorage
+  useEffect(() => {
+    const redirectPath = sessionStorage.getItem('redirect_path');
+    if (redirectPath) {
+      sessionStorage.removeItem('redirect_path');
+      
+      // Check if the path is one of our valid routes and navigate to it
+      const validRoutes = [
+        '/signup', 
+        '/login', 
+        '/therapist-signup', 
+        '/therapist-login',
+        '/store-signup',
+        '/store-login',
+        '/therapists',
+        '/blog',
+        '/contact',
+        '/faq',
+        '/terms',
+        '/privacy'
+      ];
+      
+      if (validRoutes.includes(redirectPath)) {
+        navigate(redirectPath);
+      }
+    }
+  }, [navigate]);
+
   // Show only featured therapists on the landing page
   const featuredTherapists = therapists
     .sort((a, b) => b.rating - a.rating)

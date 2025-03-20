@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,6 +33,7 @@ import StoreCourses from "./pages/store/StoreCourses";
 import StoreInquiries from "./pages/store/StoreInquiries";
 import StoreAnalytics from "./pages/store/StoreAnalytics";
 import StoreBookings from "./pages/store/StoreBookings";
+import StoreSettings from "./pages/store/StoreSettings";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import TherapistLogin from "./pages/TherapistLogin";

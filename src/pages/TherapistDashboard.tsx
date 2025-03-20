@@ -16,10 +16,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 
+interface TherapistPost {
+  id: string;
+  therapist_id: string;
+  title: string;
+  content: string;
+  likes: number;
+  created_at: string;
+}
+
 const TherapistDashboard = () => {
   const [therapistProfile, setTherapistProfile] = useState<TherapistProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<TherapistPost[]>([]);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
 
@@ -143,7 +152,7 @@ const TherapistDashboard = () => {
           setPosts(data);
         } else {
           // If no posts, show a sample post
-          const mockPost = {
+          const mockPost: TherapistPost = {
             id: "p1",
             content: "今日はセミナーに参加しました。皆さんにお会いできて良かったです！",
             created_at: new Date().toISOString(),

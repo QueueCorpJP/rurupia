@@ -18,7 +18,7 @@ const StoreSettings = () => {
     email: "",
     phone: "",
     address: "",
-    description: "",
+    storeDescription: "", // Changed from description to storeDescription
   });
 
   useEffect(() => {
@@ -37,13 +37,16 @@ const StoreSettings = () => {
           
         if (error) throw error;
         
+        // Get store description from a different source or use empty string
+        const storeDesc = "";
+        
         setStoreProfile({
           id: user.id,
           name: data.name || "",
           email: user.email || "",
           phone: data.phone || "",
           address: data.address || "",
-          description: data.description || "",
+          storeDescription: storeDesc, // Use storeDescription instead
         });
       } catch (error) {
         console.error("Error fetching store profile:", error);
@@ -68,8 +71,7 @@ const StoreSettings = () => {
           name: storeProfile.name,
           phone: storeProfile.phone,
           address: storeProfile.address,
-          description: storeProfile.description,
-          updated_at: new Date(),
+          updated_at: new Date().toISOString(), // Convert Date to string
         })
         .eq('id', storeProfile.id);
         
@@ -152,12 +154,12 @@ const StoreSettings = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">店舗紹介</Label>
+                  <Label htmlFor="storeDescription">店舗紹介</Label>
                   <Textarea
-                    id="description"
+                    id="storeDescription"
                     placeholder="店舗紹介を入力"
-                    value={storeProfile.description}
-                    onChange={(e) => setStoreProfile({...storeProfile, description: e.target.value})}
+                    value={storeProfile.storeDescription}
+                    onChange={(e) => setStoreProfile({...storeProfile, storeDescription: e.target.value})}
                     rows={4}
                   />
                 </div>
@@ -244,4 +246,3 @@ const StoreSettings = () => {
 };
 
 export default StoreSettings;
-

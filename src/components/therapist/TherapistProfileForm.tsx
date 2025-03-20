@@ -9,11 +9,26 @@ import { TherapistProfile } from "@/utils/types";
 import { UploadCloud } from "lucide-react";
 
 interface TherapistProfileFormProps {
-  therapist: TherapistProfile;
+  therapist?: TherapistProfile;
+  existingData?: any;
+  onCancel?: () => void;
+  onSuccess?: (data: any) => void;
 }
 
-export const TherapistProfileForm = ({ therapist }: TherapistProfileFormProps) => {
-  const [profile, setProfile] = useState(therapist);
+export const TherapistProfileForm = ({ 
+  therapist, 
+  existingData, 
+  onCancel, 
+  onSuccess 
+}: TherapistProfileFormProps) => {
+  // Use existingData if provided, otherwise use therapist
+  const [profile, setProfile] = useState(existingData || therapist || {
+    workingDays: [],
+    workingHours: { start: "09:00", end: "18:00" },
+    pricePerHour: 0,
+    bio: "",
+    serviceAreas: {}
+  });
   
   const weekdays = [
     { id: "monday", label: "月曜" },
@@ -29,6 +44,7 @@ export const TherapistProfileForm = ({ therapist }: TherapistProfileFormProps) =
     // In a real app, this would save to the backend
     console.log("Saving profile:", profile);
     // Add success toast
+    if (onSuccess) onSuccess(profile);
   };
 
   return (
@@ -239,6 +255,16 @@ export const TherapistProfileForm = ({ therapist }: TherapistProfileFormProps) =
         >
           プロフィールを更新
         </Button>
+        
+        {onCancel && (
+          <Button 
+            onClick={onCancel} 
+            variant="outline"
+            className="w-full mt-2"
+          >
+            キャンセル
+          </Button>
+        )}
       </div>
     </div>
   );

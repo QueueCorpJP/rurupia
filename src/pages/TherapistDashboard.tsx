@@ -26,7 +26,7 @@ import { TherapistBookingRequests } from "@/components/therapist/TherapistBookin
 import { TherapistProfileForm } from "@/components/therapist/TherapistProfileForm";
 import { TherapistPostForm } from "@/components/therapist/TherapistPostForm";
 import { supabase } from "@/integrations/supabase/client";
-import TherapistLayout from "@/components/therapist/TherapistLayout";
+import { TherapistLayout } from "@/components/therapist/TherapistLayout";
 import { toast } from "sonner";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";

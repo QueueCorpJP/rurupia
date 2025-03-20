@@ -130,20 +130,33 @@ const TherapistDashboard = () => {
         
         if (!user) return;
         
-        // Here you would fetch posts from your Supabase table
-        // For now, using mock post since posts table might not exist yet
-        const mockPost = {
-          id: "p1",
-          content: "今日はセミナーに参加しました。皆さんにお会いできて良かったです！",
-          postedAt: new Date().toLocaleString('ja-JP'),
-          likes: 0,
-          authorName: therapistProfile?.name || "セラピスト",
-          authorAvatar: therapistProfile?.avatarUrl || ""
-        };
+        // Fetch posts from Supabase
+        const { data, error } = await supabase
+          .from('therapist_posts')
+          .select('*')
+          .eq('therapist_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
         
-        setPosts([mockPost]);
+        if (data && data.length > 0) {
+          setPosts(data);
+        } else {
+          // If no posts, show a sample post
+          const mockPost = {
+            id: "p1",
+            content: "今日はセミナーに参加しました。皆さんにお会いできて良かったです！",
+            created_at: new Date().toISOString(),
+            likes: 0,
+            therapist_id: user.id,
+            title: "初めての投稿"
+          };
+          
+          setPosts([mockPost]);
+        }
       } catch (error) {
         console.error("Error fetching posts:", error);
+        toast.error("投稿の取得に失敗しました");
       }
     };
     
@@ -177,20 +190,32 @@ const TherapistDashboard = () => {
     fetchUnreadMessageCount();
     
     // Set up real-time subscription for new messages
-    const channel = supabase
-      .channel('public:messages')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'messages',
-        filter: `receiver_id=eq.${therapistProfile?.id}`
-      }, fetchUnreadMessageCount)
-      .subscribe();
+    const setupSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
       
-    return () => {
-      supabase.removeChannel(channel);
+      const channel = supabase
+        .channel('public:messages')
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `receiver_id=eq.${user.id}`
+        }, fetchUnreadMessageCount)
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
-  }, [therapistProfile]);
+    
+    const unsubscribe = setupSubscription();
+    return () => {
+      if (unsubscribe && typeof unsubscribe.then === 'function') {
+        unsubscribe.then(fn => fn && fn());
+      }
+    };
+  }, []);
 
   // Handle quick action buttons
   const handleQuickAction = (action: string) => {
@@ -339,22 +364,30 @@ const TherapistDashboard = () => {
               <div className="mt-8">
                 {posts.length > 0 ? (
                   posts.map(post => (
-                    <div key={post.id} className="border rounded-lg p-4">
+                    <div key={post.id} className="border rounded-lg p-4 mb-4">
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={post.authorAvatar} />
-                          <AvatarFallback>{post.authorName.slice(0, 2)}</AvatarFallback>
+                          <AvatarImage src={therapistProfile.avatarUrl} />
+                          <AvatarFallback>{therapistProfile.name.slice(0, 2)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <h4 className="font-medium">{post.authorName}</h4>
-                          <p className="text-xs text-muted-foreground">{post.postedAt}</p>
+                          <h4 className="font-medium">{therapistProfile.name}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(post.created_at).toLocaleDateString('ja-JP', {
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
                         </div>
                       </div>
                       <p className="mt-3">{post.content}</p>
                       <div className="flex items-center mt-4 text-sm">
                         <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
                           <Heart className="h-4 w-4" />
-                          <span>{post.likes}</span>
+                          <span>{post.likes || 0}</span>
                         </button>
                       </div>
                     </div>
@@ -378,7 +411,7 @@ const TherapistDashboard = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Gallery images will be loaded from database later */}
+                  {/* Gallery images will be loaded from database */}
                   <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg border-gray-300 p-8">
                     <div className="text-center">
                       <Image className="mx-auto h-12 w-12 text-gray-400" />
@@ -405,7 +438,7 @@ const TherapistDashboard = () => {
             </TabsContent>
 
             <TabsContent value="bookings">
-              <TherapistBookingRequests therapistId={therapistProfile.id} />
+              <TherapistBookingRequests therapistId={String(therapistProfile.id)} />
             </TabsContent>
           </Tabs>
         </div>

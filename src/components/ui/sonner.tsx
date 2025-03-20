@@ -24,7 +24,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
         },
       }}
-      closeButton={true}
+      closeButton
       duration={3000}
       {...props}
     />

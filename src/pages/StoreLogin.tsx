@@ -51,7 +51,7 @@ const StoreLogin = () => {
       }
 
       toast.success("ログインしました");
-      navigate("/store/dashboard");
+      navigate("/store-admin");
       
     } catch (error) {
       console.error("Login error:", error);

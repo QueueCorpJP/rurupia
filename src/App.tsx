@@ -42,6 +42,7 @@ import StoreLogin from "./pages/StoreLogin";
 import StoreSignup from "./pages/StoreSignup";
 import NotificationSettings from "./pages/NotificationSettings";
 import DeleteAccount from "./pages/DeleteAccount";
+import FollowedTherapists from "./pages/FollowedTherapists";
 
 const queryClient = new QueryClient();
 
@@ -96,10 +97,11 @@ const App = () => (
             <Route path="analytics" element={<StoreAnalytics />} />
           </Route>
           
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          {/* User routes */}
           <Route path="/profile" element={<UserProfile />} />
           <Route path="/notification-settings" element={<NotificationSettings />} />
           <Route path="/delete-account" element={<DeleteAccount />} />
+          <Route path="/followed-therapists" element={<FollowedTherapists />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

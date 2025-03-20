@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -52,11 +53,11 @@ const Login = () => {
               navigate("/therapist-dashboard");
               break;
             default:
-              navigate("/");
+              navigate("/user-profile");
               break;
           }
         } else {
-          navigate("/");
+          navigate("/user-profile");
         }
       }
     } catch (error) {

@@ -24,6 +24,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       closeButton={true}
       duration={3000}
+      dismissible={true}
       {...props}
     />
   )

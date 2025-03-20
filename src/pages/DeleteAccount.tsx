@@ -31,9 +31,7 @@ const DeleteAccount = () => {
       }
       
       // Call the server-side function to delete the user
-      const { error } = await supabase.rpc('delete_user', {
-        user_id: user.id
-      });
+      const { error } = await supabase.rpc('delete_user');
       
       if (error) {
         console.error('Error deleting account:', error);

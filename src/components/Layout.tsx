@@ -159,6 +159,10 @@ const Layout = ({ children }: LayoutProps) => {
                                   <MessageSquare className="h-4 w-4 inline mr-2" />
                                   メッセージ
                                 </Link>
+                                <Link to="/followed-therapists" className="block p-2 hover:bg-muted rounded-md">
+                                  <Heart className="h-4 w-4 inline mr-2" />
+                                  お気に入りセラピスト
+                                </Link>
                               </>
                             )}
                             <Link to="/notification-settings" className="block p-2 hover:bg-muted rounded-md">

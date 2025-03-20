@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/integrations/supabase/types';
+import { Tables } from '@/integrations/supabase/types';
 
 interface FormattedAccount {
   id: string;
@@ -59,7 +60,7 @@ const AdminAccounts = () => {
         throw error;
       }
 
-      const formattedAccounts: FormattedAccount[] = (profiles as Profile[]).map(profile => ({
+      const formattedAccounts: FormattedAccount[] = (profiles as Tables['profiles'][]).map(profile => ({
         id: profile.id,
         name: profile.name || profile.nickname || 'No Name',
         email: profile.auth_users?.email || profile.email || '',

@@ -19,6 +19,53 @@ interface StoreSidebarNavProps {
 }
 
 export function StoreSidebarNav({ isOpen, toggleSidebar }: StoreSidebarNavProps) {
+  const navigate = useNavigate();
+  const [copied, setCopied] = useState(false);
+  const [storeId, setStoreId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getStoreId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) {
+          setStoreId(data.id);
+        }
+      }
+    };
+    
+    getStoreId();
+  }, []);
+
+  const handleCopyInviteLink = async () => {
+    if (!storeId) {
+      toast.error('招待リンクの生成に失敗しました');
+      return;
+    }
+
+    const inviteLink = `${window.location.origin}/therapist-signup?store=${storeId}`;
+    await navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    toast.success('招待リンクをコピーしました');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/');
+      toast.success('ログアウトしました');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('ログアウトに失敗しました');
+    }
+  };
+
   const navItems = [
     { title: 'ダッシュボード', href: '/store-admin', icon: LayoutDashboard },
     { title: '予約管理', href: '/store-admin/bookings', icon: Calendar },
@@ -80,6 +127,7 @@ export function StoreSidebarNav({ isOpen, toggleSidebar }: StoreSidebarNavProps)
         <div className="mt-auto">
           <div className="px-2 py-4">
             <button
+              onClick={handleCopyInviteLink}
               className={cn(
                 "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
                 !isOpen && "justify-center"
@@ -89,13 +137,14 @@ export function StoreSidebarNav({ isOpen, toggleSidebar }: StoreSidebarNavProps)
               <span className={cn("truncate transition-all", 
                 isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
               )}>
-                招待リンクをコピー
+                {copied ? '招待リンクをコピーしました' : '招待リンクをコピー'}
               </span>
             </button>
           </div>
           
           <div className="border-t border-sidebar-border px-2 py-4">
             <button
+              onClick={handleLogout}
               className={cn(
                 "flex w-full items-center gap-3 rounded-md px-3 py-2 text-destructive hover:bg-destructive/10",
                 !isOpen && "justify-center"

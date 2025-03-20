@@ -1,225 +1,149 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import Layout from "../components/Layout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+const formSchema = z.object({
+  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  password: z.string().min(8, { message: 'パスワードは8文字以上で入力してください' }),
+  name: z.string().min(2, { message: '名前は2文字以上で入力してください' }),
+  phone_number: z.string().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  date_of_birth: z.date().optional(),
+  address: z.string().optional(),
+  introduction: z.string().optional(),
+});
 
 const TherapistSignup = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
-    experience: "",
-    certifications: "",
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const storeId = searchParams.get('store');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      name: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSignup = async (data: z.infer<typeof formSchema>) => {
     try {
-      setIsLoading(true);
-      
-      // 1. Register the user with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+      setLoading(true);
+
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
         options: {
           data: {
-            name: formData.name,
-            role: 'therapist'
-          }
-        }
+            user_type: 'therapist',
+            name: data.name,
+            phone_number: data.phone_number,
+            gender: data.gender,
+            date_of_birth: data.date_of_birth?.toISOString(),
+            address: data.address,
+            introduction: data.introduction,
+            invited_by_store_id: storeId,
+          },
+        },
       });
-      
-      if (authError) {
-        toast.error(authError.message);
-        return;
-      }
-      
-      if (!authData.user) {
-        toast.error("ユーザーの登録に失敗しました");
-        return;
-      }
-      
-      // Create or update the profile
+
+      if (signUpError) throw signUpError;
+
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: authData.user.id,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          user_type: 'therapist'
-        }, {
-          onConflict: 'id',
-          ignoreDuplicates: false
-        });
-        
-      if (profileError) {
-        console.error("Error creating/updating profile:", profileError);
-        // Continue with therapist creation even if profile update fails
-      }
-      
-      // 2. Create the therapist profile
-      const { error: therapistError } = await supabase
-        .from('therapists')
-        .insert({
-          id: authData.user.id,
-          name: formData.name,
-          description: `経験年数: ${formData.experience}年`,
-          long_description: formData.experience,
-          qualifications: formData.certifications.split(',').map(cert => cert.trim()),
-          specialties: [],
-          location: "東京",
-          price: 5000,
-          experience: parseInt(formData.experience) || 0
-        });
-        
-      if (therapistError) {
-        console.error("Error creating therapist profile:", therapistError);
-        toast.error("セラピストプロフィールの作成に失敗しました");
-        return;
-      }
-      
-      toast.success("登録が完了しました。確認のためメールをご確認ください。");
-      navigate("/therapist-login");
-      
+        .update({
+          user_type: 'therapist',
+          name: data.name,
+          invited_by_store_id: storeId,
+          phone_number: data.phone_number,
+          gender: data.gender,
+          date_of_birth: data.date_of_birth?.toISOString(),
+          address: data.address,
+          introduction: data.introduction,
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      toast.success('アカウントを作成しました');
+      navigate('/therapist-dashboard');
     } catch (error) {
-      console.error("Signup error:", error);
-      toast.error("登録中にエラーが発生しました");
+      console.error('Signup error:', error);
+      toast.error('アカウント作成に失敗しました');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <Layout>
-      <div className="container max-w-2xl py-12">
-        <Card className="border-pink-100">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl">セラピスト登録</CardTitle>
-            <CardDescription>
-              セラピストとして登録して、あなたのスキルを多くのお客様に届けましょう
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">基本情報</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">お名前</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="山田 太郎"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">メールアドレス</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="example@example.com"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">パスワード</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">電話番号</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      placeholder="090-1234-5678"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">資格・経験</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="experience">経験年数・経歴</Label>
-                  <Textarea
-                    id="experience"
-                    name="experience"
-                    placeholder="これまでの経験について記入してください"
-                    value={formData.experience}
-                    onChange={handleChange}
-                    rows={3}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="certifications">保有資格</Label>
-                  <Textarea
-                    id="certifications"
-                    name="certifications"
-                    placeholder="保有している資格について記入してください"
-                    value={formData.certifications}
-                    onChange={handleChange}
-                    rows={3}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  <p>セラピスト登録には審査があります。審査完了までに数日かかる場合がございます。</p>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "処理中..." : "登録する"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <div className="text-sm text-center text-muted-foreground">
-              すでにアカウントをお持ちの方は
-              <Link to="/therapist-login" className="text-primary hover:underline ml-1">
-                ログイン
-              </Link>
-            </div>
-            <div className="text-xs text-center text-muted-foreground">
-              登録すると、<Link to="/terms" className="text-primary hover:underline">利用規約</Link>および<Link to="/privacy" className="text-primary hover:underline">プライバシーポリシー</Link>に同意したことになります。
-            </div>
-          </CardFooter>
-        </Card>
-      </div>
-    </Layout>
+    <div className="container max-w-md py-12">
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">セラピスト登録</CardTitle>
+          <CardDescription>
+            必要な情報を入力して、セラピストアカウントを作成してください。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="email">メールアドレス</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="メールアドレスを入力してください"
+              {...register('email')}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">パスワード</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="パスワードを入力してください"
+              {...register('password')}
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="name">名前</Label>
+            <Input
+              id="name"
+              placeholder="名前を入力してください"
+              {...register('name')}
+            />
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button disabled={loading} onClick={handleSubmit(handleSignup)}>
+            {loading ? 'お待ちください...' : 'アカウントを作成'}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

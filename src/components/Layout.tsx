@@ -1,8 +1,8 @@
-
-import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { ReactNode, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   NavigationMenu,
   NavigationMenuContent,
@@ -11,6 +11,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import NavLink from '@/components/common/NavLink';
 
 interface LayoutProps {
   children: ReactNode;
@@ -18,20 +19,44 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check authentication state
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setLoading(false);
+    };
+
+    checkAuth();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
         <div className="container flex h-16 items-center">
-          <Link to="/" className="flex items-center gap-2">
+          <NavLink to="/" className="flex items-center gap-2">
             <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
               <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
             </div>
             <span className="font-semibold text-lg text-foreground">のくとる</span>
-          </Link>
+          </NavLink>
           
           <nav className="hidden md:flex ml-auto items-center gap-1 md:gap-6">
-            <Link 
+            <NavLink 
               to="/therapists" 
               className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
                 location.pathname === '/therapists' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
@@ -39,8 +64,8 @@ const Layout = ({ children }: LayoutProps) => {
             >
               <Search className="h-4 w-4" />
               <span>セラピスト検索</span>
-            </Link>
-            <Link 
+            </NavLink>
+            <NavLink 
               to="/blog" 
               className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
                 location.pathname.startsWith('/blog') ? 'text-primary bg-primary/10' : 'text-muted-foreground'
@@ -48,52 +73,87 @@ const Layout = ({ children }: LayoutProps) => {
             >
               <BookOpen className="h-4 w-4" />
               <span>ブログ</span>
-            </Link>
+            </NavLink>
             
             <div className="h-6 w-px bg-border mx-1"></div>
             
-            {/* Auth dropdown menus */}
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid w-[200px] gap-2 p-4">
-                      <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
-                        ユーザーログイン
-                      </Link>
-                      <Link to="/therapist-login" className="block p-2 hover:bg-muted rounded-md">
-                        セラピストログイン
-                      </Link>
-                      <Link to="/store-login" className="block p-2 hover:bg-muted rounded-md">
-                        店舗ログイン
-                      </Link>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-            
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid w-[200px] gap-2 p-4">
-                      <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
-                        ユーザー登録
-                      </Link>
-                      <Link to="/therapist-signup" className="block p-2 hover:bg-muted rounded-md">
-                        セラピスト登録
-                      </Link>
-                      <Link to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
-                        店舗登録
-                      </Link>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+            {/* Conditional rendering based on auth state */}
+            {!loading && (
+              <>
+                {user ? (
+                  <NavigationMenu>
+                    <NavigationMenuList>
+                      <NavigationMenuItem>
+                        <NavigationMenuTrigger className="text-sm">
+                          <User className="h-4 w-4 mr-1" />
+                          マイページ
+                        </NavigationMenuTrigger>
+                        <NavigationMenuContent>
+                          <div className="grid w-[200px] gap-2 p-4">
+                            <NavLink to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
+                              プロフィール
+                            </NavLink>
+                            <NavLink to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
+                              予約履歴
+                            </NavLink>
+                            <button
+                              onClick={handleSignOut}
+                              className="w-full text-left p-2 hover:bg-muted rounded-md text-red-500"
+                            >
+                              ログアウト
+                            </button>
+                          </div>
+                        </NavigationMenuContent>
+                      </NavigationMenuItem>
+                    </NavigationMenuList>
+                  </NavigationMenu>
+                ) : (
+                  <>
+                    <NavigationMenu>
+                      <NavigationMenuList>
+                        <NavigationMenuItem>
+                          <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
+                          <NavigationMenuContent>
+                            <div className="grid w-[200px] gap-2 p-4">
+                              <NavLink to="/login" className="block p-2 hover:bg-muted rounded-md">
+                                ユーザーログイン
+                              </NavLink>
+                              <NavLink to="/therapist-login" className="block p-2 hover:bg-muted rounded-md">
+                                セラピストログイン
+                              </NavLink>
+                              <NavLink to="/store-login" className="block p-2 hover:bg-muted rounded-md">
+                                店舗ログイン
+                              </NavLink>
+                            </div>
+                          </NavigationMenuContent>
+                        </NavigationMenuItem>
+                      </NavigationMenuList>
+                    </NavigationMenu>
+                    
+                    <NavigationMenu>
+                      <NavigationMenuList>
+                        <NavigationMenuItem>
+                          <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
+                          <NavigationMenuContent>
+                            <div className="grid w-[200px] gap-2 p-4">
+                              <NavLink to="/signup" className="block p-2 hover:bg-muted rounded-md">
+                                ユーザー登録
+                              </NavLink>
+                              <NavLink to="/therapist-signup" className="block p-2 hover:bg-muted rounded-md">
+                                セラピスト登録
+                              </NavLink>
+                              <NavLink to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
+                                店舗登録
+                              </NavLink>
+                            </div>
+                          </NavigationMenuContent>
+                        </NavigationMenuItem>
+                      </NavigationMenuList>
+                    </NavigationMenu>
+                  </>
+                )}
+              </>
+            )}
           </nav>
 
           {/* Mobile menu button */}
@@ -141,24 +201,24 @@ const Layout = ({ children }: LayoutProps) => {
               <h3 className="font-medium text-lg mb-4">サービス</h3>
               <ul className="space-y-3">
                 <li>
-                  <Link to="/therapists" className="text-muted-foreground hover:text-primary transition-colors">
+                  <NavLink to="/therapists" className="text-muted-foreground hover:text-primary transition-colors">
                     セラピスト検索
-                  </Link>
+                  </NavLink>
                 </li>
                 <li>
-                  <Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors">
+                  <NavLink to="/blog" className="text-muted-foreground hover:text-primary transition-colors">
                     ブログ
-                  </Link>
+                  </NavLink>
                 </li>
                 <li>
-                  <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">
+                  <NavLink to="/about" className="text-muted-foreground hover:text-primary transition-colors">
                     会社概要
-                  </Link>
+                  </NavLink>
                 </li>
                 <li>
-                  <Link to="/partnership" className="text-muted-foreground hover:text-primary transition-colors">
+                  <NavLink to="/partnership" className="text-muted-foreground hover:text-primary transition-colors">
                     パートナー募集
-                  </Link>
+                  </NavLink>
                 </li>
               </ul>
             </div>
@@ -167,24 +227,24 @@ const Layout = ({ children }: LayoutProps) => {
               <h3 className="font-medium text-lg mb-4">サポート</h3>
               <ul className="space-y-3">
                 <li>
-                  <Link to="/faq" className="text-muted-foreground hover:text-primary transition-colors">
+                  <NavLink to="/faq" className="text-muted-foreground hover:text-primary transition-colors">
                     よくある質問
-                  </Link>
+                  </NavLink>
                 </li>
                 <li>
-                  <Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
+                  <NavLink to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
                     利用規約
-                  </Link>
+                  </NavLink>
                 </li>
                 <li>
-                  <Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
+                  <NavLink to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
                     プライバシーポリシー
-                  </Link>
+                  </NavLink>
                 </li>
                 <li>
-                  <Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">
+                  <NavLink to="/contact" className="text-muted-foreground hover:text-primary transition-colors">
                     お問い合わせ
-                  </Link>
+                  </NavLink>
                 </li>
               </ul>
             </div>
@@ -219,17 +279,17 @@ const Layout = ({ children }: LayoutProps) => {
               &copy; 2023 のくとる All rights reserved.
             </p>
             <div className="flex items-center space-x-4 order-1 md:order-2">
-              <Link to="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              <NavLink to="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">
                 利用規約
-              </Link>
+              </NavLink>
               <span className="text-muted-foreground">•</span>
-              <Link to="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              <NavLink to="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors">
                 プライバシーポリシー
-              </Link>
+              </NavLink>
               <span className="text-muted-foreground">•</span>
-              <Link to="/sitemap" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              <NavLink to="/sitemap" className="text-xs text-muted-foreground hover:text-primary transition-colors">
                 サイトマップ
-              </Link>
+              </NavLink>
             </div>
           </div>
         </div>

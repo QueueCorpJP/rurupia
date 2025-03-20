@@ -1,9 +1,8 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Therapists from "./pages/Therapists";
 import TherapistDetail from "./pages/TherapistDetail";
@@ -43,61 +42,75 @@ import StoreSignup from "./pages/StoreSignup";
 
 const queryClient = new QueryClient();
 
+// Detect if we should use HashRouter (for compatibility issues)
+const useHashRouter = window.location.href.includes('/#/') || 
+                      window.location.hostname.includes('vercel.app');
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/" element={<Index />} />
+    <Route path="/therapists" element={<Therapists />} />
+    <Route path="/therapists/:id" element={<TherapistDetail />} />
+    <Route path="/book/:id" element={<Booking />} />
+    <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
+    <Route path="/user-profile" element={<UserProfile />} />
+    <Route path="/user-bookings" element={<UserBookings />} />
+    <Route path="/messages" element={<MessagesIndex />} />
+    <Route path="/messages/:id" element={<Messages />} />
+    <Route path="/blog" element={<Blog />} />
+    <Route path="/blog/:slug" element={<BlogDetail />} />
+    <Route path="/contact" element={<Contact />} />
+    <Route path="/faq" element={<FAQ />} />
+    <Route path="/terms" element={<Terms />} />
+    <Route path="/privacy" element={<Privacy />} />
+    
+    {/* Auth Routes */}
+    <Route path="/login" element={<Login />} />
+    <Route path="/signup" element={<Signup />} />
+    <Route path="/therapist-login" element={<TherapistLogin />} />
+    <Route path="/therapist-signup" element={<TherapistSignup />} />
+    <Route path="/store-login" element={<StoreLogin />} />
+    <Route path="/store-signup" element={<StoreSignup />} />
+    
+    {/* Admin Routes - For Site Operation */}
+    <Route path="/admin" element={<AdminLayout />}>
+      <Route index element={<AdminDashboard />} />
+      <Route path="accounts" element={<AdminAccounts />} />
+      <Route path="requests" element={<AdminRequests />} />
+      <Route path="inquiries" element={<AdminInquiries />} />
+      <Route path="blog" element={<AdminBlog />} />
+      <Route path="settings" element={<AdminSettings />} />
+    </Route>
+    
+    {/* Store Admin Routes - For Store Management */}
+    <Route path="/store-admin" element={<StoreAdminLayout />}>
+      <Route index element={<StoreAdminDashboard />} />
+      <Route path="therapists" element={<StoreTherapists />} />
+      <Route path="bookings" element={<StoreBookings />} />
+      <Route path="courses" element={<StoreCourses />} />
+      <Route path="inquiries" element={<StoreInquiries />} />
+      <Route path="analytics" element={<StoreAnalytics />} />
+    </Route>
+    
+    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/therapists" element={<Therapists />} />
-          <Route path="/therapists/:id" element={<TherapistDetail />} />
-          <Route path="/book/:id" element={<Booking />} />
-          <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
-          <Route path="/user-profile" element={<UserProfile />} />
-          <Route path="/user-bookings" element={<UserBookings />} />
-          <Route path="/messages" element={<MessagesIndex />} />
-          <Route path="/messages/:id" element={<Messages />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogDetail />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          
-          {/* Auth Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/therapist-login" element={<TherapistLogin />} />
-          <Route path="/therapist-signup" element={<TherapistSignup />} />
-          <Route path="/store-login" element={<StoreLogin />} />
-          <Route path="/store-signup" element={<StoreSignup />} />
-          
-          {/* Admin Routes - For Site Operation */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="accounts" element={<AdminAccounts />} />
-            <Route path="requests" element={<AdminRequests />} />
-            <Route path="inquiries" element={<AdminInquiries />} />
-            <Route path="blog" element={<AdminBlog />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
-          
-          {/* Store Admin Routes - For Store Management */}
-          <Route path="/store-admin" element={<StoreAdminLayout />}>
-            <Route index element={<StoreAdminDashboard />} />
-            <Route path="therapists" element={<StoreTherapists />} />
-            <Route path="bookings" element={<StoreBookings />} />
-            <Route path="courses" element={<StoreCourses />} />
-            <Route path="inquiries" element={<StoreInquiries />} />
-            <Route path="analytics" element={<StoreAnalytics />} />
-          </Route>
-          
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      {useHashRouter ? (
+        <HashRouter>
+          <AppRoutes />
+        </HashRouter>
+      ) : (
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      )}
     </TooltipProvider>
   </QueryClientProvider>
 );

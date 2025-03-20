@@ -1,6 +1,5 @@
-
-import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import NavLink from '@/components/common/NavLink';
 import { 
   LayoutDashboard, 
   Users, 
@@ -53,30 +52,35 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
 
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <NavLink
-                to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
-                    isActive 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-                    !isOpen && "justify-center"
-                  )
-                }
-                end={item.href === '/admin'}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                <span className={cn("truncate transition-all", 
-                  isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
-                )}>
-                  {item.title}
-                </span>
-              </NavLink>
-            </li>
-          ))}
+          {navItems.map((item) => {
+            // Helper function to generate the appropriate className
+            const getActiveClass = (isActive: boolean) => {
+              return cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
+                isActive 
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                !isOpen && "justify-center"
+              );
+            };
+            
+            return (
+              <li key={item.href}>
+                <NavLink
+                  to={item.href}
+                  className={(props) => getActiveClass(props.isActive as boolean)}
+                  end={item.href === '/admin'}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <span className={cn("truncate transition-all", 
+                    isOpen ? "opacity-100 w-auto" : "opacity-0 w-0"
+                  )}>
+                    {item.title}
+                  </span>
+                </NavLink>
+              </li>
+            );
+          })}
         </ul>
         
         <div className="mt-auto">

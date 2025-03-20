@@ -55,6 +55,7 @@ import {
   Repeat
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // サンプルデータ
 const initialTherapistsData = [
@@ -120,6 +121,20 @@ const StoreTherapists = () => {
   const [selectedTherapist, setSelectedTherapist] = useState<any>(null);
   const [therapistDetails, setTherapistDetails] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
+  
+  // Fetch store ID for generating invite link
+  useEffect(() => {
+    const fetchStoreId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Generate invite link using store ID
+        setInviteLink(`${window.location.origin}/therapist-signup?store=${user.id}`);
+      }
+    };
+    
+    fetchStoreId();
+  }, []);
   
   // Real-time status simulation
   useEffect(() => {
@@ -163,7 +178,7 @@ const StoreTherapists = () => {
   };
 
   const copyInviteLink = () => {
-    navigator.clipboard.writeText('https://example.com/therapist-signup?invite=STORE123456');
+    navigator.clipboard.writeText(inviteLink);
     toast({
       title: "招待リンクをコピーしました",
       description: "招待リンクをセラピスト候補に共有してください",
@@ -232,7 +247,7 @@ const StoreTherapists = () => {
               <div className="flex items-center space-x-2 mt-4">
                 <Input 
                   readOnly 
-                  value="https://example.com/therapist-signup?invite=STORE123456" 
+                  value={inviteLink} 
                   className="flex-1"
                 />
                 <Button onClick={copyInviteLink}>

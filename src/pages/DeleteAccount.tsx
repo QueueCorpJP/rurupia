@@ -8,6 +8,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 
+interface DeleteUserParams {
+  user_id: string;
+}
+
 const DeleteAccount = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
@@ -23,9 +27,9 @@ const DeleteAccount = () => {
       }
       
       // Call the RPC function to delete the user
-      const { error } = await supabase.rpc('delete_user', {
+      const { error } = await supabase.rpc<any, DeleteUserParams>('delete_user', {
         user_id: user.id
-      } as any); // Use type assertion to bypass TypeScript error
+      });
 
       if (error) throw error;
       

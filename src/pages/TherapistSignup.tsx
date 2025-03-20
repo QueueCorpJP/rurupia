@@ -31,21 +31,44 @@ const TherapistSignup = () => {
   const searchParams = new URLSearchParams(location.search);
   const storeId = searchParams.get('store');
 
+  // Redirect to home if no store ID is provided - this ensures therapists can only register via invite
+  useEffect(() => {
+    if (!storeId) {
+      navigate('/');
+      toast.error('有効な招待リンクが必要です');
+    }
+  }, [storeId, navigate]);
+
   useEffect(() => {
     const fetchStoreDetails = async () => {
       if (storeId) {
         try {
-          const { data, error } = await supabase
-            .from('profiles')
+          // First try to get from stores table
+          let { data, error } = await supabase
+            .from('stores')
             .select('name, email')
             .eq('id', storeId)
-            .eq('user_type', 'store')
             .single();
 
-          if (error) {
-            console.error('Error fetching store details:', error);
-            toast.error('店舗情報の取得に失敗しました');
-          } else if (data) {
+          if (error || !data) {
+            // If not found in stores, try profiles table
+            const profileResult = await supabase
+              .from('profiles')
+              .select('name, email')
+              .eq('id', storeId)
+              .eq('user_type', 'store')
+              .single();
+              
+            if (profileResult.error) {
+              console.error('Error fetching store details:', profileResult.error);
+              toast.error('店舗情報の取得に失敗しました');
+              return;
+            }
+            
+            data = profileResult.data;
+          }
+
+          if (data) {
             setInvitingStore(data);
           }
         } catch (error) {
@@ -74,6 +97,13 @@ const TherapistSignup = () => {
   const handleSignup = async (data: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
+
+      // Validate that we have a store ID
+      if (!storeId) {
+        toast.error('有効な招待リンクが必要です');
+        navigate('/');
+        return;
+      }
 
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
@@ -135,17 +165,15 @@ const TherapistSignup = () => {
         console.error('Error creating therapist entry:', therapistError);
       }
 
-      // Create store_therapist relationship if invited by a store
-      if (storeId) {
-        const { error: relationError } = await supabase.from('store_therapists').insert({
-          store_id: storeId,
-          therapist_id: user.id,
-          status: 'pending'
-        });
+      // Create store_therapist relationship
+      const { error: relationError } = await supabase.from('store_therapists').insert({
+        store_id: storeId,
+        therapist_id: user.id,
+        status: 'pending'
+      });
 
-        if (relationError) {
-          console.error('Error creating store-therapist relationship:', relationError);
-        }
+      if (relationError) {
+        console.error('Error creating store-therapist relationship:', relationError);
       }
 
       toast.success('アカウントを作成しました');
@@ -179,7 +207,7 @@ const TherapistSignup = () => {
             <CardDescription>
               {invitingStore 
                 ? `${invitingStore.name}からの招待で登録しています。` 
-                : '必要な情報を入力して、セラピストアカウントを作成してください。'}
+                : '招待された店舗の情報を読み込んでいます...'}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -227,7 +255,7 @@ const TherapistSignup = () => {
             )}
           </CardContent>
           <CardFooter>
-            <Button disabled={loading} onClick={handleSubmit(handleSignup)} className="w-full">
+            <Button disabled={loading || !storeId} onClick={handleSubmit(handleSignup)} className="w-full">
               {loading ? 'お待ちください...' : 'アカウントを作成'}
             </Button>
           </CardFooter>

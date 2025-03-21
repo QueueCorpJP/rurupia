@@ -1,3 +1,22 @@
+/**
+ * TherapistSignup Component
+ * 
+ * This component handles the registration of new therapists invited by stores.
+ * Due to Supabase Row Level Security (RLS) constraints, therapists can't directly
+ * insert into the therapists table on registration. Instead, we:
+ * 
+ * 1. Create a user account
+ * 2. Update their profile with 'user_type: therapist' and 'status: pending_therapist_approval'
+ * 3. Store references to the inviting store
+ * 
+ * ADMIN IMPLEMENTATION NOTE:
+ * Admin tools must include a section to approve pending therapists by:
+ * 1. Querying profiles with status='pending_therapist_approval' 
+ * 2. Creating a record in the therapists table for each approved profile
+ * 3. Creating a store_therapists relation between the therapist and the inviting store
+ * 4. Updating the profile status to 'active'
+ */
+
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -91,6 +110,33 @@ const TherapistSignup = () => {
     },
   });
 
+  // Store therapist data in the profile for admin approval
+  const storeTherapistDataInProfile = async (userId: string, userData: any) => {
+    try {
+      // Use only fields that we know exist in the profiles table
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          user_type: 'therapist',
+          name: userData.name,
+          invited_by_store_id: storeId,
+          status: 'pending_therapist_approval'  // Use status field to indicate pending approval
+        })
+        .eq('id', userId);
+      
+      if (updateError) {
+        console.error("Failed to store therapist data in profile:", updateError);
+        return false;
+      }
+      
+      console.log("Successfully stored therapist data in profile for admin approval");
+      return true;
+    } catch (error) {
+      console.error("Error in storeTherapistDataInProfile:", error);
+      return false;
+    }
+  };
+
   // Full signup handler
   const handleSignup = async (data: z.infer<typeof formSchema>) => {
     try {
@@ -128,50 +174,19 @@ const TherapistSignup = () => {
         return;
       }
 
-      // Set up the user's profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          user_type: 'therapist',
-          name: data.name,
-          invited_by_store_id: storeId,
-        })
-        .eq('id', authData.user.id);
+      console.log("User created successfully with ID:", authData.user.id);
 
-      if (profileError) throw profileError;
-
-      // Create therapist entry
-      const { error: therapistError } = await supabase.from('therapists').insert({
-        id: authData.user.id,
-        name: data.name,
-        description: `${data.name}はプロフェッショナルなセラピストです`,
-        location: '東京',
-        price: 5000, // Default price
-        specialties: [],
-        qualifications: [],
-        availability: ['月', '火', '水', '木', '金', '土', '日'],
-        rating: 0,
-        reviews: 0,
-        experience: 0
-      });
-
-      if (therapistError && !therapistError.message.includes('duplicate')) {
-        console.error('Error creating therapist entry:', therapistError);
-      }
-
-      // Create store_therapist relationship
-      const { error: relationError } = await supabase.from('store_therapists').insert({
-        store_id: storeId,
-        therapist_id: authData.user.id,
-        status: 'pending'
-      });
-
-      if (relationError) {
-        console.error('Error creating store-therapist relationship:', relationError);
-      }
-
-      toast.success('アカウントを作成しました');
+      // Mark the user as a pending therapist in the profiles table
+      const profileUpdated = await storeTherapistDataInProfile(authData.user.id, data);
       
+      if (!profileUpdated) {
+        console.warn("Could not update profile with therapist status.");
+        toast.warning('アカウントは作成されましたが、プロフィール更新に問題が発生しました');
+      } else {
+        console.log("Profile marked as pending therapist successfully");
+        toast.success('アカウントを作成しました。管理者の承認後に全機能が利用可能になります');
+      }
+
       // Log the user in
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: data.email,

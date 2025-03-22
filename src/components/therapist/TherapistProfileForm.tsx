@@ -45,6 +45,23 @@ export const TherapistProfileForm = ({
     };
     
     getUserId();
+    
+    // Check if storage buckets exist or create them
+    const checkBuckets = async () => {
+      try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const requiredBuckets = ['therapists'];
+        
+        if (buckets) {
+          const existingBucketNames = buckets.map(b => b.name);
+          console.log("Existing buckets:", existingBucketNames);
+        }
+      } catch (error) {
+        console.error("Error checking buckets:", error);
+      }
+    };
+    
+    checkBuckets();
   }, []);
   
   const weekdays = [
@@ -77,17 +94,48 @@ export const TherapistProfileForm = ({
   };
 
   const uploadFile = async (file: File, bucket: string, path: string) => {
+    if (!userId) {
+      console.error("No user ID available for upload");
+      return null;
+    }
+    
     try {
+      console.log(`Uploading file to ${bucket}/${path}`);
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}/${Date.now()}.${fileExt}`;
       const filePath = `${path}/${fileName}`;
       
+      // Create bucket if it doesn't exist (will be ignored if it already exists)
+      try {
+        const { data, error } = await supabase.storage.createBucket(bucket, {
+          public: true,
+          fileSizeLimit: 10485760 // 10MB
+        });
+        
+        if (error && !error.message.includes('already exists')) {
+          console.error("Error creating bucket:", error);
+        } else {
+          console.log(`Bucket ${bucket} created or already exists`);
+        }
+      } catch (bucketError) {
+        console.log("Bucket already exists or creation error:", bucketError);
+      }
+      
+      // Upload the file
       const { error: uploadError } = await supabase
         .storage
         .from(bucket)
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
         
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error(`Upload error for ${path}:`, uploadError);
+        throw uploadError;
+      }
+      
+      console.log(`File uploaded successfully to ${bucket}/${filePath}`);
       
       // Get public URL
       const { data } = supabase
@@ -95,6 +143,7 @@ export const TherapistProfileForm = ({
         .from(bucket)
         .getPublicUrl(filePath);
         
+      console.log("Public URL:", data.publicUrl);
       return data.publicUrl;
     } catch (error) {
       console.error(`Error uploading ${path}:`, error);
@@ -145,20 +194,64 @@ export const TherapistProfileForm = ({
         }
       }
       
+      console.log("Updating therapist with data:", {
+        name: updatedProfile.name,
+        description: updatedProfile.bio,
+        price: updatedProfile.pricePerHour,
+        specialties: updatedProfile.specialties || [],
+        location: updatedProfile.serviceAreas?.prefecture || 'Tokyo',
+        image_url: updatedProfile.avatarUrl
+      });
+      
       // Update therapist data in the database
-      const { error: updateTherapistError } = await supabase
+      const { data: therapistData, error: therapistCheckError } = await supabase
         .from('therapists')
-        .update({
-          name: updatedProfile.name,
-          description: updatedProfile.bio,
-          price: updatedProfile.pricePerHour,
-          specialties: updatedProfile.specialties || [],
-          location: updatedProfile.serviceAreas?.prefecture || 'Tokyo',
-          image_url: updatedProfile.avatarUrl
-        })
-        .eq('id', userId);
-        
-      if (updateTherapistError) throw updateTherapistError;
+        .select('id')
+        .eq('id', userId)
+        .single();
+      
+      if (therapistCheckError && !therapistCheckError.message.includes('No rows found')) {
+        console.error("Error checking therapist:", therapistCheckError);
+        throw therapistCheckError;
+      }
+      
+      if (!therapistData) {
+        // If therapist record doesn't exist yet, insert it
+        const { error: insertError } = await supabase
+          .from('therapists')
+          .insert([{
+            id: userId,
+            name: updatedProfile.name || 'New Therapist',
+            description: updatedProfile.bio || 'No description',
+            price: updatedProfile.pricePerHour || 0,
+            specialties: updatedProfile.specialties || [],
+            location: updatedProfile.serviceAreas?.prefecture || 'Tokyo',
+            image_url: updatedProfile.avatarUrl
+          }]);
+          
+        if (insertError) {
+          console.error("Error inserting therapist:", insertError);
+          throw insertError;
+        }
+      } else {
+        // Update existing therapist record
+        const { error: updateTherapistError } = await supabase
+          .from('therapists')
+          .update({
+            name: updatedProfile.name,
+            description: updatedProfile.bio,
+            price: updatedProfile.pricePerHour,
+            specialties: updatedProfile.specialties || [],
+            location: updatedProfile.serviceAreas?.prefecture || 'Tokyo',
+            image_url: updatedProfile.avatarUrl
+          })
+          .eq('id', userId);
+          
+        if (updateTherapistError) {
+          console.error("Error updating therapist:", updateTherapistError);
+          throw updateTherapistError;
+        }
+      }
       
       // Update profile as well for additional data
       const { error: updateProfileError } = await supabase
@@ -169,7 +262,10 @@ export const TherapistProfileForm = ({
         })
         .eq('id', userId);
         
-      if (updateProfileError) throw updateProfileError;
+      if (updateProfileError) {
+        console.error("Error updating profile:", updateProfileError);
+        throw updateProfileError;
+      }
       
       toast.success("プロフィールが更新されました");
       

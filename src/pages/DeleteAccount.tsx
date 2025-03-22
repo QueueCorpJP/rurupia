@@ -29,7 +29,8 @@ const DeleteAccount = () => {
       setError(null);
 
       // Call the delete_user function (requires the supabase-js v2)
-      const { error } = await supabase.rpc<void>('delete_user');
+      // Fix: provide both generic types for rpc function
+      const { error } = await supabase.rpc<void, void>('delete_user');
       
       if (error) throw error;
 

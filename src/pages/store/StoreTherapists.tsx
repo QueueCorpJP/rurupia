@@ -173,38 +173,42 @@ const StoreTherapists = () => {
     setProcessingTherapistId(therapistId);
     
     try {
+      console.log("Approving therapist:", therapistId);
+      
       // 1. Create entry in therapists table
       const { error: therapistError } = await supabase
         .from("therapists")
-        .insert([
-          {
-            id: therapistId,
-            name: pendingTherapists.find(t => t.id === therapistId)?.name || "",
-            description: "No description yet",
-            location: "Tokyo",
-            price: 5000,
-            specialties: [],
-            experience: 0,
-            rating: 0,
-            reviews: 0,
-            availability: []
-          }
-        ]);
+        .insert([{
+          id: therapistId,
+          name: pendingTherapists.find(t => t.id === therapistId)?.name || "",
+          description: "セラピストの紹介文はまだありません",
+          location: "東京",
+          price: 5000,
+          specialties: [],
+          experience: 0,
+          rating: 0,
+          reviews: 0,
+          availability: []
+        }]);
         
-      if (therapistError) throw therapistError;
+      if (therapistError) {
+        console.error("Error creating therapist record:", therapistError);
+        throw therapistError;
+      }
 
       // 2. Create store_therapists relation
       const { error: relationError } = await supabase
         .from("store_therapists")
-        .insert([
-          {
-            store_id: storeId,
-            therapist_id: therapistId,
-            status: "active"
-          }
-        ]);
+        .insert([{
+          store_id: storeId,
+          therapist_id: therapistId,
+          status: "active"
+        }]);
         
-      if (relationError) throw relationError;
+      if (relationError) {
+        console.error("Error creating store_therapist relation:", relationError);
+        throw relationError;
+      }
 
       // 3. Update profile status to active
       const { error: profileError } = await supabase
@@ -212,8 +216,13 @@ const StoreTherapists = () => {
         .update({ status: "active" })
         .eq("id", therapistId);
         
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Error updating profile status:", profileError);
+        throw profileError;
+      }
 
+      console.log("Therapist approved successfully");
+      
       // Update the UI by removing the approved therapist from pending list
       setPendingTherapists(prevTherapists => 
         prevTherapists.filter(t => t.id !== therapistId)

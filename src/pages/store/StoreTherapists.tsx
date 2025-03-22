@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +53,7 @@ const StoreTherapists = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteCopied, setInviteCopied] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [processingTherapistId, setProcessingTherapistId] = useState<string | null>(null);
 
   const fetchTherapists = async () => {
     setLoading(true);
@@ -135,13 +137,13 @@ const StoreTherapists = () => {
     const inviteLink = `${window.location.origin}/therapist-signup?store=${storeId}`;
     navigator.clipboard.writeText(inviteLink);
     
-    toast("招待リンクがコピーされました");
+    toast.success("招待リンクがコピーされました");
     setInviteCopied(true);
     setTimeout(() => setInviteCopied(false), 3000);
   };
 
   const sendInviteEmail = async () => {
-    toast("招待メールが送信されました");
+    toast.success("招待メールが送信されました");
     setInviteEmail("");
     setIsDialogOpen(false);
   };
@@ -159,15 +161,16 @@ const StoreTherapists = () => {
       if (error) throw error;
       
       setTherapists(therapists.filter(t => t.id !== therapistId));
-      toast("セラピストが削除されました");
+      toast.success("セラピストが削除されました");
     } catch (error: any) {
       console.error("Error removing therapist:", error);
-      toast("セラピストの削除に失敗しました: " + error.message);
+      toast.error("セラピストの削除に失敗しました: " + error.message);
     }
   };
 
   const approveTherapist = async (therapistId: string) => {
     if (!storeId) return;
+    setProcessingTherapistId(therapistId);
     
     try {
       // 1. Create entry in therapists table
@@ -211,32 +214,48 @@ const StoreTherapists = () => {
         
       if (profileError) throw profileError;
 
+      // Update the UI by removing the approved therapist from pending list
+      setPendingTherapists(prevTherapists => 
+        prevTherapists.filter(t => t.id !== therapistId)
+      );
+      
+      // Refresh the active therapists list
+      fetchTherapists();
+      
       toast.success("セラピストを承認しました");
-      fetchTherapists(); // Refresh the lists
     } catch (error: any) {
       console.error("Error approving therapist:", error);
       toast.error("セラピストの承認に失敗しました: " + error.message);
+    } finally {
+      setProcessingTherapistId(null);
     }
   };
 
   const rejectTherapist = async (therapistId: string) => {
     if (!storeId) return;
+    setProcessingTherapistId(therapistId);
     
     try {
-      // Simply delete the profile entry
+      // Update profile status to rejected
       const { error } = await supabase
         .from("profiles")
-        .delete()
+        .update({ status: "rejected" })
         .eq("id", therapistId)
         .eq("invited_by_store_id", storeId);
         
       if (error) throw error;
 
-      setPendingTherapists(pendingTherapists.filter(t => t.id !== therapistId));
+      // Update the UI by removing the rejected therapist from pending list
+      setPendingTherapists(prevTherapists => 
+        prevTherapists.filter(t => t.id !== therapistId)
+      );
+      
       toast.success("セラピストの申請を却下しました");
     } catch (error: any) {
       console.error("Error rejecting therapist:", error);
       toast.error("セラピストの却下に失敗しました: " + error.message);
+    } finally {
+      setProcessingTherapistId(null);
     }
   };
 
@@ -331,6 +350,7 @@ const StoreTherapists = () => {
                         size="icon"
                         onClick={() => approveTherapist(therapist.id)}
                         className="text-green-600 hover:text-green-700"
+                        disabled={processingTherapistId === therapist.id}
                       >
                         <CheckCircle2 className="h-4 w-4" />
                       </Button>
@@ -339,6 +359,7 @@ const StoreTherapists = () => {
                         size="icon"
                         onClick={() => rejectTherapist(therapist.id)}
                         className="text-red-600 hover:text-red-700"
+                        disabled={processingTherapistId === therapist.id}
                       >
                         <XCircle className="h-4 w-4" />
                       </Button>

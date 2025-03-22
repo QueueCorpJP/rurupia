@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { TherapistProfile } from "@/utils/types";
 import { UploadCloud } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TherapistProfileFormProps {
   therapist?: TherapistProfile;
@@ -30,6 +32,21 @@ export const TherapistProfileForm = ({
     serviceAreas: {}
   });
   
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [galleryImages, setGalleryImages] = useState<File[]>([]);
+  const [healthDoc, setHealthDoc] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    };
+    
+    getUserId();
+  }, []);
+  
   const weekdays = [
     { id: "monday", label: "月曜" },
     { id: "tuesday", label: "火曜" },
@@ -40,11 +57,129 @@ export const TherapistProfileForm = ({
     { id: "sunday", label: "日曜" },
   ];
 
-  const handleSave = () => {
-    // In a real app, this would save to the backend
-    console.log("Saving profile:", profile);
-    // Add success toast
-    if (onSuccess) onSuccess(profile);
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setProfileImage(e.target.files[0]);
+    }
+  };
+
+  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files).slice(0, 5); // Max 5 images
+      setGalleryImages(files);
+    }
+  };
+
+  const handleHealthDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setHealthDoc(e.target.files[0]);
+    }
+  };
+
+  const uploadFile = async (file: File, bucket: string, path: string) => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+      const filePath = `${path}/${fileName}`;
+      
+      const { error: uploadError } = await supabase
+        .storage
+        .from(bucket)
+        .upload(filePath, file);
+        
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data } = supabase
+        .storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+        
+      return data.publicUrl;
+    } catch (error) {
+      console.error(`Error uploading ${path}:`, error);
+      toast.error(`${path}のアップロードに失敗しました`);
+      return null;
+    }
+  };
+
+  const handleSave = async () => {
+    if (!userId) {
+      toast.error("ユーザー情報が見つかりません");
+      return;
+    }
+    
+    try {
+      setUploading(true);
+      let updatedProfile = { ...profile };
+      
+      // Upload profile image if selected
+      if (profileImage) {
+        const profileImageUrl = await uploadFile(profileImage, 'therapists', 'avatars');
+        if (profileImageUrl) {
+          updatedProfile.avatarUrl = profileImageUrl;
+        }
+      }
+      
+      // Upload gallery images if selected
+      if (galleryImages.length > 0) {
+        const galleryUrls = [];
+        for (const image of galleryImages) {
+          const imageUrl = await uploadFile(image, 'therapists', 'gallery');
+          if (imageUrl) galleryUrls.push(imageUrl);
+        }
+        
+        if (galleryUrls.length > 0) {
+          updatedProfile.galleryImages = [
+            ...(updatedProfile.galleryImages || []),
+            ...galleryUrls
+          ];
+        }
+      }
+      
+      // Upload health document if selected
+      if (healthDoc) {
+        const healthDocUrl = await uploadFile(healthDoc, 'therapists', 'documents');
+        if (healthDocUrl) {
+          updatedProfile.healthDocumentUrl = healthDocUrl;
+        }
+      }
+      
+      // Update therapist data in the database
+      const { error: updateTherapistError } = await supabase
+        .from('therapists')
+        .update({
+          name: updatedProfile.name,
+          description: updatedProfile.bio,
+          price: updatedProfile.pricePerHour,
+          specialties: updatedProfile.specialties || [],
+          location: updatedProfile.serviceAreas?.prefecture || 'Tokyo',
+          image_url: updatedProfile.avatarUrl
+        })
+        .eq('id', userId);
+        
+      if (updateTherapistError) throw updateTherapistError;
+      
+      // Update profile as well for additional data
+      const { error: updateProfileError } = await supabase
+        .from('profiles')
+        .update({
+          name: updatedProfile.name,
+          avatar_url: updatedProfile.avatarUrl
+        })
+        .eq('id', userId);
+        
+      if (updateProfileError) throw updateProfileError;
+      
+      toast.success("プロフィールが更新されました");
+      
+      if (onSuccess) onSuccess(updatedProfile);
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast.error("プロフィールの保存に失敗しました");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -55,10 +190,10 @@ export const TherapistProfileForm = ({
         <div>
           <h3 className="text-lg font-medium mb-4">プロフィール写真</h3>
           <div className="flex items-center justify-center w-full">
-            <label className="flex flex-col items-center justify-center w-64 h-64 border-2 border-gray-300 border-dashed rounded-full cursor-pointer bg-gray-50 hover:bg-gray-100">
-              {profile.avatarUrl ? (
+            <label className="flex flex-col items-center justify-center w-64 h-64 border-2 border-gray-300 border-dashed rounded-full cursor-pointer bg-gray-50 hover:bg-gray-100 relative overflow-hidden">
+              {(profile.avatarUrl || profileImage) ? (
                 <img 
-                  src={profile.avatarUrl} 
+                  src={profileImage ? URL.createObjectURL(profileImage) : profile.avatarUrl} 
                   alt="Profile" 
                   className="w-full h-full object-cover rounded-full"
                 />
@@ -68,7 +203,13 @@ export const TherapistProfileForm = ({
                   <p className="text-sm text-gray-500">写真をアップロード</p>
                 </div>
               )}
-              <input id="dropzone-file" type="file" className="hidden" />
+              <input 
+                id="profile-image" 
+                type="file" 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleProfileImageChange}
+              />
             </label>
           </div>
         </div>
@@ -79,11 +220,31 @@ export const TherapistProfileForm = ({
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <UploadCloud className="w-8 h-8 mb-2 text-gray-500" />
-                <p className="text-sm text-gray-500">写真をアップロード</p>
+                <p className="text-sm text-gray-500">写真をアップロード (最大5枚)</p>
               </div>
-              <input id="dropzone-file" type="file" className="hidden" multiple />
+              <input 
+                id="gallery-images" 
+                type="file" 
+                className="hidden" 
+                accept="image/*" 
+                multiple 
+                onChange={handleGalleryImagesChange}
+              />
             </label>
           </div>
+          {galleryImages.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {galleryImages.map((image, index) => (
+                <div key={index} className="w-20 h-20 relative">
+                  <img 
+                    src={URL.createObjectURL(image)} 
+                    alt={`Gallery ${index}`} 
+                    className="w-full h-full object-cover rounded-md"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -214,7 +375,7 @@ export const TherapistProfileForm = ({
                 id="price" 
                 type="text" 
                 className="pl-8"
-                value={profile.pricePerHour.toString()}
+                value={profile.pricePerHour?.toString() || ""}
                 onChange={(e) => {
                   const onlyNums = e.target.value.replace(/[^0-9]/g, '');
                   setProfile({...profile, pricePerHour: parseInt(onlyNums) || 0});
@@ -244,16 +405,28 @@ export const TherapistProfileForm = ({
                 <UploadCloud className="w-8 h-8 mb-2 text-gray-500" />
                 <p className="text-sm text-gray-500">証明書をアップロード</p>
               </div>
-              <input id="dropzone-file" type="file" className="hidden" />
+              <input 
+                id="health-document" 
+                type="file" 
+                className="hidden"
+                accept=".pdf,.jpg,.jpeg,.png" 
+                onChange={handleHealthDocChange}
+              />
             </label>
           </div>
+          {healthDoc && (
+            <p className="mt-2 text-sm text-center text-muted-foreground">
+              ファイル選択済み: {healthDoc.name}
+            </p>
+          )}
         </div>
 
         <Button 
           onClick={handleSave} 
           className="w-full bg-black text-white hover:bg-black/90"
+          disabled={uploading}
         >
-          プロフィールを更新
+          {uploading ? 'アップロード中...' : 'プロフィールを更新'}
         </Button>
         
         {onCancel && (
@@ -261,6 +434,7 @@ export const TherapistProfileForm = ({
             onClick={onCancel} 
             variant="outline"
             className="w-full mt-2"
+            disabled={uploading}
           >
             キャンセル
           </Button>

@@ -1,85 +1,101 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import Layout from '@/components/Layout';
-
-// Define a proper interface for the RPC function parameters
-interface DeleteUserParams {
-  user_id: string;
-}
 
 const DeleteAccount = () => {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleDeleteAccount = async () => {
-    try {
-      setIsDeleting(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error('ユーザー情報が見つかりません');
-        return;
-      }
-      
-      // Call the RPC function to delete the user with proper typing
-      const { error } = await supabase.rpc<void, DeleteUserParams>('delete_user', {
-        user_id: user.id
-      });
+  const expectedConfirmText = 'DELETE ACCOUNT';
 
-      if (error) throw error;
+  const handleDelete = async () => {
+    if (confirmText !== expectedConfirmText) {
+      setError('正確に「DELETE ACCOUNT」と入力してください');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Call the delete_user function (requires the supabase-js v2)
+      const { error } = await supabase.rpc<void>('delete_user');
       
+      if (error) throw error;
+
       toast.success('アカウントが削除されました');
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting account:', error);
-      toast.error('アカウント削除に失敗しました');
+      setError(error.message || 'アカウントの削除に失敗しました');
     } finally {
-      setIsDeleting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <Layout>
-      <div className="container max-w-md py-12">
-        <Card>
-          <CardHeader>
-            <CardTitle>アカウント削除</CardTitle>
-            <CardDescription>一度削除すると、アカウントを復元することはできません</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertTitle>警告</AlertTitle>
-              <AlertDescription>
-                アカウントを削除すると、すべてのプロフィール情報、予約履歴、メッセージが完全に消去されます。この操作は取り消せません。
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
+    <div className="container max-w-md py-12">
+      <Card className="border-destructive">
+        <CardHeader className="bg-destructive/10 text-destructive">
+          <CardTitle>アカウント削除</CardTitle>
+          <CardDescription className="text-destructive/80">
+            この操作は取り消すことができません
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>警告</AlertTitle>
+            <AlertDescription>
+              アカウントを削除すると、すべてのデータが完全に削除され、復元することはできません。
+            </AlertDescription>
+          </Alert>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="confirm">確認</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                アカウントを削除するには「DELETE ACCOUNT」と入力してください
+              </p>
+              <Input
+                id="confirm"
+                placeholder="DELETE ACCOUNT"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+              />
+              {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <div className="flex flex-col space-y-2 w-full">
             <Button 
               variant="destructive" 
-              onClick={handleDeleteAccount} 
-              disabled={isDeleting}
-              className="w-full"
+              disabled={confirmText !== expectedConfirmText || loading}
+              onClick={handleDelete}
             >
-              {isDeleting ? '処理中...' : 'アカウントを完全に削除する'}
+              {loading ? '処理中...' : 'アカウントを削除する'}
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => navigate(-1)}
-              className="w-full"
             >
               キャンセル
             </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    </Layout>
+          </div>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

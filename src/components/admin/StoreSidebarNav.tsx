@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,6 +18,44 @@ interface StoreSidebarNavProps {
 
 export const StoreSidebarNav = ({ isOpen, toggleSidebar }: StoreSidebarNavProps) => {
   const navigate = useNavigate();
+  const [storeName, setStoreName] = useState("店舗管理");
+  
+  useEffect(() => {
+    const fetchStoreName = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // First check if this user has a store record
+          const { data: storeData, error: storeError } = await supabase
+            .from('stores')
+            .select('name')
+            .eq('id', user.id)
+            .single();
+            
+          if (storeData) {
+            setStoreName(storeData.name);
+            return;
+          }
+          
+          // If not found in stores, check the profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', user.id)
+            .single();
+            
+          if (profileData && profileData.name) {
+            setStoreName(profileData.name);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching store name:", error);
+      }
+    };
+    
+    fetchStoreName();
+  }, []);
   
   const handleLogout = async () => {
     try {
@@ -39,7 +77,7 @@ export const StoreSidebarNav = ({ isOpen, toggleSidebar }: StoreSidebarNavProps)
       <div className="flex h-16 items-center justify-between border-b px-4">
         <div className={cn("flex items-center gap-2", !isOpen && "justify-center w-full")}>
           <LayoutDashboard className="h-6 w-6 text-primary" />
-          {isOpen && <span className="font-bold text-lg">管理システム</span>}
+          {isOpen && <span className="font-bold text-lg">{storeName}</span>}
         </div>
         <Button 
           variant="ghost" 

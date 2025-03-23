@@ -1,296 +1,386 @@
 
-import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-import { DataTable } from '@/components/admin/DataTable';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DataTable } from "@/components/admin/DataTable";
+import { BarChart2, Edit, Trash, PlusCircle, FileText, BarChart } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { LineChart } from "@/components/admin/LineChart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const sortOptions = [
-  { label: '全て表示', value: 'all' },
-  { label: '新しい順', value: 'newest' },
-  { label: '古い順', value: 'oldest' },
-  { label: '閲覧数順', value: 'views' },
+// Sample data for blog posts
+const blogPosts = [
+  {
+    id: 1,
+    title: "ストレス解消に効果的なマッサージ",
+    author: "山田太郎",
+    publishDate: "2023-04-15",
+    status: "公開中",
+    views: 1245
+  },
+  {
+    id: 2,
+    title: "冬に最適なホットストーンマッサージの魅力",
+    author: "鈴木花子",
+    publishDate: "2023-05-22",
+    status: "公開中",
+    views: 892
+  },
+  {
+    id: 3,
+    title: "男性セラピストによるマッサージの魅力とは",
+    author: "佐藤健太",
+    publishDate: "2023-06-10",
+    status: "下書き",
+    views: 0
+  },
+  {
+    id: 4, 
+    title: "肩こり解消のための簡単なセルフマッサージ",
+    author: "田中美香",
+    publishDate: "2023-07-05",
+    status: "公開中",
+    views: 1587
+  },
+  {
+    id: 5,
+    title: "リラクゼーションと生産性の関係",
+    author: "山田太郎",
+    publishDate: "2023-08-12",
+    status: "公開中",
+    views: 762
+  }
+];
+
+// Sample analytics data
+const viewsData = [
+  { name: "1月", value: 423 },
+  { name: "2月", value: 567 },
+  { name: "3月", value: 812 },
+  { name: "4月", value: 954 },
+  { name: "5月", value: 1023 },
+  { name: "6月", value: 1253 },
+  { name: "7月", value: 1489 },
+  { name: "8月", value: 1245 },
+  { name: "9月", value: 1634 },
+  { name: "10月", value: 1842 },
+  { name: "11月", value: 1927 },
+  { name: "12月", value: 2105 }
+];
+
+const shareData = [
+  { name: "1月", value: 32 },
+  { name: "2月", value: 45 },
+  { name: "3月", value: 67 },
+  { name: "4月", value: 89 },
+  { name: "5月", value: 102 },
+  { name: "6月", value: 134 },
+  { name: "7月", value: 156 },
+  { name: "8月", value: 178 },
+  { name: "9月", value: 201 },
+  { name: "10月", value: 234 },
+  { name: "11月", value: 267 },
+  { name: "12月", value: 312 }
+];
+
+const topPostsData = [
+  { title: "肩こり解消のための簡単なセルフマッサージ", views: 1587 },
+  { title: "ストレス解消に効果的なマッサージ", views: 1245 },
+  { title: "リラクゼーションと生産性の関係", views: 762 },
+  { title: "冬に最適なホットストーンマッサージの魅力", views: 892 },
+  { title: "マッサージを始める前に知っておきたい5つのこと", views: 643 }
 ];
 
 const AdminBlog = () => {
-  const [posts, setPosts] = useState([]);
-  const [filteredPosts, setFilteredPosts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newPost, setNewPost] = useState({
-    title: '',
-    content: '',
-    excerpt: '',
-    category: '',
-    author_name: ''
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newPost, setNewPost] = useState({ 
+    title: "", 
+    content: "", 
+    status: "下書き",
+    category: "",
+    tags: "",
+    coverImage: null
   });
+  const [openDialog, setOpenDialog] = useState(false);
+  const [timeRange, setTimeRange] = useState("year");
 
-  useEffect(() => {
-    fetchBlogPosts();
-  }, []);
-
-  const fetchBlogPosts = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select('*')
-        .order('published_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedPosts = data.map(post => ({
-        id: post.id,
-        title: post.title,
-        author: post.author_name,
-        date: new Date(post.published_at).toLocaleDateString('ja-JP'),
-        category: post.category,
-        views: post.views
-      }));
-
-      setPosts(formattedPosts);
-      setFilteredPosts(formattedPosts);
-    } catch (error) {
-      console.error('Error fetching blog posts:', error);
-      toast.error('ブログ記事の取得に失敗しました');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSearch = (term) => {
-    if (!term.trim()) {
-      setFilteredPosts(posts);
-      return;
-    }
-    
-    const filtered = posts.filter(
-      post => 
-        post.title.toLowerCase().includes(term.toLowerCase()) || 
-        post.author.toLowerCase().includes(term.toLowerCase()) ||
-        post.category.toLowerCase().includes(term.toLowerCase())
-    );
-    setFilteredPosts(filtered);
-  };
-
-  const handleSortChange = (value) => {
-    let sorted = [...posts];
-    
-    switch(value) {
-      case 'all':
-        setFilteredPosts(posts);
-        break;
-      case 'newest':
-        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
-        setFilteredPosts(sorted);
-        break;
-      case 'oldest':
-        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
-        setFilteredPosts(sorted);
-        break;
-      case 'views':
-        sorted.sort((a, b) => b.views - a.views);
-        setFilteredPosts(sorted);
-        break;
-      default:
-        setFilteredPosts(posts);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewPost(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddPost = async () => {
-    try {
-      // Validate inputs
-      if (!newPost.title || !newPost.content || !newPost.excerpt || !newPost.category || !newPost.author_name) {
-        toast.error('全ての必須項目を入力してください');
-        return;
-      }
-
-      // Generate a slug from the title
-      const slug = newPost.title
-        .toLowerCase()
-        .replace(/[^\w\s]/gi, '')
-        .replace(/\s+/g, '-');
-
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .insert({
-          title: newPost.title,
-          content: newPost.content,
-          excerpt: newPost.excerpt,
-          category: newPost.category,
-          author_name: newPost.author_name,
-          slug: slug,
-          tags: []
-        })
-        .select();
-
-      if (error) throw error;
-
-      // Reset form and close dialog
-      setNewPost({
-        title: '',
-        content: '',
-        excerpt: '',
-        category: '',
-        author_name: ''
-      });
-      setIsDialogOpen(false);
-
-      // Add new post to the list
-      if (data && data.length > 0) {
-        const newPostData = {
-          id: data[0].id,
-          title: data[0].title,
-          author: data[0].author_name,
-          date: new Date(data[0].published_at).toLocaleDateString('ja-JP'),
-          category: data[0].category,
-          views: data[0].views || 0
-        };
-
-        setPosts(prev => [newPostData, ...prev]);
-        setFilteredPosts(prev => [newPostData, ...prev]);
-      }
-
-      toast.success('記事を追加しました');
-      fetchBlogPosts(); // Refresh the list
-    } catch (error) {
-      console.error('Error adding post:', error);
-      toast.error('記事の追加に失敗しました');
-    }
-  };
-
-  const handleEdit = (post) => {
-    toast.info(`編集: ${post.title}`);
-    // Implement edit functionality here
-  };
-
-  const handleDelete = async (post) => {
-    if (window.confirm(`「${post.title}」を削除してもよろしいですか？`)) {
-      try {
-        const { error } = await supabase
-          .from('blog_posts')
-          .delete()
-          .eq('id', post.id);
-
-        if (error) throw error;
-
-        setPosts(prevPosts => prevPosts.filter(p => p.id !== post.id));
-        setFilteredPosts(prevFiltered => prevFiltered.filter(p => p.id !== post.id));
-        toast.success('記事を削除しました');
-      } catch (error) {
-        console.error('Error deleting post:', error);
-        toast.error('記事の削除に失敗しました');
-      }
-    }
-  };
-
+  // Column definition for the blog posts table
   const columns = [
-    { key: 'title', label: 'タイトル' },
-    { key: 'author', label: '著者' },
-    { key: 'date', label: '公開日' },
-    { key: 'category', label: 'カテゴリ' },
-    { key: 'views', label: '閲覧数' },
+    {
+      key: "title",
+      label: "タイトル",
+      accessorKey: "title"
+    },
+    {
+      key: "author",
+      label: "著者",
+      accessorKey: "author"
+    },
+    {
+      key: "publishDate",
+      label: "公開日",
+      accessorKey: "publishDate"
+    },
+    {
+      key: "status",
+      label: "ステータス",
+      accessorKey: "status",
+      render: ({ row }: any) => (
+        <span className={`px-2 py-1 rounded-full text-xs ${
+          row.status === "公開中" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+        }`}>
+          {row.status}
+        </span>
+      )
+    },
+    {
+      key: "views",
+      label: "閲覧数",
+      accessorKey: "views"
+    },
+    {
+      key: "actions",
+      label: "操作",
+      render: () => (
+        <div className="flex space-x-2">
+          <Button variant="ghost" size="icon">
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    }
   ];
 
-  const actionMenuItems = [
-    { label: '編集する', onClick: handleEdit },
-    { label: '削除する', onClick: handleDelete },
-  ];
+  const filteredPosts = blogPosts.filter(
+    post => post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            post.author.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleCreatePost = () => {
+    toast({
+      title: "ブログ投稿を作成しました",
+      description: "新しいブログ投稿が下書きに保存されました。"
+    });
+    setOpenDialog(false);
+    setNewPost({ 
+      title: "", 
+      content: "", 
+      status: "下書き",
+      category: "",
+      tags: "",
+      coverImage: null
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      // In a real app, this would upload the file to a server
+      console.log("Selected file:", e.target.files[0]);
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">ブログ管理</h1>
-          <p className="text-muted-foreground mt-2">ブログ記事の作成と管理</p>
-        </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          新規作成
-        </Button>
+        <h1 className="text-2xl font-bold">ブログ管理</h1>
+        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+          <DialogTrigger asChild>
+            <Button className="gap-1">
+              <PlusCircle className="h-4 w-4" /> 新規作成
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[625px]">
+            <DialogHeader>
+              <DialogTitle>新しいブログ投稿を作成</DialogTitle>
+              <DialogDescription>
+                下記のフォームを入力して、新しいブログ投稿を作成します。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">タイトル</Label>
+                <Input
+                  id="title"
+                  value={newPost.title}
+                  onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="ブログのタイトルを入力"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="category">カテゴリ</Label>
+                  <Input
+                    id="category"
+                    value={newPost.category}
+                    onChange={(e) => setNewPost(prev => ({ ...prev, category: e.target.value }))}
+                    placeholder="カテゴリを入力"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="tags">タグ</Label>
+                  <Input
+                    id="tags"
+                    value={newPost.tags}
+                    onChange={(e) => setNewPost(prev => ({ ...prev, tags: e.target.value }))}
+                    placeholder="タグをカンマ区切りで入力"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="coverImage">カバー画像</Label>
+                <Input
+                  id="coverImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="content">本文</Label>
+                <Textarea
+                  id="content"
+                  value={newPost.content}
+                  onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="ブログの本文を入力"
+                  rows={10}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenDialog(false)}>キャンセル</Button>
+              <Button onClick={handleCreatePost}>投稿を保存</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-      
-      <DataTable 
-        columns={columns}
-        data={filteredPosts}
-        searchPlaceholder="タイトルや著者で検索"
-        sortOptions={sortOptions}
-        onSearchChange={handleSearch}
-        onSortChange={handleSortChange}
-        actionMenuItems={actionMenuItems}
-        isLoading={isLoading}
-      />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>新規記事作成</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">タイトル</Label>
-              <Input
-                id="title"
-                name="title"
-                value={newPost.title}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="author_name">著者名</Label>
-              <Input
-                id="author_name"
-                name="author_name"
-                value={newPost.author_name}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="category">カテゴリ</Label>
-              <Input
-                id="category"
-                name="category"
-                value={newPost.category}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="excerpt">抜粋</Label>
-              <Textarea
-                id="excerpt"
-                name="excerpt"
-                rows={2}
-                value={newPost.excerpt}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="content">本文</Label>
-              <Textarea
-                id="content"
-                name="content"
-                rows={5}
-                value={newPost.content}
-                onChange={handleInputChange}
-              />
-            </div>
+      <Tabs defaultValue="posts" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="posts">
+            <FileText className="h-4 w-4 mr-2" /> 投稿一覧
+          </TabsTrigger>
+          <TabsTrigger value="analytics">
+            <BarChart className="h-4 w-4 mr-2" /> 分析
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            <BarChart2 className="h-4 w-4 mr-2" /> 設定
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="posts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>ブログ投稿一覧</CardTitle>
+                <Input
+                  placeholder="検索..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+              <CardDescription>
+                すべてのブログ投稿の管理と編集が可能です。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={columns} data={filteredPosts} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">ブログ閲覧分析</h2>
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="期間を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">過去1週間</SelectItem>
+                <SelectItem value="month">過去1ヶ月</SelectItem>
+                <SelectItem value="quarter">過去3ヶ月</SelectItem>
+                <SelectItem value="year">過去1年</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>キャンセル</Button>
-            <Button onClick={handleAddPost}>登録する</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <LineChart 
+              title="ブログ閲覧数推移" 
+              data={viewsData} 
+              color="#0ea5e9"
+            />
+            <LineChart 
+              title="シェア数推移" 
+              data={shareData} 
+              color="#10b981"
+            />
+          </div>
+          
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>人気記事ランキング</CardTitle>
+              <CardDescription>閲覧数が多い記事のランキングです</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {topPostsData.map((post, index) => (
+                  <div key={index} className="flex items-center justify-between pb-4 border-b last:border-0">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-primary flex items-center justify-center h-8 w-8 rounded-full text-primary-foreground font-medium">
+                        {index + 1}
+                      </div>
+                      <span className="font-medium">{post.title}</span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      {post.views} 閲覧
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="settings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>ブログ設定</CardTitle>
+              <CardDescription>
+                ブログの公開設定やカテゴリー管理を行います。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="blog-title">ブログタイトル</Label>
+                  <Input id="blog-title" defaultValue="のくとるブログ" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="blog-description">ブログ説明</Label>
+                  <Textarea 
+                    id="blog-description" 
+                    defaultValue="男性セラピストによるマッサージ・リラクゼーションの情報発信ブログ" 
+                  />
+                </div>
+                <div className="flex items-center justify-end space-x-2">
+                  <Button>設定を保存</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -9,39 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      analytics: {
-        Row: {
-          comparison_period: string | null
-          comparison_value: number | null
-          id: string
-          metric_name: string
-          metric_value: number
-          percentage_change: number | null
-          period: string
-          recorded_date: string
-        }
-        Insert: {
-          comparison_period?: string | null
-          comparison_value?: number | null
-          id?: string
-          metric_name: string
-          metric_value: number
-          percentage_change?: number | null
-          period: string
-          recorded_date?: string
-        }
-        Update: {
-          comparison_period?: string | null
-          comparison_value?: number | null
-          id?: string
-          metric_name?: string
-          metric_value?: number
-          percentage_change?: number | null
-          period?: string
-          recorded_date?: string
-        }
-        Relationships: []
-      }
       blog_posts: {
         Row: {
           author_avatar: string | null
@@ -236,30 +203,6 @@ export type Database = {
           receiver_id?: string
           sender_id?: string
           timestamp?: string
-        }
-        Relationships: []
-      }
-      page_views: {
-        Row: {
-          id: string
-          ip_address: string | null
-          page: string
-          user_agent: string | null
-          view_date: string
-        }
-        Insert: {
-          id?: string
-          ip_address?: string | null
-          page: string
-          user_agent?: string | null
-          view_date?: string
-        }
-        Update: {
-          id?: string
-          ip_address?: string | null
-          page?: string
-          user_agent?: string | null
-          view_date?: string
         }
         Relationships: []
       }
@@ -557,13 +500,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      calculate_percentage_change: {
-        Args: {
-          current_value: number
-          previous_value: number
-        }
-        Returns: number
-      }
       create_therapist_record: {
         Args: {
           therapist_id: string
@@ -572,24 +508,6 @@ export type Database = {
           therapist_location: string
           therapist_price: number
           store_id: string
-        }
-        Returns: undefined
-      }
-      log_page_view: {
-        Args: {
-          page_path: string
-          ip: string
-          user_agent: string
-        }
-        Returns: undefined
-      }
-      update_analytics_metric: {
-        Args: {
-          p_metric_name: string
-          p_metric_value: number
-          p_period: string
-          p_comparison_value: number
-          p_comparison_period: string
         }
         Returns: undefined
       }

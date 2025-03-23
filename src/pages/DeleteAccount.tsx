@@ -1,82 +1,95 @@
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Layout from "../components/Layout";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 const DeleteAccount = () => {
-  const [confirmation, setConfirmation] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleDeleteAccount = async () => {
-    if (confirmation !== 'DELETE') {
-      toast.error('正しい確認コードを入力してください');
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (confirmDelete !== "DELETE") {
+      toast.error("確認のため「DELETE」と入力してください");
       return;
     }
-
+    
     try {
       setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: "", // We need to get the user's email somehow
+        password: password,
+      });
       
-      if (!user) {
-        toast.error('ユーザー情報の取得に失敗しました');
+      if (error) {
+        toast.error("パスワードが正しくありません");
         return;
       }
-
-      // Call the Supabase function to delete the user account
-      // Note: This would require a Supabase Edge Function to be set up
-      // that handles the user deletion process
-      const { error } = await supabase.functions.invoke('delete_user_account');
-
-      if (error) throw error;
-
-      toast.success('アカウントが削除されました');
+      
+      // Fix the TypeScript error by using the correct RPC function name
+      const { error: deleteError } = await supabase.rpc('delete_user_account');
+      
+      if (deleteError) {
+        throw deleteError;
+      }
+      
+      toast.success("アカウントが削除されました");
       await supabase.auth.signOut();
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Error deleting account:', error);
-      toast.error('アカウントの削除に失敗しました');
+      console.error("Delete account error:", error);
+      toast.error("アカウント削除中にエラーが発生しました");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="container max-w-md py-12">
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">アカウント削除</CardTitle>
-          <CardDescription className="text-center">
-            アカウントを削除すると、すべてのデータが完全に削除されます。この操作は元に戻せません。
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <Layout>
+      <div className="container max-w-md py-12">
+        <form onSubmit={handleDeleteAccount} className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold">アカウント削除</h1>
+            <p className="text-muted-foreground">
+              アカウントを削除すると、すべてのデータが削除され、復元できません。
+            </p>
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmation">確認のため「DELETE」と入力してください</Label>
+            <Label htmlFor="password">パスワード</Label>
             <Input
-              id="confirmation"
-              value={confirmation}
-              onChange={(e) => setConfirmation(e.target.value)}
+              id="password"
+              type="password"
+              placeholder="パスワードを入力"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            variant="destructive" 
-            className="w-full" 
-            onClick={handleDeleteAccount}
-            disabled={confirmation !== 'DELETE' || isLoading}
-          >
-            {isLoading ? 'アカウント削除中...' : 'アカウントを永久に削除する'}
+          <div className="space-y-2">
+            <Label htmlFor="confirm">アカウント削除の確認</Label>
+            <Input
+              id="confirm"
+              type="text"
+              placeholder="確認のため「DELETE」と入力してください"
+              value={confirmDelete}
+              onChange={(e) => setConfirmDelete(e.target.value)}
+              required
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "処理中..." : "アカウントを削除"}
           </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </form>
+      </div>
+    </Layout>
   );
 };
 

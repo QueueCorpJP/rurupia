@@ -187,38 +187,27 @@ const StoreTherapists = () => {
     setProcessingTherapistId(therapistId);
     
     try {
-      console.log("Approving therapist:", therapistId);
-      
-      // Get the therapist data before removing from pending
+      // 1. Get the therapist data before removing from pending
       const therapistToApprove = pendingTherapists.find(t => t.id === therapistId);
       if (!therapistToApprove) {
-        toast.error("セラピストが見つかりませんでした");
-        return;
-      }
-
-      // 1. First, check if we already have this therapist in store_therapists with any status
-      let existingRelations, existingRelation = null;
-      try {
-        const { data, error: relationCheckError } = await supabase
-          .from("store_therapists")
-          .select("*")
-          .eq("store_id", storeId)
-          .eq("therapist_id", therapistId);
-
-        if (relationCheckError) {
-          console.error("Error checking existing relations:", relationCheckError);
-        } else {
-          existingRelations = data;
-          existingRelation = existingRelations && existingRelations.length > 0 
-            ? existingRelations[0] 
-            : null;
-        }
-      } catch (error) {
-        console.error("Error in relation check:", error);
+        throw new Error("Therapist not found in pending list");
       }
       
-      // 2. Update store_therapists relation status to active
+      // 2. Check for existing store_therapist relation and create/update it
+      const { data: existingRelations, error: relationCheckError } = await supabase
+        .from("store_therapists")
+        .select("id, status")
+        .eq("store_id", storeId)
+        .eq("therapist_id", therapistId);
+        
+      if (relationCheckError) {
+        throw relationCheckError;
+      }
+      
+      const existingRelation = existingRelations && existingRelations.length > 0;
+      
       let relationOperation;
+      
       if (existingRelation) {
         relationOperation = supabase
           .from("store_therapists")
@@ -246,7 +235,7 @@ const StoreTherapists = () => {
         // Log but continue - don't throw
       }
       
-      // 3. Check if we need to create a therapist record
+      // 3. Check if therapist record exists (it should exist with the new flow)
       const { data: existingTherapists, error: therapistCheckError } = await supabase
         .from("therapists")
         .select("id")
@@ -260,8 +249,9 @@ const StoreTherapists = () => {
         ? existingTherapists[0] 
         : null;
       
-      // 4. Insert or update the therapist record
+      // 4. If therapist record doesn't exist for some reason, create it
       if (!existingTherapist) {
+        console.log("No therapist record found. Creating one from profile data.");
         try {
           // Simplest approach - direct insert with minimal fields
           const { error: insertError } = await supabase
@@ -281,29 +271,13 @@ const StoreTherapists = () => {
             
           if (insertError) {
             console.log("Could not create therapist record:", insertError);
-            
-            // If insert fails, try update (in case the record exists but wasn't found)
-            const { error: updateError } = await supabase
-              .from("therapists")
-              .update({
-                name: therapistToApprove.name,
-                description: "セラピストの紹介文はまだありません",
-                location: "東京",
-                price: 5000
-              })
-              .eq("id", therapistId);
-              
-            if (updateError) {
-              console.log("Update also failed:", updateError);
-            } else {
-              console.log("Updated existing therapist record");
-            }
+            toast.warning("セラピスト情報の作成中にエラーが発生しました。後で編集してください。");
           } else {
             console.log("Successfully created therapist record");
           }
         } catch (error: any) {
           console.error("Note: Couldn't create therapist record:", error);
-          console.log("Continuing with profile update only - therapist record will need to be created later");
+          toast.warning("セラピスト情報の作成に失敗しました。後で再試行してください。");
           // Don't throw the error, just log it and continue
         }
       }

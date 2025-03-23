@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -313,7 +312,7 @@ const TherapistDashboard = () => {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => setIsEditing(true)}
+                onClick={() => navigate('/therapist-profile')}
                 className="h-10"
               >
                 <Edit className="mr-2 h-4 w-4" />

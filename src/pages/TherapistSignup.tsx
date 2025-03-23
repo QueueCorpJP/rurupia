@@ -2,19 +2,15 @@
  * TherapistSignup Component
  * 
  * This component handles the registration of new therapists invited by stores.
- * Due to Supabase Row Level Security (RLS) constraints, therapists can't directly
- * insert into the therapists table on registration. Instead, we:
+ * The component has been updated to allow therapists to directly insert into the 
+ * therapists table on registration with proper RLS policies.
  * 
+ * Process:
  * 1. Create a user account
  * 2. Update their profile with 'user_type: therapist' and 'status: pending_therapist_approval'
  * 3. Store references to the inviting store
- * 
- * ADMIN IMPLEMENTATION NOTE:
- * Admin tools must include a section to approve pending therapists by:
- * 1. Querying profiles with status='pending_therapist_approval' 
- * 2. Creating a record in the therapists table for each approved profile
- * 3. Creating a store_therapists relation between the therapist and the inviting store
- * 4. Updating the profile status to 'active'
+ * 4. Create a basic therapist record with the therapist's own ID
+ * 5. Wait for store approval to activate the therapist
  */
 
 import { useState, useEffect } from 'react';
@@ -28,13 +24,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Controller } from 'react-hook-form';
 
 // Schema with essential fields
 const formSchema = z.object({
   email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
   password: z.string().min(8, { message: 'パスワードは8文字以上で入力してください' }),
   name: z.string().min(2, { message: '名前は2文字以上で入力してください' }),
+  location: z.string().min(1, { message: '場所を選択してください' }),
 });
+
+// List of all Japanese prefectures
+const japanesePrefectures = [
+  '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
+  '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
+  '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県',
+  '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県',
+  '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県',
+  '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県',
+  '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'
+];
 
 const TherapistSignup = () => {
   const [loading, setLoading] = useState(false);
@@ -100,6 +110,7 @@ const TherapistSignup = () => {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -107,6 +118,7 @@ const TherapistSignup = () => {
       email: '',
       password: '',
       name: '',
+      location: '',
     },
   });
 
@@ -133,6 +145,38 @@ const TherapistSignup = () => {
       return true;
     } catch (error) {
       console.error("Error in storeTherapistDataInProfile:", error);
+      return false;
+    }
+  };
+
+  // Create a basic therapist record
+  const createTherapistRecord = async (userId: string, userData: any) => {
+    try {
+      // Insert basic therapist record with user-provided values for key fields
+      const { error: insertError } = await supabase
+        .from("therapists")
+        .insert({
+          id: userId,
+          name: userData.name,
+          description: "セラピストの紹介文はまだありません", // Default description
+          location: userData.location,
+          price: null, // Set price to null initially
+          specialties: [],
+          experience: 0,
+          rating: 0,
+          reviews: 0,
+          availability: []
+        });
+
+      if (insertError) {
+        console.error("Failed to create therapist record:", insertError);
+        return false;
+      }
+      
+      console.log("Successfully created therapist record");
+      return true;
+    } catch (error) {
+      console.error("Error in createTherapistRecord:", error);
       return false;
     }
   };
@@ -184,8 +228,20 @@ const TherapistSignup = () => {
         toast.warning('アカウントは作成されましたが、プロフィール更新に問題が発生しました');
       } else {
         console.log("Profile marked as pending therapist successfully");
-        toast.success('アカウントを作成しました。管理者の承認後に全機能が利用可能になります');
       }
+
+      // Create a basic therapist record
+      const therapistRecordCreated = await createTherapistRecord(authData.user.id, data);
+      
+      if (!therapistRecordCreated) {
+        console.warn("Could not create therapist record.");
+        toast.warning('セラピスト情報の初期設定に問題が発生しました');
+      } else {
+        console.log("Therapist record created successfully");
+      }
+
+      // Show success message
+      toast.success('アカウントを作成しました。管理者の承認後に全機能が利用可能になります');
 
       // Log the user in
       const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -197,7 +253,7 @@ const TherapistSignup = () => {
         console.error('Error logging in after signup:', loginError);
         navigate('/therapist-login');
       } else {
-        navigate('/therapist-dashboard');
+        navigate('/therapist-profile');
       }
     } catch (error) {
       console.error('Signup error:', error);
@@ -221,7 +277,7 @@ const TherapistSignup = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {/* Simple form with minimal fields */}
+          {/* Form with only necessary fields */}
           <form onSubmit={handleSubmit(handleSignup)} className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="email">メールアドレス</Label>
@@ -256,6 +312,30 @@ const TherapistSignup = () => {
               />
               {errors.name && (
                 <p className="text-sm text-destructive">{errors.name.message}</p>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="location">場所</Label>
+              <Controller
+                control={control}
+                name="location"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="施術を行う場所を選択してください" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {japanesePrefectures.map((prefecture) => (
+                        <SelectItem key={prefecture} value={prefecture}>
+                          {prefecture}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.location && (
+                <p className="text-sm text-destructive">{errors.location.message}</p>
               )}
             </div>
             

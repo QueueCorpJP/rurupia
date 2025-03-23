@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -34,8 +33,8 @@ const DeleteAccount = () => {
         return;
       }
       
-      // Fix the TypeScript error by using the correct RPC function name
-      const { error: deleteError } = await supabase.rpc('delete_user_account');
+      // Fix the TypeScript error by properly handling the Promise
+      const { error: deleteError } = await supabase.rpc('delete_user');
       
       if (deleteError) {
         throw deleteError;

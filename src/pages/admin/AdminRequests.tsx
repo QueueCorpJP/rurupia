@@ -1,40 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { useToast } from '@/hooks/use-toast';
-
-// Sample data
-const storeRequests = [
-  { 
-    id: '17400020276463087771230118852001', 
-    name: '東京秘密基地', 
-    email: 'accounttype@gmail.com',
-    date: '2025/02/19 22:53',
-    status: '許可'
-  },
-  { 
-    id: '17400020276463087771230118852002', 
-    name: '大阪リラクゼーションスペース', 
-    email: 'osaka@example.com',
-    date: '2025/02/18 14:23',
-    status: '保留中'
-  },
-  { 
-    id: '17400020276463087771230118852003', 
-    name: '名古屋ヒーリングルーム', 
-    email: 'nagoya@example.com',
-    date: '2025/02/17 09:15',
-    status: '許可'
-  },
-  { 
-    id: '17400020276463087771230118852004', 
-    name: '福岡セラピーセンター', 
-    email: 'fukuoka@example.com',
-    date: '2025/02/16 16:42',
-    status: '保留中'
-  },
-];
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const sortOptions = [
   { label: '全店舗表示', value: 'all' },
@@ -46,45 +16,118 @@ const sortOptions = [
 
 const AdminRequests = () => {
   const { toast } = useToast();
-  const [filteredRequests, setFilteredRequests] = useState(storeRequests);
+  const [stores, setStores] = useState([]);
+  const [filteredStores, setFilteredStores] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStores();
+  }, []);
+
+  const fetchStores = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('stores')
+        .select('id, name, email, created_at, status');
+
+      if (error) throw error;
+
+      // Format the data for the table
+      const formattedStores = data.map(store => ({
+        id: store.id,
+        name: store.name,
+        email: store.email,
+        date: new Date(store.created_at).toLocaleString('ja-JP'),
+        status: store.status === 'active' ? '許可' : '保留中'
+      }));
+
+      setStores(formattedStores);
+      setFilteredStores(formattedStores);
+    } catch (error) {
+      console.error('Error fetching stores:', error);
+      toast({
+        title: "エラー",
+        description: "店舗情報の取得に失敗しました",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSearch = (term: string) => {
     if (!term.trim()) {
-      setFilteredRequests(storeRequests);
+      setFilteredStores(stores);
       return;
     }
     
-    const filtered = storeRequests.filter(
-      request => 
-        request.name.toLowerCase().includes(term.toLowerCase()) || 
-        request.id.includes(term) ||
-        request.email.toLowerCase().includes(term.toLowerCase())
+    const filtered = stores.filter(
+      store => 
+        store.name.toLowerCase().includes(term.toLowerCase()) || 
+        store.id.includes(term) ||
+        store.email.toLowerCase().includes(term.toLowerCase())
     );
-    setFilteredRequests(filtered);
+    setFilteredStores(filtered);
   };
 
   const handleSortChange = (value: string) => {
-    let sorted = [...storeRequests];
+    let filtered = [...stores];
     
     switch(value) {
       case 'all':
-        setFilteredRequests(storeRequests);
+        setFilteredStores(stores);
         return;
       case 'approved':
-        setFilteredRequests(storeRequests.filter(req => req.status === '許可'));
+        setFilteredStores(stores.filter(store => store.status === '許可'));
         return;
       case 'pending':
-        setFilteredRequests(storeRequests.filter(req => req.status === '保留中'));
+        setFilteredStores(stores.filter(store => store.status === '保留中'));
         return;
       case 'newest':
-        sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setFilteredStores(filtered);
         break;
       case 'oldest':
-        sorted.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        setFilteredStores(filtered);
         break;
     }
-    
-    setFilteredRequests(sorted);
+  };
+
+  const handleStatusChange = async (storeId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('stores')
+        .update({ 
+          status: newStatus === '許可' ? 'active' : 'pending' 
+        })
+        .eq('id', storeId);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedStores = stores.map(store => 
+        store.id === storeId ? { ...store, status: newStatus } : store
+      );
+      
+      setStores(updatedStores);
+      setFilteredStores(filteredStores.map(store => 
+        store.id === storeId ? { ...store, status: newStatus } : store
+      ));
+      
+      toast({
+        title: "ステータスを更新しました",
+        description: `店舗ID: ${storeId}のステータスを${newStatus}に変更しました`,
+      });
+    } catch (error) {
+      console.error('Error updating store status:', error);
+      toast({
+        title: "エラー",
+        description: "ステータスの更新に失敗しました",
+        variant: "destructive",
+      });
+    }
   };
 
   const columns = [
@@ -102,31 +145,25 @@ const AdminRequests = () => {
   const actionMenuItems = [
     { 
       label: '詳細を見る', 
-      onClick: (request: any) => {
+      onClick: (store: any) => {
         toast({
           title: "リクエスト詳細",
-          description: `${request.name}の詳細を表示します`,
+          description: `${store.name}の詳細を表示します`,
         });
       } 
     },
     { 
       label: '承認する', 
-      onClick: (request: any) => {
-        toast({
-          title: "承認",
-          description: `${request.name}を承認しました`,
-          variant: "default",
-        });
+      onClick: (store: any) => {
+        handleStatusChange(store.id, '許可');
       } 
     },
     { 
       label: '拒否する', 
-      onClick: (request: any) => {
-        toast({
-          title: "拒否確認",
-          description: `${request.name}を拒否しますか？`,
-          variant: "destructive",
-        });
+      onClick: (store: any) => {
+        if (window.confirm(`${store.name}を拒否しますか？`)) {
+          handleStatusChange(store.id, '保留中');
+        }
       } 
     },
   ];
@@ -140,12 +177,13 @@ const AdminRequests = () => {
       
       <DataTable 
         columns={columns}
-        data={filteredRequests}
+        data={filteredStores}
         searchPlaceholder="店舗名やIDで検索"
         sortOptions={sortOptions}
         onSearchChange={handleSearch}
         onSortChange={handleSortChange}
         actionMenuItems={actionMenuItems}
+        isLoading={isLoading}
       />
     </div>
   );

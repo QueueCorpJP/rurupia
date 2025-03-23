@@ -1,61 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-
-// Sample data
-const inquiries = [
-  { 
-    id: '1',
-    date: '2025/02/25 15:42',
-    username: 'tanaka_miyuki',
-    type: 'サポート',
-    status: '未対応',
-    content: '予約した後にキャンセルする方法が分かりません。教えてください。'
-  },
-  { 
-    id: '2',
-    date: '2025/02/24 11:23',
-    username: 'yamada_ken',
-    type: 'クレーム',
-    status: '対応中',
-    content: 'セラピストが予約時間に来ませんでした。返金を希望します。'
-  },
-  { 
-    id: '3',
-    date: '2025/02/22 09:15',
-    username: 'suzuki_ai',
-    type: '提案',
-    status: '完了',
-    content: 'アプリでも予約できるようにしてほしいです。とても便利だと思います。'
-  },
-  { 
-    id: '4',
-    date: '2025/02/20 16:38',
-    username: 'sato_takeshi',
-    type: '質問',
-    status: '完了',
-    content: '料金体系について詳しく知りたいです。'
-  },
-  { 
-    id: '5',
-    date: '2025/02/18 14:05',
-    username: 'nakamura_yuki',
-    type: 'バグ報告',
-    status: '未対応',
-    content: 'プロフィール写真がアップロードできません。エラーが発生します。'
-  },
-];
-
-const sortOptions = [
-  { label: '新しい順', value: 'newest' },
-  { label: '古い順', value: 'oldest' },
-  { label: '未対応のみ', value: 'unresolved' },
-  { label: '対応中のみ', value: 'inProgress' },
-  { label: '完了のみ', value: 'completed' },
-];
+import { supabase } from '@/integrations/supabase/client';
 
 const typeColors: Record<string, string> = {
   'サポート': 'default',
@@ -65,9 +14,65 @@ const typeColors: Record<string, string> = {
   'バグ報告': 'outline'
 };
 
+const sortOptions = [
+  { label: '新しい順', value: 'newest' },
+  { label: '古い順', value: 'oldest' },
+  { label: '未対応のみ', value: 'unresolved' },
+  { label: '対応中のみ', value: 'inProgress' },
+  { label: '完了のみ', value: 'completed' },
+];
+
 const AdminInquiries = () => {
   const { toast } = useToast();
-  const [filteredInquiries, setFilteredInquiries] = useState(inquiries);
+  const [inquiries, setInquiries] = useState([]);
+  const [filteredInquiries, setFilteredInquiries] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchInquiries();
+  }, []);
+
+  const fetchInquiries = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('inquiries')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      // Format the data to include a type property
+      const formattedInquiries = data.map(inquiry => ({
+        ...inquiry,
+        username: inquiry.name,
+        type: determineInquiryType(inquiry.subject),
+        date: new Date(inquiry.date).toLocaleString('ja-JP')
+      }));
+
+      setInquiries(formattedInquiries);
+      setFilteredInquiries(formattedInquiries);
+    } catch (error) {
+      console.error('Error fetching inquiries:', error);
+      toast({
+        title: "エラー",
+        description: "問い合わせの取得に失敗しました",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper function to determine inquiry type based on subject
+  const determineInquiryType = (subject: string) => {
+    const lowercaseSubject = subject.toLowerCase();
+    if (lowercaseSubject.includes('サポート')) return 'サポート';
+    if (lowercaseSubject.includes('クレーム') || lowercaseSubject.includes('苦情')) return 'クレーム';
+    if (lowercaseSubject.includes('提案') || lowercaseSubject.includes('アイデア')) return '提案';
+    if (lowercaseSubject.includes('バグ') || lowercaseSubject.includes('エラー')) return 'バグ報告';
+    return '質問';
+  };
 
   const handleSearch = (term: string) => {
     if (!term.trim()) {
@@ -105,6 +110,38 @@ const AdminInquiries = () => {
       case 'completed':
         setFilteredInquiries(inquiries.filter(item => item.status === '完了'));
         break;
+    }
+  };
+
+  const updateInquiryStatus = async (inquiryId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('inquiries')
+        .update({ status: newStatus })
+        .eq('id', inquiryId);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedInquiries = inquiries.map(inquiry => 
+        inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry
+      );
+      
+      setInquiries(updatedInquiries);
+      setFilteredInquiries(filteredInquiries.map(inquiry => 
+        inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry
+      ));
+      
+      toast({
+        description: `ステータスを「${newStatus}」に変更しました`,
+      });
+    } catch (error) {
+      console.error('Error updating inquiry status:', error);
+      toast({
+        title: "エラー",
+        description: "ステータスの更新に失敗しました",
+        variant: "destructive"
+      });
     }
   };
 
@@ -153,17 +190,13 @@ const AdminInquiries = () => {
     { 
       label: '対応中にする', 
       onClick: (inquiry: any) => {
-        toast({
-          description: `ステータスを「対応中」に変更しました`,
-        });
+        updateInquiryStatus(inquiry.id, '対応中');
       } 
     },
     { 
       label: '完了にする', 
       onClick: (inquiry: any) => {
-        toast({
-          description: `ステータスを「完了」に変更しました`,
-        });
+        updateInquiryStatus(inquiry.id, '完了');
       } 
     },
   ];
@@ -183,6 +216,7 @@ const AdminInquiries = () => {
         onSearchChange={handleSearch}
         onSortChange={handleSortChange}
         actionMenuItems={actionMenuItems}
+        isLoading={isLoading}
       />
     </div>
   );

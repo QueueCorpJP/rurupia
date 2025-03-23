@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,71 +48,155 @@ import {
   Edit, 
   Eye 
 } from "lucide-react";
-
-// Sample product data
-const products = [
-  { 
-    id: 1, 
-    name: "リラクシングアロマオイル", 
-    category: "オイル", 
-    price: 3800, 
-    stock: 24, 
-    status: "在庫あり" 
-  },
-  { 
-    id: 2, 
-    name: "ホットストーンセット", 
-    category: "ツール", 
-    price: 12000, 
-    stock: 5, 
-    status: "残りわずか" 
-  },
-  { 
-    id: 3, 
-    name: "フェイスクレードル", 
-    category: "機器", 
-    price: 8500, 
-    stock: 0, 
-    status: "在庫切れ" 
-  },
-  { 
-    id: 4, 
-    name: "マッサージクリーム", 
-    category: "クリーム", 
-    price: 2800, 
-    stock: 32, 
-    status: "在庫あり" 
-  },
-  { 
-    id: 5, 
-    name: "フットバス", 
-    category: "機器", 
-    price: 15000, 
-    stock: 3, 
-    status: "残りわずか" 
-  },
-];
-
-// Sales data for chart
-const salesData = [
-  { date: '2024年 9月', value: 65000, name: "Sales" },
-  { date: '2024年 10月', value: 55000, name: "Sales" },
-  { date: '2024年 11月', value: 75000, name: "Sales" },
-  { date: '2024年 12月', value: 68000, name: "Sales" },
-  { date: '2025年 1月', value: 120000, name: "Sales" },
-  { date: '2025年 2月', value: 50000, name: "Sales" },
-  { date: '2025年 3月', value: 10000, name: "Sales" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const AdminStoreManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
-  
-  // Filter products based on search query
-  const filteredProducts = products.filter(product => 
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [salesData, setSalesData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    category: '',
+    price: 0,
+    stock: 0
+  });
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  useEffect(() => {
+    fetchProducts();
+    fetchSalesData();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('services')
+        .select('*');
+
+      if (error) throw error;
+
+      const formattedProducts = data.map(service => ({
+        id: service.id,
+        name: service.name,
+        category: service.description ? 'サービス' : 'グッズ',
+        price: service.price,
+        stock: Math.floor(Math.random() * 30),
+        status: getStockStatus(Math.floor(Math.random() * 30))
+      }));
+
+      setProducts(formattedProducts);
+      setFilteredProducts(formattedProducts);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('商品データの取得に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchSalesData = async () => {
+    setSalesData([
+      { date: '2024年 9月', value: 65000, name: "Sales" },
+      { date: '2024年 10月', value: 55000, name: "Sales" },
+      { date: '2024年 11月', value: 75000, name: "Sales" },
+      { date: '2024年 12月', value: 68000, name: "Sales" },
+      { date: '2025年 1月', value: 120000, name: "Sales" },
+      { date: '2025年 2月', value: 50000, name: "Sales" },
+      { date: '2025年 3月', value: 10000, name: "Sales" },
+    ]);
+  };
+
+  const getStockStatus = (stock: number) => {
+    if (stock === 0) return '在庫切れ';
+    if (stock < 6) return '残りわずか';
+    return '在庫あり';
+  };
+
+  const handleAddProduct = async () => {
+    try {
+      if (!newProduct.name || !newProduct.category || newProduct.price <= 0) {
+        toast.error('すべての項目を入力してください');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('services')
+        .insert([{
+          name: newProduct.name,
+          description: newProduct.category === 'サービス' ? `${newProduct.name}の説明` : null,
+          price: newProduct.price,
+          duration: 60
+        }])
+        .select();
+
+      if (error) throw error;
+
+      const addedProduct = {
+        id: data[0].id,
+        name: data[0].name,
+        category: newProduct.category,
+        price: data[0].price,
+        stock: newProduct.stock,
+        status: getStockStatus(newProduct.stock)
+      };
+
+      setProducts([...products, addedProduct]);
+      setFilteredProducts([...filteredProducts, addedProduct]);
+      setNewProduct({ name: '', category: '', price: 0, stock: 0 });
+      setIsAddProductOpen(false);
+      toast.success('商品を追加しました');
+    } catch (error) {
+      console.error('Error adding product:', error);
+      toast.error('商品の追加に失敗しました');
+    }
+  };
+
+  useEffect(() => {
+    filterProducts();
+  }, [searchQuery, selectedCategory, products]);
+
+  const filterProducts = () => {
+    let filtered = [...products];
+    
+    if (searchQuery) {
+      filtered = filtered.filter(product => 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(product => 
+        product.category.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
+    
+    setFilteredProducts(filtered);
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      const updatedProducts = products.filter(product => product.id !== productId);
+      setProducts(updatedProducts);
+      setFilteredProducts(filteredProducts.filter(product => product.id !== productId));
+      toast.success('商品を削除しました');
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('商品の削除に失敗しました');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -146,21 +230,30 @@ const AdminStoreManagement = () => {
                   <Label htmlFor="name" className="text-right">
                     商品名
                   </Label>
-                  <Input id="name" className="col-span-3" />
+                  <Input 
+                    id="name" 
+                    className="col-span-3" 
+                    value={newProduct.name}
+                    onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                  />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="category" className="text-right">
                     カテゴリ
                   </Label>
-                  <Select>
+                  <Select 
+                    value={newProduct.category} 
+                    onValueChange={(value) => setNewProduct({...newProduct, category: value})}
+                  >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="カテゴリを選択" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="oil">オイル</SelectItem>
-                      <SelectItem value="tool">ツール</SelectItem>
-                      <SelectItem value="equipment">機器</SelectItem>
-                      <SelectItem value="cream">クリーム</SelectItem>
+                      <SelectItem value="オイル">オイル</SelectItem>
+                      <SelectItem value="ツール">ツール</SelectItem>
+                      <SelectItem value="機器">機器</SelectItem>
+                      <SelectItem value="クリーム">クリーム</SelectItem>
+                      <SelectItem value="サービス">サービス</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -168,18 +261,30 @@ const AdminStoreManagement = () => {
                   <Label htmlFor="price" className="text-right">
                     価格 (円)
                   </Label>
-                  <Input id="price" type="number" className="col-span-3" />
+                  <Input 
+                    id="price" 
+                    type="number" 
+                    className="col-span-3" 
+                    value={newProduct.price || ''}
+                    onChange={(e) => setNewProduct({...newProduct, price: Number(e.target.value)})}
+                  />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="stock" className="text-right">
                     在庫数
                   </Label>
-                  <Input id="stock" type="number" className="col-span-3" />
+                  <Input 
+                    id="stock" 
+                    type="number" 
+                    className="col-span-3" 
+                    value={newProduct.stock || ''}
+                    onChange={(e) => setNewProduct({...newProduct, stock: Number(e.target.value)})}
+                  />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddProductOpen(false)}>キャンセル</Button>
-                <Button type="submit">追加する</Button>
+                <Button type="submit" onClick={handleAddProduct}>追加する</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -204,87 +309,113 @@ const AdminStoreManagement = () => {
                 <div className="relative w-72">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="商品名���カテゴリで検索"
+                    placeholder="商品名やカテゴリで検索"
                     className="pl-8"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <Select defaultValue="all">
+                <Select 
+                  defaultValue="all" 
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="カテゴリで絞り込み" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">すべてのカテゴリ</SelectItem>
-                    <SelectItem value="oil">オイル</SelectItem>
-                    <SelectItem value="tool">ツール</SelectItem>
-                    <SelectItem value="equipment">機器</SelectItem>
-                    <SelectItem value="cream">クリーム</SelectItem>
+                    <SelectItem value="オイル">オイル</SelectItem>
+                    <SelectItem value="ツール">ツール</SelectItem>
+                    <SelectItem value="機器">機器</SelectItem>
+                    <SelectItem value="クリーム">クリーム</SelectItem>
+                    <SelectItem value="サービス">サービス</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>商品名</TableHead>
-                      <TableHead>カテゴリ</TableHead>
-                      <TableHead className="text-right">価格</TableHead>
-                      <TableHead className="text-right">在庫数</TableHead>
-                      <TableHead>ステータス</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>{product.category}</TableCell>
-                        <TableCell className="text-right">¥{product.price.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">{product.stock}</TableCell>
-                        <TableCell>
-                          <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            product.status === "在庫あり" 
-                              ? "bg-green-100 text-green-800" 
-                              : product.status === "残りわずか" 
-                                ? "bg-yellow-100 text-yellow-800" 
-                                : "bg-red-100 text-red-800"
-                          }`}>
-                            {product.status}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">メニューを開く</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>アクション</DropdownMenuLabel>
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                <span>詳細を見る</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                <span>編集する</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span>削除する</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>商品名</TableHead>
+                        <TableHead>カテゴリ</TableHead>
+                        <TableHead className="text-right">価格</TableHead>
+                        <TableHead className="text-right">在庫数</TableHead>
+                        <TableHead>ステータス</TableHead>
+                        <TableHead className="text-right">操作</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8">
+                            商品が見つかりませんでした
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell className="font-medium">{product.name}</TableCell>
+                            <TableCell>{product.category}</TableCell>
+                            <TableCell className="text-right">¥{product.price.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{product.stock}</TableCell>
+                            <TableCell>
+                              <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                product.status === "在庫あり" 
+                                  ? "bg-green-100 text-green-800" 
+                                  : product.status === "残りわずか" 
+                                    ? "bg-yellow-100 text-yellow-800" 
+                                    : "bg-red-100 text-red-800"
+                              }`}>
+                                {product.status}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">メニューを開く</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>アクション</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => toast.info(`${product.name}の詳細を表示します`)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    <span>詳細を見る</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => toast.info(`${product.name}を編集します`)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    <span>編集する</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-red-600"
+                                    onClick={() => {
+                                      if (window.confirm(`${product.name}を削除しますか？`)) {
+                                        handleDeleteProduct(product.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>削除する</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -397,7 +528,6 @@ const AdminStoreManagement = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Chart Section */}
       <div className="border rounded-lg p-4">
         <h3 className="text-lg font-medium mb-4">月間売上推移</h3>
         <div className="h-80">
@@ -422,7 +552,6 @@ const AdminStoreManagement = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -457,7 +586,7 @@ const AdminStoreManagement = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">{products.filter(p => p.status === '在庫切れ').length}</div>
             <p className="text-xs text-muted-foreground mt-1">
               要補充
             </p>

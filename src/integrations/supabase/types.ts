@@ -500,7 +500,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_therapist_record: {
+        Args: {
+          therapist_id: string
+          therapist_name: string
+          therapist_description: string
+          therapist_location: string
+          therapist_price: number
+          store_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

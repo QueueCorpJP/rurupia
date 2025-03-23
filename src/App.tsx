@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
@@ -41,6 +42,8 @@ import AdminStoreManagement from './pages/admin/AdminStoreManagement';
 import AdminBlog from './pages/admin/AdminBlog';
 import AdminInquiries from './pages/admin/AdminInquiries';
 import AdminRequests from './pages/admin/AdminRequests';
+import AdminAuth from './pages/admin/AdminAuth';
+import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -83,20 +86,25 @@ function App() {
           <Route path="settings" element={<StoreSettings />} />
         </Route>
         
-        {/* Therapist Routes - ONLY keep signup and login routes */}
+        {/* Therapist Routes */}
         <Route path="/therapist-login" element={<TherapistLogin />} />
         <Route path="/therapist-signup" element={<TherapistSignup />} />
         <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
         
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="accounts" element={<AdminAccounts />} />
-          <Route path="store-management" element={<AdminStoreManagement />} />
-          <Route path="blog" element={<AdminBlog />} />
-          <Route path="inquiries" element={<AdminInquiries />} />
-          <Route path="requests" element={<AdminRequests />} />
+        {/* Admin Auth Route */}
+        <Route path="/admin-auth" element={<AdminAuth />} />
+        
+        {/* Protected Admin Routes */}
+        <Route element={<AdminProtectedRoute />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="accounts" element={<AdminAccounts />} />
+            <Route path="store-management" element={<AdminStoreManagement />} />
+            <Route path="blog" element={<AdminBlog />} />
+            <Route path="inquiries" element={<AdminInquiries />} />
+            <Route path="requests" element={<AdminRequests />} />
+          </Route>
         </Route>
         
         <Route path="*" element={<NotFound />} />

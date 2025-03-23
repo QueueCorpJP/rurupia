@@ -11,6 +11,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import PageViewTracker from '@/components/common/PageViewTracker';
 
 interface LayoutProps {
   children: ReactNode;
@@ -81,285 +82,72 @@ const Layout = ({ children }: LayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
-        <div className="container flex h-16 items-center">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
-              <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
-            </div>
-            <span className="font-semibold text-lg text-foreground">のくとる</span>
-          </Link>
-          
-          <nav className="hidden md:flex ml-auto items-center gap-1 md:gap-6">
-            <Link 
-              to="/therapists" 
-              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
-                location.pathname === '/therapists' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
-              }`}
-            >
-              <Search className="h-4 w-4" />
-              <span>セラピスト検索</span>
-            </Link>
-            <Link 
-              to="/blog" 
-              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
-                location.pathname.startsWith('/blog') ? 'text-primary bg-primary/10' : 'text-muted-foreground'
-              }`}
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>ブログ</span>
+    <>
+      <PageViewTracker />
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
+          <div className="container flex h-16 items-center">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
+                <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
+              </div>
+              <span className="font-semibold text-lg text-foreground">のくとる</span>
             </Link>
             
-            <div className="h-6 w-px bg-border mx-1"></div>
-            
-            {!loading && (
-              <>
-                {user ? (
-                  <NavigationMenu>
-                    <NavigationMenuList>
-                      <NavigationMenuItem>
-                        <NavigationMenuTrigger className="text-sm">
-                          <User className="h-4 w-4 mr-1" />
-                          マイページ
-                        </NavigationMenuTrigger>
-                        <NavigationMenuContent>
-                          <div className="grid w-[200px] gap-2 p-4">
-                            {userProfile?.user_type === 'store' ? (
-                              <>
-                                <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
-                                  <Store className="h-4 w-4 inline mr-2" />
-                                  店舗管理
-                                </Link>
-                              </>
-                            ) : userProfile?.user_type === 'therapist' ? (
-                              <>
-                                <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
-                                  <User className="h-4 w-4 inline mr-2" />
-                                  セラピストダッシュボード
-                                </Link>
-                              </>
-                            ) : (
-                              <>
-                                <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
-                                  <User className="h-4 w-4 inline mr-2" />
-                                  プロフィール
-                                </Link>
-                                <Link to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
-                                  <Calendar className="h-4 w-4 inline mr-2" />
-                                  予約履歴
-                                </Link>
-                                <Link to="/messages" className="block p-2 hover:bg-muted rounded-md">
-                                  <MessageSquare className="h-4 w-4 inline mr-2" />
-                                  メッセージ
-                                </Link>
-                                <Link to="/followed-therapists" className="block p-2 hover:bg-muted rounded-md">
-                                  <Heart className="h-4 w-4 inline mr-2" />
-                                  お気に入りセラピスト
-                                </Link>
-                              </>
-                            )}
-                            <Link to="/notification-settings" className="block p-2 hover:bg-muted rounded-md">
-                              <Settings className="h-4 w-4 inline mr-2" />
-                              通知設定
-                            </Link>
-                            <button
-                              onClick={handleSignOut}
-                              className="w-full text-left p-2 hover:bg-muted rounded-md text-red-500"
-                            >
-                              <LogOut className="h-4 w-4 inline mr-2" />
-                              ログアウト
-                            </button>
-                          </div>
-                        </NavigationMenuContent>
-                      </NavigationMenuItem>
-                    </NavigationMenuList>
-                  </NavigationMenu>
-                ) : (
-                  <>
+            <nav className="hidden md:flex ml-auto items-center gap-1 md:gap-6">
+              <Link 
+                to="/therapists" 
+                className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
+                  location.pathname === '/therapists' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+                }`}
+              >
+                <Search className="h-4 w-4" />
+                <span>セラピスト検索</span>
+              </Link>
+              <Link 
+                to="/blog" 
+                className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
+                  location.pathname.startsWith('/blog') ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                <span>ブログ</span>
+              </Link>
+              
+              <div className="h-6 w-px bg-border mx-1"></div>
+              
+              {!loading && (
+                <>
+                  {user ? (
                     <NavigationMenu>
                       <NavigationMenuList>
                         <NavigationMenuItem>
-                          <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
+                          <NavigationMenuTrigger className="text-sm">
+                            <User className="h-4 w-4 mr-1" />
+                            マイページ
+                          </NavigationMenuTrigger>
                           <NavigationMenuContent>
                             <div className="grid w-[200px] gap-2 p-4">
-                              <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
-                                ユーザーログイン
-                              </Link>
-                              <Link to="/therapist-login" className="block p-2 hover:bg-muted rounded-md">
-                                セラピストログイン
-                              </Link>
-                              <Link to="/store-login" className="block p-2 hover:bg-muted rounded-md">
-                                店舗ログイン
-                              </Link>
-                            </div>
-                          </NavigationMenuContent>
-                        </NavigationMenuItem>
-                      </NavigationMenuList>
-                    </NavigationMenu>
-                    
-                    <NavigationMenu>
-                      <NavigationMenuList>
-                        <NavigationMenuItem>
-                          <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
-                          <NavigationMenuContent>
-                            <div className="grid w-[200px] gap-2 p-4">
-                              <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
-                                ユーザー登録
-                              </Link>
-                              <Link to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
-                                店舗登録
-                              </Link>
-                            </div>
-                          </NavigationMenuContent>
-                        </NavigationMenuItem>
-                      </NavigationMenuList>
-                    </NavigationMenu>
-                  </>
-                )}
-              </>
-            )}
-          </nav>
+                              {userProfile?.user_type === 'store' ? (
+                                <>
+                                  <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
+                                    <Store className="h-4 w-4 inline mr-2" />
+                                    店舗管理
+                                  </Link>
+                                </>
+                              ) : userProfile?.user_type === 'therapist' ? (
+                                <>
+                                  <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
+                                    <User className="h-4 w-4 inline mr-2" />
+                                    セラピストダッシュボード
+                                  </Link>
+                                </>
+                              ) : (
+                                <>
+                                  <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
+                                    <User className="h-4 w-4 inline mr-2" />
+                                    プロフィール
+                                  </Link>
+                                  <Link to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
+                                    <Calendar
 
-          <Button variant="ghost" className="ml-auto md:hidden px-0 h-9 w-9">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="4" x2="20" y1="12" y2="12" />
-              <line x1="4" x2="20" y1="6" y2="6" />
-              <line x1="4" x2="20" y1="18" y2="18" />
-            </svg>
-          </Button>
-        </div>
-      </header>
-      
-      <main className="flex-1">
-        {children}
-      </main>
-      
-      <footer className="relative bg-gradient-to-br from-gray-50 to-pink-50 pt-16 pb-8 border-t border-pink-100">
-        <div className="container px-4 md:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="relative h-10 w-10 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
-                  <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
-                </div>
-                <span className="font-semibold text-xl">のくとる</span>
-              </div>
-              <p className="text-muted-foreground mb-4">
-                安心して利用できる、男性セラピストによるリラクゼーションサービスマッチングプラットフォーム
-              </p>
-              <div className="flex space-x-4">
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Instagram className="h-5 w-5" />
-                </a>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Facebook className="h-5 w-5" />
-                </a>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Twitter className="h-5 w-5" />
-                </a>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-lg mb-4">サービス</h3>
-              <ul className="space-y-3">
-                <li>
-                  <Link to="/therapists" className="text-muted-foreground hover:text-primary transition-colors">
-                    セラピスト検索
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors">
-                    ブログ
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">
-                    会社概要
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/partnership" className="text-muted-foreground hover:text-primary transition-colors">
-                    パートナー募集
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-lg mb-4">サポート</h3>
-              <ul className="space-y-3">
-                <li>
-                  <Link to="/faq" className="text-muted-foreground hover:text-primary transition-colors">
-                    よくある質問
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
-                    利用規約
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
-                    プライバシーポリシー
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">
-                    お問い合わせ
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-lg mb-4">お問い合わせ</h3>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-muted-foreground">
-                    〒150-0002 東京都渋谷区渋谷2-24-12
-                  </span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-primary flex-shrink-0" />
-                  <span className="text-muted-foreground">
-                    03-1234-5678
-                  </span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-primary flex-shrink-0" />
-                  <span className="text-muted-foreground">
-                    info@nokutoru.com
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-pink-100 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-muted-foreground order-2 md:order-1 mt-4 md:mt-0 text-center md:text-left">
-              &copy; 2023 のくとる All rights reserved.
-            </p>
-            <div className="flex items-center space-x-4 order-1 md:order-2">
-              <Link to="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                利用規約
-              </Link>
-              <span className="text-muted-foreground">•</span>
-              <Link to="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                プライバシーポリシー
-              </Link>
-              <span className="text-muted-foreground">•</span>
-              <Link to="/sitemap" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                サイトマップ
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-};
-
-export default Layout;

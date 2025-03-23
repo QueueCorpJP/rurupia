@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
@@ -46,7 +45,7 @@ import AdminAuth from './pages/admin/AdminAuth';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import NotFound from './pages/NotFound';
 
-function App() {
+const App = () => {
   return (
     <BrowserRouter>
       <Routes>
@@ -98,12 +97,12 @@ function App() {
         <Route element={<AdminProtectedRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
-            <Route path="settings" element={<AdminSettings />} />
             <Route path="accounts" element={<AdminAccounts />} />
-            <Route path="store-management" element={<AdminStoreManagement />} />
-            <Route path="blog" element={<AdminBlog />} />
             <Route path="inquiries" element={<AdminInquiries />} />
             <Route path="requests" element={<AdminRequests />} />
+            <Route path="blog" element={<AdminBlog />} />
+            <Route path="store-management" element={<AdminStoreManagement />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Route>
         
@@ -111,6 +110,6 @@ function App() {
       </Routes>
     </BrowserRouter>
   );
-}
+};
 
 export default App;

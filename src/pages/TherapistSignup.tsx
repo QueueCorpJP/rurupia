@@ -2,19 +2,13 @@
  * TherapistSignup Component
  * 
  * This component handles the registration of new therapists invited by stores.
- * Due to Supabase Row Level Security (RLS) constraints, therapists can't directly
- * insert into the therapists table on registration. Instead, we:
+ * Therapists will now:
  * 
  * 1. Create a user account
- * 2. Update their profile with 'user_type: therapist' and 'status: pending_therapist_approval'
- * 3. Store references to the inviting store
+ * 2. Insert a record directly into the therapists table
+ * 3. Update their profile with 'user_type: therapist'
  * 
- * ADMIN IMPLEMENTATION NOTE:
- * Admin tools must include a section to approve pending therapists by:
- * 1. Querying profiles with status='pending_therapist_approval' 
- * 2. Creating a record in the therapists table for each approved profile
- * 3. Creating a store_therapists relation between the therapist and the inviting store
- * 4. Updating the profile status to 'active'
+ * The therapist will be in 'pending_approval' status until approved by an admin.
  */
 
 import { useState, useEffect } from 'react';
@@ -137,7 +131,7 @@ const TherapistSignup = () => {
     }
   };
 
-  // Full signup handler
+  // Full signup handler with direct therapist record insertion
   const handleSignup = async (data: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
@@ -182,9 +176,44 @@ const TherapistSignup = () => {
       if (!profileUpdated) {
         console.warn("Could not update profile with therapist status.");
         toast.warning('アカウントは作成されましたが、プロフィール更新に問題が発生しました');
+      }
+
+      // Insert the therapist record directly into the therapists table
+      const { error: insertError } = await supabase
+        .from('therapists')
+        .insert({
+          id: authData.user.id,
+          name: data.name,
+          description: `${data.name}はセラピストです`,  // Default description
+          location: '未設定',  // Default location
+          price: 0,  // Default price
+          specialties: [],  // Empty array for specialties
+          qualifications: [],  // Empty array for qualifications
+          availability: []  // Empty array for availability
+        });
+      
+      if (insertError) {
+        console.error("Failed to insert therapist record:", insertError);
+        toast.warning('セラピストプロフィールの作成に問題が発生しました。後で設定してください。');
       } else {
-        console.log("Profile marked as pending therapist successfully");
-        toast.success('アカウントを作成しました。管理者の承認後に全機能が利用可能になります');
+        console.log("Therapist record created successfully");
+      }
+
+      // Create a relation between the therapist and the inviting store
+      if (storeId) {
+        const { error: relationError } = await supabase
+          .from('store_therapists')
+          .insert({
+            store_id: storeId,
+            therapist_id: authData.user.id,
+            status: 'pending'
+          });
+          
+        if (relationError) {
+          console.error("Failed to create store-therapist relation:", relationError);
+        } else {
+          console.log("Store-therapist relation created successfully");
+        }
       }
 
       // Log the user in
@@ -197,6 +226,7 @@ const TherapistSignup = () => {
         console.error('Error logging in after signup:', loginError);
         navigate('/therapist-login');
       } else {
+        toast.success('アカウントを作成しました。管理者の承認後に全機能が利用可能になります');
         navigate('/therapist-dashboard');
       }
     } catch (error) {

@@ -56,8 +56,10 @@ const DeleteAccount = () => {
         return;
       }
       
-      // Fix the TypeScript error by properly handling the Promise
-      const { error: deleteError } = await supabase.rpc('delete_user');
+      // Instead of calling a non-existent RPC function, use the Supabase auth API to delete the user
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(
+        (await supabase.auth.getUser()).data.user?.id || ""
+      );
       
       if (deleteError) {
         throw deleteError;

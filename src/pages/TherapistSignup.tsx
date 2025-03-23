@@ -240,6 +240,23 @@ const TherapistSignup = () => {
         console.log("Therapist record created successfully");
       }
 
+      // Create a relation between the therapist and the inviting store
+      if (storeId) {
+        const { error: relationError } = await supabase
+          .from('store_therapists')
+          .insert({
+            store_id: storeId,
+            therapist_id: authData.user.id,
+            status: 'pending'
+          });
+          
+        if (relationError) {
+          console.error("Failed to create store-therapist relation:", relationError);
+        } else {
+          console.log("Store-therapist relation created successfully");
+        }
+      }
+
       // Show success message
       toast.success('アカウントを作成しました。管理者の承認後に全機能が利用可能になります');
 

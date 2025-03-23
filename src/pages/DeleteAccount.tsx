@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,23 @@ const DeleteAccount = () => {
   const [password, setPassword] = useState("");
   const [confirmDelete, setConfirmDelete] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Get the current user's email on component mount
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        setUserEmail(data.user.email || "");
+      } else {
+        // If no user is logged in, redirect to login page
+        navigate('/login');
+      }
+    };
+    
+    getUser();
+  }, [navigate]);
 
   const handleDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +40,14 @@ const DeleteAccount = () => {
     
     try {
       setIsLoading(true);
+      
+      if (!userEmail) {
+        toast.error("ユーザー情報が見つかりません");
+        return;
+      }
+      
       const { error } = await supabase.auth.signInWithPassword({
-        email: "", // We need to get the user's email somehow
+        email: userEmail,
         password: password,
       });
       
@@ -33,8 +56,10 @@ const DeleteAccount = () => {
         return;
       }
       
-      // Fix the TypeScript error by properly handling the Promise
-      const { error: deleteError } = await supabase.rpc('delete_user');
+      // Instead of calling a non-existent RPC function, use the Supabase auth API to delete the user
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(
+        (await supabase.auth.getUser()).data.user?.id || ""
+      );
       
       if (deleteError) {
         throw deleteError;

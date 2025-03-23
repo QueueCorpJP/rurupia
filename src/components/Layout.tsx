@@ -1,3 +1,4 @@
+
 import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings } from 'lucide-react';
@@ -22,6 +23,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -78,6 +80,10 @@ const Layout = ({ children }: LayoutProps) => {
       default:
         return "/user-profile";
     }
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
@@ -221,13 +227,88 @@ const Layout = ({ children }: LayoutProps) => {
             )}
           </nav>
 
-          <Button variant="ghost" className="ml-auto md:hidden px-0 h-9 w-9">
+          {/* Mobile menu button */}
+          <Button 
+            variant="ghost" 
+            className="ml-auto md:hidden px-0 h-9 w-9"
+            onClick={toggleMobileMenu}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="4" x2="20" y1="12" y2="12" />
               <line x1="4" x2="20" y1="6" y2="6" />
               <line x1="4" x2="20" y1="18" y2="18" />
             </svg>
           </Button>
+          
+          {/* Mobile menu */}
+          {isMobileMenuOpen && (
+            <div className="absolute top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg md:hidden z-50">
+              <div className="container py-4 space-y-4">
+                <Link 
+                  to="/therapists" 
+                  className="block py-2 text-sm font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Search className="h-4 w-4 inline mr-2" />
+                  セラピスト検索
+                </Link>
+                <Link 
+                  to="/blog" 
+                  className="block py-2 text-sm font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <BookOpen className="h-4 w-4 inline mr-2" />
+                  ブログ
+                </Link>
+                
+                <div className="h-px w-full bg-gray-200"></div>
+                
+                {!loading && (
+                  <>
+                    {user ? (
+                      <>
+                        <Link 
+                          to={getUserDashboardLink()} 
+                          className="block py-2 text-sm font-medium"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <User className="h-4 w-4 inline mr-2" />
+                          マイページ
+                        </Link>
+                        <button
+                          onClick={() => {
+                            handleSignOut();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="w-full text-left py-2 text-sm font-medium text-red-500"
+                        >
+                          <LogOut className="h-4 w-4 inline mr-2" />
+                          ログアウト
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link 
+                          to="/login" 
+                          className="block py-2 text-sm font-medium"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          ログイン
+                        </Link>
+                        <Link 
+                          to="/signup" 
+                          className="block py-2 text-sm font-medium"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          新規登録
+                        </Link>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </header>
       

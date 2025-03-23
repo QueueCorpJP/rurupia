@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -96,21 +97,6 @@ const Signup = () => {
         }
       }
 
-      // Immediately sign in after registration for better UX
-      if (!authData.session) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (signInError) {
-          console.error("Sign in error after registration:", signInError);
-          toast.error("ログインに失敗しました");
-        } else if (signInData.session) {
-          authData.session = signInData.session;
-        }
-      }
-      
       // 2. Upload the ID document with proper path structure
       const fileExt = idDocument.name.split('.').pop();
       const userId = authData.user.id;
@@ -161,13 +147,27 @@ const Signup = () => {
         }
       }
       
-      // Handle session and navigation
-      if (authData.session) {
+      // Immediately sign in after registration for better UX
+      // This is crucial to ensure proper redirection
+      if (!authData.session) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (signInError) {
+          console.error("Sign in error after registration:", signInError);
+          toast.error("ログインに失敗しました");
+          navigate('/login');
+        } else {
+          // Successful login, show toast and redirect
+          toast.success("登録が完了しました！");
+          navigate("/");
+        }
+      } else {
+        // Already have a session from sign up
         toast.success("登録が完了しました！");
         navigate("/");
-      } else {
-        toast.success("登録が完了しました。メールアドレスを確認してください。");
-        navigate("/login");
       }
       
     } catch (error) {

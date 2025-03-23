@@ -5,6 +5,10 @@ import { DataTable } from '@/components/admin/DataTable';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const sortOptions = [
   { label: '全て表示', value: 'all' },
@@ -17,6 +21,14 @@ const AdminBlog = () => {
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newPost, setNewPost] = useState({
+    title: '',
+    content: '',
+    excerpt: '',
+    category: '',
+    author_name: ''
+  });
 
   useEffect(() => {
     fetchBlogPosts();
@@ -90,6 +102,73 @@ const AdminBlog = () => {
     }
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewPost(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddPost = async () => {
+    try {
+      // Validate inputs
+      if (!newPost.title || !newPost.content || !newPost.excerpt || !newPost.category || !newPost.author_name) {
+        toast.error('全ての必須項目を入力してください');
+        return;
+      }
+
+      // Generate a slug from the title
+      const slug = newPost.title
+        .toLowerCase()
+        .replace(/[^\w\s]/gi, '')
+        .replace(/\s+/g, '-');
+
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .insert({
+          title: newPost.title,
+          content: newPost.content,
+          excerpt: newPost.excerpt,
+          category: newPost.category,
+          author_name: newPost.author_name,
+          slug: slug,
+          tags: []
+        })
+        .select();
+
+      if (error) throw error;
+
+      // Reset form and close dialog
+      setNewPost({
+        title: '',
+        content: '',
+        excerpt: '',
+        category: '',
+        author_name: ''
+      });
+      setIsDialogOpen(false);
+
+      // Add new post to the list
+      if (data && data.length > 0) {
+        const newPostData = {
+          id: data[0].id,
+          title: data[0].title,
+          author: data[0].author_name,
+          date: new Date(data[0].published_at).toLocaleDateString('ja-JP'),
+          category: data[0].category,
+          views: data[0].views || 0
+        };
+
+        setPosts(prev => [newPostData, ...prev]);
+        setFilteredPosts(prev => [newPostData, ...prev]);
+      }
+
+      toast.success('記事を追加しました');
+      fetchBlogPosts(); // Refresh the list
+    } catch (error) {
+      console.error('Error adding post:', error);
+      toast.error('記事の追加に失敗しました');
+    }
+  };
+
   const handleEdit = (post) => {
     toast.info(`編集: ${post.title}`);
     // Implement edit functionality here
@@ -135,7 +214,7 @@ const AdminBlog = () => {
           <h1 className="text-3xl font-bold tracking-tight">ブログ管理</h1>
           <p className="text-muted-foreground mt-2">ブログ記事の作成と管理</p>
         </div>
-        <Button>
+        <Button onClick={() => setIsDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           新規作成
         </Button>
@@ -151,6 +230,67 @@ const AdminBlog = () => {
         actionMenuItems={actionMenuItems}
         isLoading={isLoading}
       />
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>新規記事作成</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">タイトル</Label>
+              <Input
+                id="title"
+                name="title"
+                value={newPost.title}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="author_name">著者名</Label>
+              <Input
+                id="author_name"
+                name="author_name"
+                value={newPost.author_name}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="category">カテゴリ</Label>
+              <Input
+                id="category"
+                name="category"
+                value={newPost.category}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="excerpt">抜粋</Label>
+              <Textarea
+                id="excerpt"
+                name="excerpt"
+                rows={2}
+                value={newPost.excerpt}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content">本文</Label>
+              <Textarea
+                id="content"
+                name="content"
+                rows={5}
+                value={newPost.content}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>キャンセル</Button>
+            <Button onClick={handleAddPost}>登録する</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

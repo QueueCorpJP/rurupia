@@ -1,153 +1,187 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings } from 'lucide-react';
+
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { 
+import { PageViewTracker } from '@/components/common/PageViewTracker';
+import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import PageViewTracker from '@/components/common/PageViewTracker';
+import { MobileNav } from "./ui/sidebar";
+import { useMobile } from "@/hooks/use-mobile";
+import TherapistSearch from './TherapistSearch';
 
-interface LayoutProps {
-  children: ReactNode;
-}
-
-const Layout = ({ children }: LayoutProps) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  const [isTop, setIsTop] = useState(true);
+  const isMobile = useMobile();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        setUserProfile(profile);
-      }
-      
-      setLoading(false);
+    const handleScroll = () => {
+      setIsTop(window.scrollY < 10);
     };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        setUserProfile(profile);
-      } else {
-        setUserProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+  // Mobile menu toggle
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const getUserDashboardLink = () => {
-    if (!userProfile) return "/user-profile";
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (isMobileMenuOpen && !(e.target as Element).closest('.mobile-menu')) {
+        setIsMobileMenuOpen(false);
+      }
+    };
     
-    switch (userProfile.user_type) {
-      case 'store':
-        return "/store-admin";
-      case 'therapist':
-        return "/therapist-dashboard";
-      default:
-        return "/user-profile";
-    }
-  };
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [isMobileMenuOpen]);
 
   return (
     <>
       <PageViewTracker />
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
-          <div className="container flex h-16 items-center">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
-                <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
-              </div>
-              <span className="font-semibold text-lg text-foreground">のくとる</span>
+      <div className="flex flex-col min-h-screen">
+        <header className={`sticky top-0 z-50 transition-all ${isTop ? 'bg-transparent' : 'bg-white/80 backdrop-blur-md border-b'}`}>
+          <div className="container mx-auto flex justify-between items-center h-16 px-4">
+            <Link to="/" className="flex items-center text-lg font-semibold">
+              <span className={`${isTop ? 'text-white' : 'text-primary'}`}>Ryokan</span>
             </Link>
-            
-            <nav className="hidden md:flex ml-auto items-center gap-1 md:gap-6">
-              <Link 
-                to="/therapists" 
-                className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
-                  location.pathname === '/therapists' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
-                }`}
-              >
-                <Search className="h-4 w-4" />
-                <span>セラピスト検索</span>
-              </Link>
-              <Link 
-                to="/blog" 
-                className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
-                  location.pathname.startsWith('/blog') ? 'text-primary bg-primary/10' : 'text-muted-foreground'
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                <span>ブログ</span>
-              </Link>
-              
-              <div className="h-6 w-px bg-border mx-1"></div>
-              
-              {!loading && (
-                <>
-                  {user ? (
-                    <NavigationMenu>
-                      <NavigationMenuList>
-                        <NavigationMenuItem>
-                          <NavigationMenuTrigger className="text-sm">
-                            <User className="h-4 w-4 mr-1" />
-                            マイページ
-                          </NavigationMenuTrigger>
-                          <NavigationMenuContent>
-                            <div className="grid w-[200px] gap-2 p-4">
-                              {userProfile?.user_type === 'store' ? (
-                                <>
-                                  <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
-                                    <Store className="h-4 w-4 inline mr-2" />
-                                    店舗管理
-                                  </Link>
-                                </>
-                              ) : userProfile?.user_type === 'therapist' ? (
-                                <>
-                                  <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
-                                    <User className="h-4 w-4 inline mr-2" />
-                                    セラピストダッシュボード
-                                  </Link>
-                                </>
-                              ) : (
-                                <>
-                                  <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
-                                    <User className="h-4 w-4 inline mr-2" />
-                                    プロフィール
-                                  </Link>
-                                  <Link to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
-                                    <Calendar
 
+            {isMobile ? (
+              <>
+                <button 
+                  onClick={toggleMobileMenu}
+                  aria-label="Toggle menu"
+                  className={`p-2 ${isTop ? 'text-white' : 'text-gray-800'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                  </svg>
+                </button>
+                
+                {isMobileMenuOpen && (
+                  <MobileNav 
+                    className="mobile-menu absolute top-16 left-0 right-0 bg-white p-4 border-b shadow-lg"
+                    items={[
+                      { href: "/therapists", label: "セラピスト一覧" },
+                      { href: "/followed-therapists", label: "お気に入りセラピスト" },
+                      { href: "/booking", label: "予約" },
+                      { href: "/blog", label: "ブログ" },
+                      { href: "/contact", label: "お問い合わせ" },
+                    ]}
+                  />
+                )}
+              </>
+            ) : (
+              <nav className={`space-x-1 ${isTop ? 'text-white' : 'text-gray-800'}`}>
+                <NavigationMenu>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger className={isTop ? 'text-white hover:text-white/80' : ''}>
+                        セラピスト
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="grid gap-3 p-4 md:w-[400px] lg:w-[500px]">
+                          <Link to="/therapists" className="group grid h-full w-full items-center justify-center rounded-md bg-gradient-to-b from-muted/50 to-muted p-4 no-underline outline-none focus:shadow-md">
+                            セラピスト一覧
+                          </Link>
+                          <Link to="/followed-therapists" className="group grid h-full w-full items-center justify-center rounded-md bg-gradient-to-b from-muted/50 to-muted p-4 no-underline outline-none focus:shadow-md">
+                            お気に入りセラピスト
+                          </Link>
+                        </div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+
+                    <NavigationMenuItem>
+                      <Link to="/booking" className={`${navigationMenuTriggerStyle()} ${isTop ? 'text-white hover:text-white/80' : ''}`}>
+                        予約
+                      </Link>
+                    </NavigationMenuItem>
+                    
+                    <NavigationMenuItem>
+                      <Link to="/blog" className={`${navigationMenuTriggerStyle()} ${isTop ? 'text-white hover:text-white/80' : ''}`}>
+                        ブログ
+                      </Link>
+                    </NavigationMenuItem>
+                    
+                    <NavigationMenuItem>
+                      <Link to="/contact" className={`${navigationMenuTriggerStyle()} ${isTop ? 'text-white hover:text-white/80' : ''}`}>
+                        お問い合わせ
+                      </Link>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+              </nav>
+            )}
+
+            <div className="flex items-center space-x-2">
+              <TherapistSearch />
+              <Link to="/login">
+                <Button variant={isTop ? "outline" : "default"} className={isTop ? "border-white text-white hover:bg-white/10 hover:text-white" : ""}>
+                  ログイン
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </header>
+        
+        <main className="flex-1">
+          {children}
+        </main>
+        
+        <footer className="bg-gray-100 py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div>
+                <h3 className="font-semibold text-lg mb-4">Ryokan</h3>
+                <p className="text-gray-600 text-sm">
+                  リラクゼーションセラピーを通じて、心身ともに健やかな生活をサポートします。
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-4">リンク</h3>
+                <ul className="space-y-2">
+                  <li><Link to="/therapists" className="text-gray-600 hover:text-primary">セラピスト一覧</Link></li>
+                  <li><Link to="/booking" className="text-gray-600 hover:text-primary">予約</Link></li>
+                  <li><Link to="/blog" className="text-gray-600 hover:text-primary">ブログ</Link></li>
+                  <li><Link to="/contact" className="text-gray-600 hover:text-primary">お問い合わせ</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-4">法的情報</h3>
+                <ul className="space-y-2">
+                  <li><Link to="/terms" className="text-gray-600 hover:text-primary">利用規約</Link></li>
+                  <li><Link to="/privacy" className="text-gray-600 hover:text-primary">プライバシーポリシー</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-4">お問い合わせ</h3>
+                <p className="text-gray-600">〒123-4567<br />東京都渋谷区〇〇1-2-3</p>
+                <p className="text-gray-600 mt-2">電話: 03-1234-5678<br />メール: info@ryokan.com</p>
+              </div>
+            </div>
+            <div className="border-t border-gray-200 mt-8 pt-8 text-center text-gray-500 text-sm">
+              &copy; {new Date().getFullYear()} Ryokan All rights reserved.
+            </div>
+          </div>
+        </footer>
+      </div>
+    </>
+  );
+};
+
+export default Layout;

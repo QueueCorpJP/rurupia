@@ -1,179 +1,134 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// deno-lint-ignore-file no-explicit-any
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
-
   try {
-    const supabaseClient = createClient(
+    // Initialize Supabase client
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Get the current date
-    const now = new Date()
-    const currentMonth = now.getMonth()
-    const currentYear = now.getFullYear()
+    // Get current date and first day of month
+    const now = new Date();
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     
-    // Previous month for comparison
-    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1
-    const previousMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+    // Format as ISO strings for date comparison
+    const currentMonthISO = currentMonth.toISOString();
+    const previousMonthISO = previousMonth.toISOString();
     
-    // First day of current month
-    const firstDayCurrentMonth = new Date(currentYear, currentMonth, 1)
-    
-    // First day of previous month
-    const firstDayPreviousMonth = new Date(previousMonthYear, previousMonth, 1)
-    
-    // Last day of previous month
-    const lastDayPreviousMonth = new Date(currentYear, currentMonth, 0)
-    
-    // Calculate monthly page views
-    const { count: currentMonthPageViews, error: currentPageViewsError } = await supabaseClient
+    // 1. Update monthly page views
+    const { data: currentMonthViews, error: viewsError } = await supabaseAdmin
       .from('page_views')
-      .select('*', { count: 'exact', head: true })
-      .gte('view_date', firstDayCurrentMonth.toISOString())
-    
-    if (currentPageViewsError) throw currentPageViewsError
-    
-    const { count: previousMonthPageViews, error: previousPageViewsError } = await supabaseClient
-      .from('page_views')
-      .select('*', { count: 'exact', head: true })
-      .gte('view_date', firstDayPreviousMonth.toISOString())
-      .lt('view_date', lastDayPreviousMonth.toISOString())
-    
-    if (previousPageViewsError) throw previousPageViewsError
-    
-    // Calculate monthly users
-    const { count: currentMonthUsers, error: currentUsersError } = await supabaseClient
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', firstDayCurrentMonth.toISOString())
-    
-    if (currentUsersError) throw currentUsersError
-    
-    const { count: previousMonthUsers, error: previousUsersError } = await supabaseClient
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', firstDayPreviousMonth.toISOString())
-      .lt('created_at', lastDayPreviousMonth.toISOString())
-    
-    if (previousUsersError) throw previousUsersError
-    
-    // Calculate monthly bookings
-    const { count: currentMonthBookings, error: currentBookingsError } = await supabaseClient
-      .from('bookings')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', firstDayCurrentMonth.toISOString())
-    
-    if (currentBookingsError) throw currentBookingsError
-    
-    const { count: previousMonthBookings, error: previousBookingsError } = await supabaseClient
-      .from('bookings')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', firstDayPreviousMonth.toISOString())
-      .lt('created_at', lastDayPreviousMonth.toISOString())
-    
-    if (previousBookingsError) throw previousBookingsError
-    
-    // Calculate average rating
-    const { data: therapistsData, error: therapistsError } = await supabaseClient
-      .from('therapists')
-      .select('rating')
-    
-    if (therapistsError) throw therapistsError
-    
-    const totalRating = therapistsData.reduce((sum, therapist) => sum + Number(therapist.rating), 0)
-    const currentAverageRating = therapistsData.length > 0 ? Number((totalRating / therapistsData.length).toFixed(1)) : 0
-    
-    // Get previous average rating from analytics
-    const { data: previousRatingData, error: previousRatingError } = await supabaseClient
-      .from('analytics')
-      .select('metric_value')
-      .eq('metric_name', 'average_rating')
-      .eq('period', 'previous_month')
-      .order('recorded_date', { ascending: false })
-      .limit(1)
-    
-    if (previousRatingError) throw previousRatingError
-    
-    const previousAverageRating = previousRatingData.length > 0 ? Number(previousRatingData[0].metric_value) : currentAverageRating
-    
-    // Update analytics metrics
-    const metrics = [
-      {
-        name: 'monthly_page_views',
-        current: currentMonthPageViews || 0,
-        previous: previousMonthPageViews || 0
-      },
-      {
-        name: 'monthly_users',
-        current: currentMonthUsers || 0,
-        previous: previousMonthUsers || 0
-      },
-      {
-        name: 'monthly_bookings',
-        current: currentMonthBookings || 0,
-        previous: previousMonthBookings || 0
-      },
-      {
-        name: 'average_rating',
-        current: currentAverageRating,
-        previous: previousAverageRating
-      }
-    ]
-    
-    // Update each metric
-    for (const metric of metrics) {
-      const { error } = await supabaseClient.rpc('update_analytics_metric', {
-        p_metric_name: metric.name,
-        p_metric_value: metric.current,
-        p_period: 'current_month',
-        p_comparison_value: metric.previous,
-        p_comparison_period: 'previous_month'
-      })
+      .select('id')
+      .gte('view_date', currentMonthISO);
       
-      if (error) throw error
-    }
-
+    if (viewsError) throw viewsError;
+    
+    const { data: previousMonthViews, error: prevViewsError } = await supabaseAdmin
+      .from('page_views')
+      .select('id')
+      .gte('view_date', previousMonthISO)
+      .lt('view_date', currentMonthISO);
+      
+    if (prevViewsError) throw prevViewsError;
+    
+    const currentViews = currentMonthViews?.length || 0;
+    const previousViews = previousMonthViews?.length || 0;
+    
+    // Update the analytics table with the monthly page views
+    await supabaseAdmin.rpc('update_analytics_metric', {
+      p_metric_name: 'monthly_page_views',
+      p_metric_value: currentViews,
+      p_period: 'current_month',
+      p_comparison_value: previousViews,
+      p_comparison_period: 'previous_month'
+    });
+    
+    // 2. Update monthly users (unique IPs)
+    const { data: currentMonthIPs, error: ipsError } = await supabaseAdmin
+      .from('page_views')
+      .select('ip_address')
+      .gte('view_date', currentMonthISO);
+      
+    if (ipsError) throw ipsError;
+    
+    const { data: previousMonthIPs, error: prevIPsError } = await supabaseAdmin
+      .from('page_views')
+      .select('ip_address')
+      .gte('view_date', previousMonthISO)
+      .lt('view_date', currentMonthISO);
+      
+    if (prevIPsError) throw prevIPsError;
+    
+    const currentUniqueIPs = new Set(currentMonthIPs.map((row: any) => row.ip_address)).size;
+    const previousUniqueIPs = new Set(previousMonthIPs.map((row: any) => row.ip_address)).size;
+    
+    // Update the analytics table with the unique users count
+    await supabaseAdmin.rpc('update_analytics_metric', {
+      p_metric_name: 'monthly_users',
+      p_metric_value: currentUniqueIPs,
+      p_period: 'current_month',
+      p_comparison_value: previousUniqueIPs,
+      p_comparison_period: 'previous_month'
+    });
+    
+    // 3. Update monthly bookings
+    const { data: currentMonthBookings, error: bookingsError } = await supabaseAdmin
+      .from('bookings')
+      .select('id')
+      .gte('created_at', currentMonthISO);
+      
+    if (bookingsError) throw bookingsError;
+    
+    const { data: previousMonthBookings, error: prevBookingsError } = await supabaseAdmin
+      .from('bookings')
+      .select('id')
+      .gte('created_at', previousMonthISO)
+      .lt('created_at', currentMonthISO);
+      
+    if (prevBookingsError) throw prevBookingsError;
+    
+    const currentBookings = currentMonthBookings?.length || 0;
+    const previousBookings = previousMonthBookings?.length || 0;
+    
+    // Update the analytics table with the bookings count
+    await supabaseAdmin.rpc('update_analytics_metric', {
+      p_metric_name: 'monthly_bookings',
+      p_metric_value: currentBookings,
+      p_period: 'current_month',
+      p_comparison_value: previousBookings,
+      p_comparison_period: 'previous_month'
+    });
+    
+    // Return success
     return new Response(
       JSON.stringify({ 
         success: true,
-        metrics
+        message: "Analytics data updated successfully",
+        timestamp: new Date().toISOString()
       }),
       { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
+        headers: { "Content-Type": "application/json" },
+        status: 200 
       }
-    )
+    );
   } catch (error) {
-    console.error('Error updating analytics:', error)
+    console.error("Error updating analytics:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       { 
-        status: 400, 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
+        headers: { "Content-Type": "application/json" },
+        status: 500 
       }
-    )
+    );
   }
-})
+});

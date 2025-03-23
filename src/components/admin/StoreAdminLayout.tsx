@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { StoreSidebarNav } from "./StoreSidebarNav";
 import { UserNav } from "./UserNav";
 import { cn } from "@/lib/utils";
@@ -10,7 +9,21 @@ import { toast } from "sonner";
 const StoreAdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Use location to detect route changes
+  useEffect(() => {
+    setPageLoading(true);
+    
+    // Reset page loading after a short delay
+    const timer = setTimeout(() => {
+      setPageLoading(false);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -79,8 +92,18 @@ const StoreAdminLayout = () => {
           <UserNav />
         </header>
         
-        <main className="flex-1 p-6 max-w-7xl mx-auto">
-          <Outlet />
+        <main className="flex-1 p-6 max-w-7xl mx-auto relative">
+          {pageLoading && (
+            <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+          <div className={cn(
+            "transition-opacity duration-300",
+            pageLoading ? "opacity-50" : "opacity-100"
+          )}>
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

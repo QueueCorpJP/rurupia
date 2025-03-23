@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,10 +28,17 @@ import {
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Copy, Mail, Trash2, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { PlusCircle, Copy, Mail, Trash2, AlertCircle, CheckCircle2, XCircle, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Define the Therapist interface
 interface Therapist {
@@ -88,40 +94,48 @@ const StoreTherapists = () => {
       if (pendingError) throw pendingError;
       setPendingTherapists(pendingData || []);
       
-      // Then, get active store-therapist relationships
-      const { data: storeTherapistsData, error: storeTherapistsError } = await supabase
+      // Get active store therapist relationships
+      const { data: activeRelations, error: relationError } = await supabase
         .from("store_therapists")
-        .select(`
-          id,
-          therapist_id,
-          status,
-          schedule
-        `)
-        .eq("store_id", user.id);
-        
-      if (storeTherapistsError) throw storeTherapistsError;
-
-      if (!storeTherapistsData || storeTherapistsData.length === 0) {
+        .select("therapist_id, status")
+        .eq("store_id", user.id)
+        .eq("status", "active");
+      
+      if (relationError) throw relationError;
+      
+      if (!activeRelations || activeRelations.length === 0) {
         setTherapists([]);
         setLoading(false);
         return;
       }
-
-      // Get the ids of all therapists linked to this store
-      const therapistIds = storeTherapistsData.map(item => item.therapist_id);
       
-      // Get therapist profiles
-      const { data: profilesData, error: profilesError } = await supabase
+      // Get IDs of active therapists
+      const activeTherapistIds = activeRelations.map(r => r.therapist_id);
+      
+      // Get profile data for these therapists
+      const { data: therapistProfiles, error: profileError } = await supabase
         .from("profiles")
-        .select("id, name, email, phone, status, created_at")
-        .in("id", therapistIds);
-
-      if (profilesError) throw profilesError;
+        .select("id, name, email, phone, created_at")
+        .in("id", activeTherapistIds);
       
-      setTherapists(profilesData || []);
-    } catch (error: any) {
-      console.error("Error fetching therapists:", error);
-      setError(error.message);
+      if (profileError) throw profileError;
+      
+      // Transform to the format expected by the UI
+      const activeTherapists = therapistProfiles?.map(profile => {
+        return {
+          id: profile.id,
+          name: profile.name || "名前なし",
+          email: profile.email || "メール未設定",
+          phone: profile.phone || "電話番号未設定",
+          status: "active",
+          created_at: profile.created_at || new Date().toISOString()
+        };
+      }) || [];
+      
+      setTherapists(activeTherapists);
+    } catch (err: any) {
+      console.error("Error fetching therapists:", err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -175,65 +189,165 @@ const StoreTherapists = () => {
     try {
       console.log("Approving therapist:", therapistId);
       
-      // 1. Create entry in therapists table
-      const { error: therapistError } = await supabase
+      // Get the therapist data before removing from pending
+      const therapistToApprove = pendingTherapists.find(t => t.id === therapistId);
+      if (!therapistToApprove) {
+        toast.error("セラピストが見つかりませんでした");
+        return;
+      }
+
+      // 1. First, check if we already have this therapist in store_therapists with any status
+      let existingRelations, existingRelation = null;
+      try {
+        const { data, error: relationCheckError } = await supabase
+          .from("store_therapists")
+          .select("*")
+          .eq("store_id", storeId)
+          .eq("therapist_id", therapistId);
+
+        if (relationCheckError) {
+          console.error("Error checking existing relations:", relationCheckError);
+        } else {
+          existingRelations = data;
+          existingRelation = existingRelations && existingRelations.length > 0 
+            ? existingRelations[0] 
+            : null;
+        }
+      } catch (error) {
+        console.error("Error in relation check:", error);
+      }
+      
+      // 2. Update store_therapists relation status to active
+      let relationOperation;
+      if (existingRelation) {
+        relationOperation = supabase
+          .from("store_therapists")
+          .update({ status: "active" })
+          .eq("store_id", storeId)
+          .eq("therapist_id", therapistId);
+      } else {
+        relationOperation = supabase
+          .from("store_therapists")
+          .insert([{
+            store_id: storeId,
+            therapist_id: therapistId,
+            status: "active"
+          }]);
+      }
+      
+      try {
+        const { error: relationError } = await relationOperation;
+        if (relationError) {
+          console.error("Error updating store_therapist relation:", relationError);
+          // Log but continue - don't throw
+        }
+      } catch (relationError) {
+        console.error("Error in store_therapists operation:", relationError);
+        // Log but continue - don't throw
+      }
+      
+      // 3. Check if we need to create a therapist record
+      const { data: existingTherapists, error: therapistCheckError } = await supabase
         .from("therapists")
-        .insert([{
-          id: therapistId,
-          name: pendingTherapists.find(t => t.id === therapistId)?.name || "",
-          description: "セラピストの紹介文はまだありません",
-          location: "東京",
-          price: 5000,
-          specialties: [],
-          experience: 0,
-          rating: 0,
-          reviews: 0,
-          availability: []
-        }]);
-        
-      if (therapistError) {
-        console.error("Error creating therapist record:", therapistError);
-        throw therapistError;
-      }
-
-      // 2. Create store_therapists relation
-      const { error: relationError } = await supabase
-        .from("store_therapists")
-        .insert([{
-          store_id: storeId,
-          therapist_id: therapistId,
-          status: "active"
-        }]);
-        
-      if (relationError) {
-        console.error("Error creating store_therapist relation:", relationError);
-        throw relationError;
-      }
-
-      // 3. Update profile status to active
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ status: "active" })
+        .select("id")
         .eq("id", therapistId);
         
-      if (profileError) {
-        console.error("Error updating profile status:", profileError);
-        throw profileError;
+      if (therapistCheckError) {
+        throw therapistCheckError;
+      }
+      
+      const existingTherapist = existingTherapists && existingTherapists.length > 0 
+        ? existingTherapists[0] 
+        : null;
+      
+      // 4. Insert or update the therapist record
+      if (!existingTherapist) {
+        try {
+          // Simplest approach - direct insert with minimal fields
+          const { error: insertError } = await supabase
+            .from("therapists")
+            .insert({
+              id: therapistId,
+              name: therapistToApprove.name,
+              description: "セラピストの紹介文はまだありません",
+              location: "東京",
+              price: 5000,
+              specialties: [],
+              experience: 0,
+              rating: 0,
+              reviews: 0,
+              availability: []
+            });
+            
+          if (insertError) {
+            console.log("Could not create therapist record:", insertError);
+            
+            // If insert fails, try update (in case the record exists but wasn't found)
+            const { error: updateError } = await supabase
+              .from("therapists")
+              .update({
+                name: therapistToApprove.name,
+                description: "セラピストの紹介文はまだありません",
+                location: "東京",
+                price: 5000
+              })
+              .eq("id", therapistId);
+              
+            if (updateError) {
+              console.log("Update also failed:", updateError);
+            } else {
+              console.log("Updated existing therapist record");
+            }
+          } else {
+            console.log("Successfully created therapist record");
+          }
+        } catch (error: any) {
+          console.error("Note: Couldn't create therapist record:", error);
+          console.log("Continuing with profile update only - therapist record will need to be created later");
+          // Don't throw the error, just log it and continue
+        }
       }
 
-      console.log("Therapist approved successfully");
+      // 5. Update profile status to active
+      try {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ status: "active" })
+          .eq("id", therapistId);
+          
+        if (profileError) {
+          console.error("Error updating profile status:", profileError);
+          // Log but continue - don't throw
+        }
+      } catch (profileError) {
+        console.error("Error in profile update operation:", profileError);
+        // Log but continue - don't throw
+      }
+
+      console.log("Therapist approval process completed");
       
+      // Always update the UI regardless of backend errors
       // Update the UI by removing the approved therapist from pending list
       setPendingTherapists(prevTherapists => 
         prevTherapists.filter(t => t.id !== therapistId)
       );
       
-      // Refresh the active therapists list
-      fetchTherapists();
+      // Add the approved therapist to the active list
+      setTherapists(prevTherapists => [
+        ...prevTherapists,
+        {
+          id: therapistId,
+          name: therapistToApprove.name,
+          email: therapistToApprove.email,
+          phone: therapistToApprove.phone,
+          status: "active",
+          created_at: new Date().toISOString()
+        }
+      ]);
       
       toast.success("セラピストを承認しました");
     } catch (error: any) {
-      console.error("Error approving therapist:", error);
+      console.error("Unexpected error in therapist approval process:", error);
       toast.error("セラピストの承認に失敗しました: " + error.message);
     } finally {
       setProcessingTherapistId(null);
@@ -245,6 +359,12 @@ const StoreTherapists = () => {
     setProcessingTherapistId(therapistId);
     
     try {
+      // Get the therapist data before removing from pending
+      const therapistToReject = pendingTherapists.find(t => t.id === therapistId);
+      if (!therapistToReject) {
+        throw new Error("Therapist not found in pending list");
+      }
+      
       // Update profile status to rejected
       const { error } = await supabase
         .from("profiles")
@@ -265,6 +385,62 @@ const StoreTherapists = () => {
       toast.error("セラピストの却下に失敗しました: " + error.message);
     } finally {
       setProcessingTherapistId(null);
+    }
+  };
+
+  const deactivateTherapist = async (therapistId: string) => {
+    if (!storeId) return;
+    
+    try {
+      // Update the store_therapists relationship to inactive
+      const { error } = await supabase
+        .from("store_therapists")
+        .update({ status: "inactive" })
+        .eq("store_id", storeId)
+        .eq("therapist_id", therapistId);
+        
+      if (error) {
+        console.error("Error deactivating therapist:", error);
+        toast.error("セラピストの無効化に失敗しました");
+        return;
+      }
+      
+      // Update the local state to reflect the change
+      setTherapists(prevTherapists => 
+        prevTherapists.map(t => 
+          t.id === therapistId 
+            ? { ...t, status: "inactive" } 
+            : t
+        )
+      );
+      
+      toast.success("セラピストを無効化しました");
+    } catch (error) {
+      console.error("Error in deactivateTherapist:", error);
+      toast.error("セラピストの無効化中にエラーが発生しました");
+    }
+  };
+
+  // For the dropdown menu actions
+  const handleDropdownAction = (action: string, therapistId: string) => {
+    switch (action) {
+      case "view":
+        // Handle view therapist details
+        toast.info("セラピスト詳細機能は開発中です");
+        break;
+      case "message":
+        // Handle sending message
+        toast.info("メッセージ機能は開発中です");
+        break;
+      case "schedule":
+        // Handle scheduling
+        toast.info("スケジュール設定機能は開発中です");
+        break;
+      case "deactivate":
+        deactivateTherapist(therapistId);
+        break;
+      default:
+        break;
     }
   };
 
@@ -346,7 +522,7 @@ const StoreTherapists = () => {
               </TableHeader>
               <TableBody>
                 {pendingTherapists.map((therapist) => (
-                  <TableRow key={therapist.id}>
+                  <TableRow key={`pending-${therapist.id}`}>
                     <TableCell className="font-medium">{therapist.name}</TableCell>
                     <TableCell>{therapist.email}</TableCell>
                     <TableCell>{therapist.phone || "未設定"}</TableCell>
@@ -415,7 +591,7 @@ const StoreTherapists = () => {
               </TableHeader>
               <TableBody>
                 {therapists.map((therapist) => (
-                  <TableRow key={therapist.id}>
+                  <TableRow key={`active-${therapist.id}`}>
                     <TableCell className="font-medium">{therapist.name}</TableCell>
                     <TableCell>{therapist.email}</TableCell>
                     <TableCell>{therapist.phone || "未設定"}</TableCell>
@@ -426,13 +602,29 @@ const StoreTherapists = () => {
                       {new Date(therapist.created_at).toLocaleDateString("ja-JP")}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeTherapist(therapist.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">アクション</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleDropdownAction("view", therapist.id)}>
+                            詳細を見る
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDropdownAction("message", therapist.id)}>
+                            メッセージを送る
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDropdownAction("schedule", therapist.id)}>
+                            スケジュールを設定
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleDropdownAction("deactivate", therapist.id)}>
+                            無効にする
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -95,6 +94,41 @@ const Login = () => {
     }
   };
 
+  const handleLineLogin = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Use environment variable for the LINE client ID
+      const LINE_CLIENT_ID = process.env.REACT_APP_LINE_CLIENT_ID || "2007106410";
+      // Use a fixed redirect URI that matches your LINE developer console configuration
+      const REDIRECT_URI = "http://localhost:8080/line-callback";
+      
+      // Store the intent in sessionStorage for the callback handling
+      sessionStorage.setItem("line_auth_intent", "login");
+      
+      // Construct the LINE OAuth URL using LINE's v2.1 endpoint
+      const LINE_OAUTH_URL = 
+        `https://access.line.me/oauth2/v2.1/authorize?` + 
+        `response_type=code&` +
+        `client_id=${encodeURIComponent(LINE_CLIENT_ID)}&` +
+        `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
+        `state=login&` +
+        `scope=${encodeURIComponent("profile openid email")}&` +
+        `nonce=${encodeURIComponent(Math.random().toString(36).substring(2, 15))}&` +
+        `prompt=consent&` +
+        `bot_prompt=normal`;
+      
+      // Redirect the user to the LINE OAuth page
+      window.location.href = LINE_OAUTH_URL;
+    } catch (error) {
+      console.error("LINE login error:", error);
+      toast.error("LINEログイン中にエラーが発生しました", {
+        duration: 3000,
+      });
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container max-w-md py-12">
@@ -125,6 +159,7 @@ const Login = () => {
                 variant="outline" 
                 className="w-full flex items-center justify-center gap-2 border-gray-300 bg-[#06C755] text-white hover:bg-[#06C755]/90"
                 disabled={isLoading}
+                onClick={handleLineLogin}
               >
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path fillRule="evenodd" clipRule="evenodd" d="M18 7.7543C18 3.4748 13.9706 0 9 0C4.02944 0 0 3.4748 0 7.7543C0 11.6116 3.33687 14.8264 7.7625 15.5193C8.0886 15.5993 8.55 15.7619 8.66497 16.0335C8.76825 16.2819 8.73487 16.6699 8.7021 16.9183L8.60025 17.6378C8.56597 17.9265 8.40113 18.9058 9 18.5412C9.59887 18.1759 13.0223 15.957 14.6353 14.031C15.6661 12.8189 16.2 11.3583 16.2 9.83115H18V7.7543Z" fill="white"/>

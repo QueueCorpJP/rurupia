@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -173,10 +172,21 @@ interface NavItemProps {
 }
 
 const NavItem = ({ to, icon, label, isOpen, end }: NavItemProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (location.pathname !== to) {
+      navigate(to);
+    }
+  };
+
   return (
     <NavLink
       to={to}
       end={end}
+      onClick={handleClick}
       className={({ isActive }) => 
         cn(
           "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",

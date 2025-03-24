@@ -326,6 +326,7 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
             <div>
               <Label htmlFor="content">内容 <span className="text-destructive">*</span></Label>
               <Editor
+                apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
                 onInit={(evt, editor) => editorRef.current = editor}
                 initialValue={content}
                 init={{

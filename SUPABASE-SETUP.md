@@ -12,7 +12,23 @@ This document contains instructions to fix the Supabase configuration issues in 
 
 ## Setup Instructions
 
-### 1. Run SQL Commands
+### 1. Environment Variables
+
+1. Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+
+2. Get a free TinyMCE API key:
+   - Go to https://www.tiny.cloud/auth/signup/
+   - Create a free account
+   - Copy your API key
+   - Add it to your `.env` file:
+```
+VITE_TINYMCE_API_KEY=your-api-key-here
+```
+
+### 2. Run SQL Commands
 
 To fix the Supabase configuration, you need to run the SQL commands in `supabase-setup.sql`. Here's how:
 
@@ -27,7 +43,7 @@ The SQL script will:
 - Fix the blog_posts table RLS policies
 - Add RLS policies for page_views table
 
-### 2. Verify Admin User
+### 3. Verify Admin User
 
 Ensure your admin user has the correct user_type:
 
@@ -53,6 +69,7 @@ Check the browser console for error messages. Common issues:
 1. **403 Unauthorized**: You need to be logged in as an admin user
 2. **Storage bucket doesn't exist**: Run the SQL commands to create the bucket
 3. **RLS policy violation**: Make sure your user has admin privileges
+4. **TinyMCE errors**: Make sure you've added your TinyMCE API key to the `.env` file
 
 ### Page Views Not Loading
 
@@ -81,6 +98,9 @@ USING (
 
 ## Additional Information
 
-- The rich text editor uses TinyMCE, which requires an active internet connection
+- The rich text editor uses TinyMCE, which requires:
+  - An active internet connection
+  - A valid API key from https://www.tiny.cloud/
+  - The API key to be set in your `.env` file
 - All admin functions require a user with 'admin' user_type in the profiles table
 - Blog images are stored in the 'blog' storage bucket with public read access 

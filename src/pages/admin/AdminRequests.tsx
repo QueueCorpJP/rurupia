@@ -1,9 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseAdmin } from '@/integrations/supabase/admin-client';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { format } from 'date-fns';
 
 interface StoreRequest {
@@ -12,43 +13,79 @@ interface StoreRequest {
   email: string;
   date: string;
   status: string;
+  phone?: string;
+  address?: string;
+  description?: string;
 }
 
 const AdminRequests = () => {
   const { toast } = useToast();
+  const { isAdminAuthenticated, adminUserId } = useAdminAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [storeRequests, setStoreRequests] = useState<StoreRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<StoreRequest[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchStoreRequests();
-  }, []);
+    if (isAdminAuthenticated) {
+      console.log('Admin is authenticated, fetching store requests...');
+      fetchStoreRequests();
+    }
+  }, [isAdminAuthenticated]);
 
   const fetchStoreRequests = async () => {
     try {
       setIsLoading(true);
+      setErrorMessage(null);
       
-      const { data, error } = await supabase
+      console.log('Fetching store requests with adminUserId:', adminUserId);
+      
+      const { data, error } = await supabaseAdmin
         .from('stores')
-        .select('id, name, email, created_at, status')
+        .select(`
+          id,
+          name,
+          email,
+          created_at,
+          status,
+          phone,
+          address,
+          description
+        `)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching stores:', error);
+        setErrorMessage(`Error: ${error.message}`);
+        throw error;
+      }
       
-      if (data) {
+      console.log('Store data fetched:', data?.length || 0, 'records');
+      
+      if (data && data.length > 0) {
         const formattedRequests = data.map((store): StoreRequest => ({
           id: store.id,
-          name: store.name,
-          email: store.email,
+          name: store.name || 'No Name',
+          email: store.email || 'No Email',
           date: format(new Date(store.created_at), 'yyyy/MM/dd HH:mm'),
-          status: store.status
+          status: store.status || 'pending',
+          phone: store.phone,
+          address: store.address,
+          description: store.description
         }));
+        
+        console.log('Formatted store requests:', formattedRequests.length);
         
         setStoreRequests(formattedRequests);
         setFilteredRequests(formattedRequests);
+      } else {
+        console.log('No store data found or empty result');
+        setStoreRequests([]);
+        setFilteredRequests([]);
       }
     } catch (error) {
       console.error('Error fetching store requests:', error);
+      setErrorMessage(`Failed to fetch store data: ${error instanceof Error ? error.message : 'Unknown error'}`);
       toast({
         title: 'エラー',
         description: '店舗データの取得に失敗しました',
@@ -100,7 +137,7 @@ const AdminRequests = () => {
 
   const updateStoreStatus = async (storeId: string, status: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('stores')
         .update({ status })
         .eq('id', storeId);
@@ -173,7 +210,13 @@ const AdminRequests = () => {
       onClick: (request: StoreRequest) => {
         toast({
           title: "リクエスト詳細",
-          description: `${request.name}の詳細を表示します`,
+          description: `
+            店舗名: ${request.name}
+            メール: ${request.email}
+            電話: ${request.phone || '未設定'}
+            住所: ${request.address || '未設定'}
+            説明: ${request.description || '未設定'}
+          `,
         });
       } 
     },
@@ -238,14 +281,21 @@ const AdminRequests = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">店舗一覧</h1>
-        <p className="text-muted-foreground mt-2">システムに登録されている店舗の管理</p>
+        <h1 className="text-3xl font-bold tracking-tight">店舗申請</h1>
+        <p className="text-muted-foreground mt-2">店舗登録のリクエスト管理</p>
       </div>
+      
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">エラー: </strong>
+          <span className="block sm:inline">{errorMessage}</span>
+        </div>
+      )}
       
       <DataTable 
         columns={columns}
         data={filteredRequests}
-        searchPlaceholder="店舗名やIDで検索"
+        searchPlaceholder="店舗名、ID、またはメールで検索"
         sortOptions={sortOptions}
         onSearchChange={handleSearch}
         onSortChange={handleSortChange}

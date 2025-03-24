@@ -59,62 +59,37 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   useEffect(() => {
     fetchCategories();
     checkAdminStatus();
-    ensureBlogStorageBucket();
   }, []);
 
   const checkAdminStatus = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        toast.error('認証セッションが見つかりません。再ログインしてください。');
+        return;
+      }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('user_type')
         .eq('id', session.user.id)
         .single();
 
+      if (profileError) {
+        console.error('Error checking admin status:', profileError);
+        toast.error('ユーザープロファイルの取得に失敗しました');
+        return;
+      }
+
       if (profile && profile.user_type === 'admin') {
         setIsAdmin(true);
+        console.log('Admin status verified');
+      } else {
+        toast.error('管理者権限がありません');
       }
     } catch (error) {
       console.error('Error checking admin status:', error);
-    }
-  };
-
-  const ensureBlogStorageBucket = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No active session, skipping bucket creation');
-        return;
-      }
-
-      // Check if the bucket already exists
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      
-      if (bucketsError) {
-        console.error('Error checking storage buckets:', bucketsError);
-        return;
-      }
-      
-      // Check if the blog bucket exists
-      const blogBucketExists = buckets?.some(bucket => bucket.name === 'blog');
-      
-      if (!blogBucketExists) {
-        // Create the blog bucket if it doesn't exist
-        const { error: createError } = await supabase.storage.createBucket('blog', {
-          public: true,
-          fileSizeLimit: 5242880, // 5MB file size limit
-        });
-        
-        if (createError) {
-          console.error('Error creating blog storage bucket:', createError);
-        } else {
-          console.log('Blog storage bucket created successfully');
-        }
-      }
-    } catch (error) {
-      console.error('Error in storage setup:', error);
+      toast.error('権限の確認中にエラーが発生しました');
     }
   };
   
@@ -143,6 +118,20 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('画像サイズは5MB以下である必要があります');
+        return;
+      }
+      
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast.error('対応している画像形式: JPG, PNG, GIF, WebP');
+        return;
+      }
+      
       setImageFile(file);
       
       // Create preview URL
@@ -168,7 +157,15 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim() || !editorRef.current.getContent().trim() || !excerpt.trim() || !categoryId) {
+    // Check if TinyMCE editor is initialized
+    if (!editorRef.current) {
+      toast.error('エディタの初期化に失敗しました。ページを再読み込みしてください。');
+      return;
+    }
+    
+    const editorContent = editorRef.current.getContent();
+    
+    if (!title.trim() || !editorContent.trim() || !excerpt.trim() || !categoryId) {
       toast.error('必須項目を入力してください');
       return;
     }
@@ -181,6 +178,14 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
     setIsSubmitting(true);
     
     try {
+      // First check if the session is valid
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('セッションが無効です。再ログインしてください。');
+        setIsSubmitting(false);
+        return;
+      }
+      
       // First upload the image if we have a new one
       let coverImageUrl = coverImage;
       
@@ -189,14 +194,30 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = `blog/${fileName}`;
         
-        const { error: uploadError } = await supabase.storage
-          .from('blog')
-          .upload(filePath, imageFile);
+        try {
+          const { error: uploadError, data: uploadData } = await supabase.storage
+            .from('blog')
+            .upload(filePath, imageFile);
+            
+          if (uploadError) {
+            console.error('Image upload error:', uploadError);
+            if (uploadError.message.includes('row-level security')) {
+              toast.error('画像のアップロードには管理者権限が必要です');
+            } else {
+              toast.error(`画像のアップロードに失敗しました: ${uploadError.message}`);
+            }
+            setIsSubmitting(false);
+            return;
+          }
           
-        if (uploadError) throw uploadError;
-        
-        const { data: urlData } = supabase.storage.from('blog').getPublicUrl(filePath);
-        coverImageUrl = urlData.publicUrl;
+          const { data: urlData } = supabase.storage.from('blog').getPublicUrl(filePath);
+          coverImageUrl = urlData.publicUrl;
+        } catch (uploadError) {
+          console.error('Image upload exception:', uploadError);
+          toast.error('画像のアップロード中にエラーが発生しました');
+          setIsSubmitting(false);
+          return;
+        }
       }
       
       // Get the category name for the selected category ID
@@ -210,9 +231,6 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       
       // Format the date for Supabase
       const scheduledForISOString = scheduledFor ? scheduledFor.toISOString() : null;
-      
-      // Get content from TinyMCE
-      const editorContent = editorRef.current.getContent();
       
       // Create the post data object
       const postData = {
@@ -236,7 +254,16 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
           .update(postData)
           .eq('id', initialData.id);
           
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating blog post:', updateError);
+          if (updateError.message.includes('row-level security')) {
+            toast.error('ブログ記事の更新には管理者権限が必要です');
+          } else {
+            toast.error(`ブログ記事の更新に失敗しました: ${updateError.message}`);
+          }
+          setIsSubmitting(false);
+          return;
+        }
         
         toast.success('ブログ記事を更新しました');
       } else {
@@ -245,7 +272,16 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
           .from('blog_posts')
           .insert(postData);
           
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Error creating blog post:', insertError);
+          if (insertError.message.includes('row-level security')) {
+            toast.error('ブログ記事の作成には管理者権限が必要です');
+          } else {
+            toast.error(`ブログ記事の作成に失敗しました: ${insertError.message}`);
+          }
+          setIsSubmitting(false);
+          return;
+        }
         
         toast.success('ブログ記事を作成しました');
       }
@@ -341,7 +377,9 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     'bold italic forecolor | alignleft aligncenter ' +
                     'alignright alignjustify | bullist numlist outdent indent | ' +
                     'removeformat | help',
-                  content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
+                  content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+                  branding: false,
+                  promotion: false
                 }}
               />
             </div>

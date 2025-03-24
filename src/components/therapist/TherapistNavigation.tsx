@@ -6,7 +6,7 @@ import { Home, Calendar, MessageSquare, FileText, Settings, User } from "lucide-
 
 const TherapistNavigation = () => {
   const location = useLocation();
-  const [currentPath, setCurrentPath] = useState(location.pathname);
+  const [currentPath, setCurrentPath] = useState("");
 
   useEffect(() => {
     if (location && location.pathname) {
@@ -16,7 +16,7 @@ const TherapistNavigation = () => {
 
   const isActive = (path: string) => {
     if (!currentPath) return false;
-    return currentPath === path || currentPath.startsWith(path);
+    return currentPath === path || (typeof currentPath === 'string' && currentPath.startsWith(path));
   };
 
   const navItems = [

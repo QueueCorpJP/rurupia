@@ -52,12 +52,12 @@ export const TherapistBookingRequests = ({ therapistId }: TherapistBookingReques
             hour: '2-digit',
             minute: '2-digit'
           }),
-          servicePrice: booking.price,
+          servicePrice: booking.price || 0,
           serviceLocation: booking.location || "未指定",
           // Handle the case where meeting_method might not exist in the database
-          meetingMethod: booking.notes?.includes("meetup") ? "meetup" : 
-                       booking.notes?.includes("hotel") ? "hotel" : 
-                       booking.notes?.includes("home") ? "home" : "meetup",
+          meetingMethod: booking.notes && typeof booking.notes === 'string' && booking.notes.includes("meetup") ? "meetup" : 
+                       booking.notes && typeof booking.notes === 'string' && booking.notes.includes("hotel") ? "hotel" : 
+                       booking.notes && typeof booking.notes === 'string' && booking.notes.includes("home") ? "home" : "meetup",
           status: booking.status === 'pending' ? "承認待ち" : 
                 booking.status === 'confirmed' ? "確定" : 
                 booking.status === 'cancelled' ? "キャンセル" : "完了",

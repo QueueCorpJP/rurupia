@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Editor } from '@tinymce/tinymce-react';
 
 interface Category {
   id: string;
@@ -53,10 +53,70 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authorName, setAuthorName] = useState(initialData?.author_name || '管理者');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const editorRef = useRef<any>(null);
   
   useEffect(() => {
     fetchCategories();
+    checkAdminStatus();
+    ensureBlogStorageBucket();
   }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile && profile.user_type === 'admin') {
+        setIsAdmin(true);
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
+
+  const ensureBlogStorageBucket = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No active session, skipping bucket creation');
+        return;
+      }
+
+      // Check if the bucket already exists
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error checking storage buckets:', bucketsError);
+        return;
+      }
+      
+      // Check if the blog bucket exists
+      const blogBucketExists = buckets?.some(bucket => bucket.name === 'blog');
+      
+      if (!blogBucketExists) {
+        // Create the blog bucket if it doesn't exist
+        const { error: createError } = await supabase.storage.createBucket('blog', {
+          public: true,
+          fileSizeLimit: 5242880, // 5MB file size limit
+        });
+        
+        if (createError) {
+          console.error('Error creating blog storage bucket:', createError);
+        } else {
+          console.log('Blog storage bucket created successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error in storage setup:', error);
+    }
+  };
   
   const fetchCategories = async () => {
     try {
@@ -108,8 +168,13 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim() || !content.trim() || !excerpt.trim() || !categoryId) {
+    if (!title.trim() || !editorRef.current.getContent().trim() || !excerpt.trim() || !categoryId) {
       toast.error('必須項目を入力してください');
+      return;
+    }
+
+    if (!isAdmin) {
+      toast.error('ブログ記事の作成・編集には管理者権限が必要です');
       return;
     }
     
@@ -146,10 +211,13 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       // Format the date for Supabase
       const scheduledForISOString = scheduledFor ? scheduledFor.toISOString() : null;
       
+      // Get content from TinyMCE
+      const editorContent = editorRef.current.getContent();
+      
       // Create the post data object
       const postData = {
         title,
-        content,
+        content: editorContent,
         excerpt,
         slug,
         cover_image: coverImageUrl,
@@ -190,7 +258,9 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       // Reset form if creating a new post
       if (!initialData) {
         setTitle('');
-        setContent('');
+        if (editorRef.current) {
+          editorRef.current.setContent('');
+        }
         setExcerpt('');
         setCoverImage('');
         setImageFile(null);
@@ -255,14 +325,23 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
             
             <div>
               <Label htmlFor="content">内容 <span className="text-destructive">*</span></Label>
-              <Textarea 
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="記事の内容を入力"
-                rows={15}
-                required
-                className="min-h-[250px]"
+              <Editor
+                onInit={(evt, editor) => editorRef.current = editor}
+                initialValue={content}
+                init={{
+                  height: 400,
+                  menubar: true,
+                  plugins: [
+                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                    'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                  ],
+                  toolbar: 'undo redo | blocks | ' +
+                    'bold italic forecolor | alignleft aligncenter ' +
+                    'alignright alignjustify | bullist numlist outdent indent | ' +
+                    'removeformat | help',
+                  content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
+                }}
               />
             </div>
             

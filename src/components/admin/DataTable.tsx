@@ -20,7 +20,8 @@ import {
 export interface Column {
   key: string;
   label: string;
-  render?: (value: any) => React.ReactNode;
+  accessorKey?: string;
+  render?: (data: any) => React.ReactNode;
 }
 
 interface DataTableProps {
@@ -59,6 +60,27 @@ export function DataTable({
   const handleRowClick = (row: any) => {
     if (onRowClick) {
       onRowClick(row);
+    }
+  };
+
+  // Helper function to safely get cell content
+  const getCellContent = (column: Column, row: any) => {
+    try {
+      // If column has a render function, call it with the row data
+      if (column.render) {
+        return column.render({ row });
+      }
+      
+      // If using accessorKey, get the value from row using that key
+      if (column.accessorKey && row) {
+        return row[column.accessorKey];
+      }
+      
+      // Fallback to using the column key
+      return row ? row[column.key] : null;
+    } catch (error) {
+      console.error(`Error rendering cell for column ${column.key}:`, error);
+      return 'Error';
     }
   };
 
@@ -127,7 +149,7 @@ export function DataTable({
                 >
                   {columns.map((column) => (
                     <TableCell key={column.key}>
-                      {column.render ? column.render(row[column.key]) : row[column.key]}
+                      {getCellContent(column, row)}
                     </TableCell>
                   ))}
                   {actionMenuItems && (

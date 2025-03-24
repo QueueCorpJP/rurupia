@@ -161,7 +161,7 @@ const AdminBlog = () => {
     },
     {
       key: "author_name",
-      label: "著者",
+      label: "作成者",
       accessorKey: "author_name"
     },
     {
@@ -173,20 +173,32 @@ const AdminBlog = () => {
       key: "published_at",
       label: "公開日",
       accessorKey: "published_at",
-      render: ({ row }: any) => {
-        const date = row?.published_at ? new Date(row.published_at) : null;
-        return date ? format(date, "yyyy/MM/dd") : "-";
+      render: (data: any) => {
+        // Safely access data - check if it exists before destructuring
+        if (!data) return "-";
+        
+        // Now we can safely destructure
+        const { row } = data;
+        if (!row || !row.published_at) return "-";
+        
+        const date = new Date(row.published_at);
+        return format(date, "yyyy/MM/dd");
       }
     },
     {
       key: "status",
       label: "ステータス",
       accessorKey: "published",
-      render: ({ row }: any) => (
-        <StatusBadge 
-          status={row?.published ? "公開中" : "下書き"} 
-        />
-      )
+      render: (data: any) => {
+        // Safely access data
+        if (!data || !data.row) return null;
+        
+        return (
+          <StatusBadge 
+            status={data.row.published ? "公開中" : "下書き"} 
+          />
+        );
+      }
     },
     {
       key: "views",
@@ -196,24 +208,36 @@ const AdminBlog = () => {
     {
       key: "actions",
       label: "操作",
-      render: ({ row }: any) => (
-        <div className="flex space-x-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => handleEditPost(row.id)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => confirmDelete(row.id)}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        </div>
-      )
+      render: (data: any) => {
+        // Safely access data
+        if (!data || !data.row) return null;
+        
+        return (
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => {
+                setSelectedPost(data.row);
+                setActiveTab("editor");
+              }}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-destructive hover:text-destructive"
+              onClick={() => {
+                setSelectedPostId(data.row.id);
+                setIsDeleteDialogOpen(true);
+              }}
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      }
     }
   ];
 

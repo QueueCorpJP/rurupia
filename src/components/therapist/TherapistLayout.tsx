@@ -1,14 +1,37 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { LogOut, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import TherapistNavigation from "./TherapistNavigation";
 
 interface TherapistLayoutProps {
   children: ReactNode;
 }
 
 export const TherapistLayout = ({ children }: TherapistLayoutProps) => {
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      toast.success("ログアウトしました");
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("ログアウトに失敗しました");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -27,19 +50,34 @@ export const TherapistLayout = ({ children }: TherapistLayoutProps) => {
                 トップページ
               </Button>
             </Link>
-            <Button variant="outline" size="sm" className="rounded-full border-pink-200">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="rounded-full border-pink-200"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
               <LogOut className="h-4 w-4 mr-2" />
-              ログアウト
+              {isLoggingOut ? "処理中..." : "ログアウト"}
             </Button>
           </div>
         </div>
       </header>
 
       <div className="container py-8">
-        {/* Main content */}
-        <main className="bg-white rounded-2xl shadow-sm border border-pink-100 p-6">
-          {children}
-        </main>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="md:col-span-1">
+            <div className="bg-white rounded-lg border border-pink-100 p-4 sticky top-24">
+              <TherapistNavigation />
+            </div>
+          </div>
+          
+          {/* Main content */}
+          <main className="md:col-span-3 bg-white rounded-lg shadow-sm border border-pink-100 p-6">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );

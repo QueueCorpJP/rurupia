@@ -7,38 +7,43 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const TherapistProfile = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [therapistData, setTherapistData] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuth = async () => {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/therapist-login');
-        return;
-      }
-      setUserId(user.id);
-      
       try {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log("No user found, redirecting to login");
+          navigate('/therapist-login');
+          return;
+        }
+        
+        setUserId(user.id);
+        
         // Fetch therapist data
         const { data, error } = await supabase
           .from('therapists')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (error && !error.message.includes('No rows found')) {
-          throw error;
+        if (error) {
+          console.error('Error fetching therapist profile:', error);
+          if (!error.message.includes('No rows found')) {
+            throw error;
+          }
         }
         
-        if (data) {
-          setTherapistData(data);
-        }
+        console.log("Therapist data fetched:", data);
+        setTherapistData(data || { id: user.id });
       } catch (error) {
-        console.error('Error fetching therapist profile:', error);
+        console.error('Error in checkAuth:', error);
         toast.error('プロフィール情報の取得に失敗しました');
       } finally {
         setLoading(false);
@@ -51,8 +56,9 @@ const TherapistProfile = () => {
   if (loading) {
     return (
       <TherapistLayout>
-        <div className="container py-8">
-          <p className="text-center">読み込み中...</p>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <span className="ml-3">読み込み中...</span>
         </div>
       </TherapistLayout>
     );
@@ -60,7 +66,8 @@ const TherapistProfile = () => {
 
   return (
     <TherapistLayout>
-      <div className="container max-w-4xl py-12">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">プロフィール編集</h1>
         <TherapistProfileForm 
           existingData={therapistData} 
           onSuccess={(data) => {

@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
@@ -34,6 +35,10 @@ import TherapistLogin from './pages/TherapistLogin';
 import TherapistSignup from './pages/TherapistSignup';
 import TherapistDashboard from './pages/TherapistDashboard';
 import TherapistProfile from './pages/TherapistProfile';
+import TherapistBookings from './pages/TherapistBookings';
+import TherapistMessages from './pages/TherapistMessages';
+import TherapistPosts from './pages/TherapistPosts';
+import TherapistSettings from './pages/TherapistSettings';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSettings from './pages/admin/AdminSettings';
@@ -91,6 +96,10 @@ function App() {
         <Route path="/therapist-signup" element={<TherapistSignup />} />
         <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
         <Route path="/therapist-profile" element={<TherapistProfile />} />
+        <Route path="/therapist-bookings" element={<TherapistBookings />} />
+        <Route path="/therapist-messages" element={<TherapistMessages />} />
+        <Route path="/therapist-posts" element={<TherapistPosts />} />
+        <Route path="/therapist-settings" element={<TherapistSettings />} />
         
         {/* Admin Auth Route */}
         <Route path="/admin-auth" element={<AdminAuth />} />

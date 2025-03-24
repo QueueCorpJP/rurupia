@@ -156,30 +156,44 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submission started');
     
     // Check if TinyMCE editor is initialized
     if (!editorRef.current) {
+      console.log('Editor not initialized');
       toast.error('エディタの初期化に失敗しました。ページを再読み込みしてください。');
       return;
     }
     
-    const editorContent = editorRef.current.getContent();
-    
-    if (!title.trim() || !editorContent.trim() || !excerpt.trim() || !categoryId) {
-      toast.error('必須項目を入力してください');
-      return;
-    }
-
-    if (!isAdmin) {
-      toast.error('ブログ記事の作成・編集には管理者権限が必要です');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
     try {
+      const editorContent = editorRef.current.getContent();
+      console.log('Editor content retrieved:', editorContent.substring(0, 50) + '...');
+      
+      if (!title.trim() || !editorContent.trim() || !excerpt.trim() || !categoryId) {
+        console.log('Missing required fields:', {
+          titleEmpty: !title.trim(),
+          contentEmpty: !editorContent.trim(),
+          excerptEmpty: !excerpt.trim(),
+          categoryEmpty: !categoryId
+        });
+        toast.error('必須項目を入力してください');
+        return;
+      }
+
+      if (!isAdmin) {
+        console.log('User is not admin');
+        toast.error('ブログ記事の作成・編集には管理者権限が必要です');
+        return;
+      }
+      
+      console.log('Validation passed, setting isSubmitting');
+      setIsSubmitting(true);
+      
       // First check if the session is valid
+      console.log('Checking session');
       const { data: { session } } = await supabase.auth.getSession();
+      
+      console.log('Session check result:', session ? 'Session active' : 'No active session');
       if (!session) {
         toast.error('セッションが無効です。再ログインしてください。');
         setIsSubmitting(false);
@@ -190,17 +204,19 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       let coverImageUrl = coverImage;
       
       if (imageFile) {
+        console.log('Starting image upload');
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = `blog/${fileName}`;
         
         try {
+          console.log('Uploading to path:', filePath);
           const { error: uploadError, data: uploadData } = await supabase.storage
             .from('blog')
             .upload(filePath, imageFile);
             
           if (uploadError) {
-            console.error('Image upload error:', uploadError);
+            console.error('Image upload error details:', JSON.stringify(uploadError));
             if (uploadError.message.includes('row-level security')) {
               toast.error('画像のアップロードには管理者権限が必要です');
             } else {
@@ -210,8 +226,10 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
             return;
           }
           
+          console.log('Image uploaded successfully, getting URL');
           const { data: urlData } = supabase.storage.from('blog').getPublicUrl(filePath);
           coverImageUrl = urlData.publicUrl;
+          console.log('Image public URL:', coverImageUrl);
         } catch (uploadError) {
           console.error('Image upload exception:', uploadError);
           toast.error('画像のアップロード中にエラーが発生しました');
@@ -222,12 +240,14 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       
       // Get the category name for the selected category ID
       const selectedCategory = categories.find(cat => cat.id === categoryId);
+      console.log('Selected category:', selectedCategory?.name);
       
       // Generate a slug from the title
       const slug = title
         .toLowerCase()
         .replace(/[^\w\s]/gi, '')
         .replace(/\s+/gi, '-') + '-' + Date.now().toString().slice(-4);
+      console.log('Generated slug:', slug);
       
       // Format the date for Supabase
       const scheduledForISOString = scheduledFor ? scheduledFor.toISOString() : null;
@@ -247,7 +267,10 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
         author_name: authorName,
       };
       
+      console.log('Post data prepared:', { ...postData, content: postData.content.substring(0, 50) + '...' });
+      
       if (initialData?.id) {
+        console.log('Updating existing post with ID:', initialData.id);
         // Update existing post
         const { error: updateError } = await supabase
           .from('blog_posts')
@@ -256,6 +279,7 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
           
         if (updateError) {
           console.error('Error updating blog post:', updateError);
+          console.error('Full error details:', JSON.stringify(updateError));
           if (updateError.message.includes('row-level security')) {
             toast.error('ブログ記事の更新には管理者権限が必要です');
           } else {
@@ -265,15 +289,20 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
           return;
         }
         
+        console.log('Post updated successfully');
         toast.success('ブログ記事を更新しました');
       } else {
+        console.log('Creating new blog post');
         // Create new post
-        const { error: insertError } = await supabase
+        const { error: insertError, data: insertData } = await supabase
           .from('blog_posts')
           .insert(postData);
           
+        console.log('Insert response:', insertData);
+          
         if (insertError) {
           console.error('Error creating blog post:', insertError);
+          console.error('Full error details:', JSON.stringify(insertError));
           if (insertError.message.includes('row-level security')) {
             toast.error('ブログ記事の作成には管理者権限が必要です');
           } else {
@@ -283,16 +312,19 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
           return;
         }
         
+        console.log('Post created successfully');
         toast.success('ブログ記事を作成しました');
       }
       
       // Call onSuccess callback if provided
       if (onSuccess) {
+        console.log('Calling onSuccess callback');
         onSuccess();
       }
       
       // Reset form if creating a new post
       if (!initialData) {
+        console.log('Resetting form fields');
         setTitle('');
         if (editorRef.current) {
           editorRef.current.setContent('');
@@ -309,8 +341,10 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       
     } catch (error) {
       console.error('Error saving blog post:', error);
+      console.error('Full error details:', error instanceof Error ? error.stack : JSON.stringify(error));
       toast.error('ブログ記事の保存に失敗しました');
     } finally {
+      console.log('Form submission completed');
       setIsSubmitting(false);
     }
   };

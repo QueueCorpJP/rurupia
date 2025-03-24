@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { supabaseAdmin } from '@/integrations/supabase/admin-client';
+// Remove the admin client to avoid circular dependency issues
+// import { supabaseAdmin } from '@/integrations/supabase/admin-client';
 
 interface AdminAuthContextType {
   isAdminAuthenticated: boolean;
@@ -37,8 +38,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       // First sign out any existing session to avoid conflicts
       await supabase.auth.signOut();
 
-      // Use a direct query to get admin users
-      const { data: profiles, error } = await supabaseAdmin
+      // Use regular client with RLS policies instead of admin client
+      // This relies on having proper RLS policies configured for admin users
+      const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_type', 'admin')

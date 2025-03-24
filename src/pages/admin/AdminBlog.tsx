@@ -38,6 +38,11 @@ const AdminBlog = () => {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [activeTab, setActiveTab] = useState("posts");
+  
+  // Debug form states
+  const [debugTitle, setDebugTitle] = useState("Test Post");
+  const [debugCategory, setDebugCategory] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchBlogData();
@@ -212,6 +217,82 @@ const AdminBlog = () => {
     }
   ];
 
+  const handleSimplePostCreation = async () => {
+    if (!debugTitle || !debugCategory) {
+      toast({
+        title: "Error",
+        description: "Title and category are required",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    console.log("Starting simple blog post creation");
+    
+    try {
+      // Check session
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Session check:", session ? "Session exists" : "No session");
+      
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "No active session",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Create a minimal blog post
+      const postData = {
+        title: debugTitle,
+        content: "<p>This is a test blog post created with the debug form.</p>",
+        excerpt: "Test excerpt",
+        slug: `test-post-${Date.now()}`,
+        category_id: debugCategory,
+        category: categories.find(c => c.id === debugCategory)?.name || "",
+        published: true,
+        author_name: "Debug Author"
+      };
+      
+      console.log("Preparing to insert post:", postData);
+      
+      const { data: insertData, error: insertError } = await supabase
+        .from('blog_posts')
+        .insert(postData)
+        .select();
+      
+      console.log("Insert response:", insertData);
+        
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        console.error("Error details:", JSON.stringify(insertError));
+        toast({
+          title: "Error creating post",
+          description: insertError.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Blog post created successfully"
+        });
+        fetchBlogData();
+      }
+    } catch (error) {
+      console.error("Simple post creation error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -295,6 +376,53 @@ const AdminBlog = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Debug Section - Add this before the end of the component */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Debug Tools</CardTitle>
+          <CardDescription>
+            Simple tools to test blog post creation
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="text-sm font-medium">Title</label>
+              <Input 
+                value={debugTitle}
+                onChange={(e) => setDebugTitle(e.target.value)}
+                placeholder="Test title"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Category</label>
+              {categories.length > 0 ? (
+                <select 
+                  value={debugCategory} 
+                  onChange={(e) => setDebugCategory(e.target.value)}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="">Select category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p>No categories available</p>
+              )}
+            </div>
+            <Button
+              onClick={handleSimplePostCreation}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Simple Test Post"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

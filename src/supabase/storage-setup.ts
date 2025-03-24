@@ -26,22 +26,9 @@ export async function ensureBlogStorageBucket() {
     } else {
       console.log('Blog storage bucket created successfully');
       
-      // Set up a policy to allow authenticated users to upload
-      const { error: policyError } = await supabase.storage.from('blog').createPolicy(
-        'authenticated-can-upload',
-        {
-          name: 'authenticated-can-upload',
-          definition: {
-            in: ['INSERT'],
-            roleName: 'authenticated',
-            predicate: 'true'
-          }
-        }
-      );
-      
-      if (policyError) {
-        console.error('Error creating upload policy:', policyError);
-      }
+      // Set up public access policies using SQL through Edge Functions or manually
+      // Note: createPolicy method was removed, so we'll handle this differently
+      console.log('Note: Please set up bucket policies manually in the Supabase dashboard');
     }
   }
 }

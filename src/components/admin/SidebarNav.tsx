@@ -1,9 +1,9 @@
+
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, 
   Users, 
-  Store, 
   HelpCircle, 
   Settings, 
   Newspaper, 
@@ -22,7 +22,6 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
   const navItems = [
     { title: 'ダッシュボード', href: '/admin', icon: LayoutDashboard },
     { title: 'アカウント管理', href: '/admin/accounts', icon: Users },
-    { title: '店舗管理', href: '/admin/store', icon: Store },
     { title: '店舗一覧', href: '/admin/requests', icon: ListChecks },
     { title: 'お問い合わせ', href: '/admin/inquiries', icon: HelpCircle },
     { title: 'ブログ管理', href: '/admin/blog', icon: Newspaper },

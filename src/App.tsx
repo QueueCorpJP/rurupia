@@ -43,7 +43,6 @@ import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminAccounts from './pages/admin/AdminAccounts';
-import AdminStoreManagement from './pages/admin/AdminStoreManagement';
 import AdminBlog from './pages/admin/AdminBlog';
 import AdminInquiries from './pages/admin/AdminInquiries';
 import AdminRequests from './pages/admin/AdminRequests';
@@ -110,7 +109,6 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="accounts" element={<AdminAccounts />} />
-            <Route path="store-management" element={<AdminStoreManagement />} />
             <Route path="blog" element={<AdminBlog />} />
             <Route path="inquiries" element={<AdminInquiries />} />
             <Route path="requests" element={<AdminRequests />} />

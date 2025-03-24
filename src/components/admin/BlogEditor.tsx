@@ -1,477 +1,394 @@
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { toast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
-import { Calendar as CalendarIcon, Check, FileImage, Image, Loader2, Save } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from '@/components/ui/popover';
 import { format } from 'date-fns';
-
-interface BlogEditorProps {
-  onSave: () => void;
-  postId?: string;
-}
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Category {
   id: string;
   name: string;
 }
 
-interface BlogFormValues {
-  title: string;
-  content: string;
-  category_id: string;
-  excerpt: string;
-  cover_image: string | null;
-  tags: string;
-  published: boolean;
-  scheduled_for: Date | null;
+interface BlogEditorProps {
+  onSuccess?: () => void;
+  initialData?: any;
 }
 
-export function BlogEditor({ onSave, postId }: BlogEditorProps) {
-  const [loading, setLoading] = useState(false);
+export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [content, setContent] = useState(initialData?.content || '');
+  const [excerpt, setExcerpt] = useState(initialData?.excerpt || '');
+  const [coverImage, setCoverImage] = useState(initialData?.cover_image || '');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
+  const [tags, setTags] = useState<string[]>(initialData?.tags || []);
+  const [tagInput, setTagInput] = useState('');
+  const [isPublished, setIsPublished] = useState(initialData?.published || false);
+  const [scheduledFor, setScheduledFor] = useState<Date | undefined>(
+    initialData?.scheduled_for ? new Date(initialData.scheduled_for) : undefined
+  );
   const [categories, setCategories] = useState<Category[]>([]);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-
-  const form = useForm<BlogFormValues>({
-    defaultValues: {
-      title: '',
-      content: '',
-      category_id: '',
-      excerpt: '',
-      cover_image: null,
-      tags: '',
-      published: false,
-      scheduled_for: null,
-    }
-  });
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authorName, setAuthorName] = useState(initialData?.author_name || '管理者');
+  
   useEffect(() => {
-    // Fetch categories
-    async function fetchCategories() {
-      try {
-        const { data, error } = await supabase
-          .from('blog_categories')
-          .select('id, name');
-        
-        if (error) throw error;
-        
-        if (data) {
-          setCategories(data);
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        toast({
-          title: 'エラー',
-          description: 'カテゴリを取得できませんでした。',
-          variant: 'destructive',
-        });
-      }
-    }
-
     fetchCategories();
-
-    // If editing an existing post, fetch its data
-    if (postId) {
-      fetchPost(postId);
-    }
-  }, [postId]);
-
-  const fetchPost = async (id: string) => {
-    setLoading(true);
+  }, []);
+  
+  const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
+        .from('blog_categories')
+        .select('id, name')
+        .order('name');
+        
       if (error) throw error;
       
       if (data) {
-        form.reset({
-          title: data.title,
-          content: data.content,
-          category_id: data.category_id || '',
-          excerpt: data.excerpt,
-          cover_image: data.cover_image,
-          tags: data.tags ? data.tags.join(', ') : '',
-          published: data.published || false,
-          scheduled_for: data.scheduled_for ? new Date(data.scheduled_for) : null,
-        });
-
-        if (data.cover_image) {
-          setImagePreview(data.cover_image);
+        setCategories(data);
+        // If no category selected and we have categories, select the first one
+        if (!categoryId && data.length > 0) {
+          setCategoryId(data[0].id);
         }
       }
     } catch (error) {
-      console.error('Error fetching post:', error);
-      toast({
-        title: 'エラー',
-        description: '投稿データを取得できませんでした。',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error fetching categories:', error);
+      toast.error('カテゴリの取得に失敗しました');
     }
   };
-
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    
-    const file = e.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `blog/${fileName}`;
-    
-    setUploadingImage(true);
-    
-    try {
-      // Upload the file
-      const { error: uploadError } = await supabase.storage
-        .from('blog')
-        .upload(filePath, file);
+  
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
       
-      if (uploadError) throw uploadError;
-      
-      // Get the public URL
-      const { data } = supabase.storage
-        .from('blog')
-        .getPublicUrl(filePath);
-      
-      setImagePreview(data.publicUrl);
-      form.setValue('cover_image', data.publicUrl);
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({
-        title: 'エラー',
-        description: '画像のアップロードに失敗しました。',
-        variant: 'destructive',
-      });
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const onSubmit = async (values: BlogFormValues) => {
-    setLoading(true);
-    
-    try {
-      // Convert comma-separated tags to array
-      const tagsArray = values.tags.split(',')
-        .map(tag => tag.trim())
-        .filter(tag => tag !== '');
-      
-      const postData = {
-        title: values.title,
-        content: values.content,
-        category_id: values.category_id,
-        excerpt: values.excerpt,
-        cover_image: values.cover_image,
-        tags: tagsArray,
-        published: values.published,
-        scheduled_for: values.scheduled_for,
-        author_name: 'Admin', // This should be replaced with the actual user name
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
       };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleAddTag = () => {
+    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+      setTags([...tags, tagInput.trim()]);
+      setTagInput('');
+    }
+  };
+  
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!title.trim() || !content.trim() || !excerpt.trim() || !categoryId) {
+      toast.error('必須項目を入力してください');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // First upload the image if we have a new one
+      let coverImageUrl = coverImage;
       
-      let result;
-      
-      if (postId) {
-        // Update existing post
-        result = await supabase
-          .from('blog_posts')
-          .update(postData)
-          .eq('id', postId);
-      } else {
-        // Insert new post
-        result = await supabase
-          .from('blog_posts')
-          .insert(postData);
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        const filePath = `blog/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('blog')
+          .upload(filePath, imageFile);
+          
+        if (uploadError) throw uploadError;
+        
+        const { data: urlData } = supabase.storage.from('blog').getPublicUrl(filePath);
+        coverImageUrl = urlData.publicUrl;
       }
       
-      if (result.error) throw result.error;
+      // Get the category name for the selected category ID
+      const selectedCategory = categories.find(cat => cat.id === categoryId);
       
-      toast({
-        title: '成功',
-        description: postId ? '投稿が更新されました。' : '新しい投稿が作成されました。',
-      });
+      // Generate a slug from the title
+      const slug = title
+        .toLowerCase()
+        .replace(/[^\w\s]/gi, '')
+        .replace(/\s+/gi, '-') + '-' + Date.now().toString().slice(-4);
       
-      onSave();
+      // Format the date for Supabase
+      const scheduledForISOString = scheduledFor ? scheduledFor.toISOString() : null;
+      
+      // Create the post data object
+      const postData = {
+        title,
+        content,
+        excerpt,
+        slug,
+        cover_image: coverImageUrl,
+        category_id: categoryId,
+        category: selectedCategory?.name || '',
+        tags,
+        published: isPublished,
+        scheduled_for: scheduledForISOString,
+        author_name: authorName,
+      };
+      
+      if (initialData?.id) {
+        // Update existing post
+        const { error: updateError } = await supabase
+          .from('blog_posts')
+          .update(postData)
+          .eq('id', initialData.id);
+          
+        if (updateError) throw updateError;
+        
+        toast.success('ブログ記事を更新しました');
+      } else {
+        // Create new post
+        const { error: insertError } = await supabase
+          .from('blog_posts')
+          .insert(postData);
+          
+        if (insertError) throw insertError;
+        
+        toast.success('ブログ記事を作成しました');
+      }
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      // Reset form if creating a new post
+      if (!initialData) {
+        setTitle('');
+        setContent('');
+        setExcerpt('');
+        setCoverImage('');
+        setImageFile(null);
+        setImagePreview('');
+        setTags([]);
+        setTagInput('');
+        setIsPublished(false);
+        setScheduledFor(undefined);
+      }
+      
     } catch (error) {
-      console.error('Error saving post:', error);
-      toast({
-        title: 'エラー',
-        description: '投稿の保存に失敗しました。',
-        variant: 'destructive',
-      });
+      console.error('Error saving blog post:', error);
+      toast.error('ブログ記事の保存に失敗しました');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
-
-  if (loading && postId) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2 text-muted-foreground">投稿データを読み込み中...</p>
-      </div>
-    );
-  }
-
+  
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>{postId ? '投稿を編集' : '新規投稿を作成'}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="content" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="content">コンテンツ</TabsTrigger>
-                <TabsTrigger value="settings">設定</TabsTrigger>
-                <TabsTrigger value="media">メディア</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="content" className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>タイトル</FormLabel>
-                      <FormControl>
-                        <Input placeholder="記事のタイトルを入力" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>本文</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="記事の本文を入力してください" 
-                          className="min-h-[300px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="excerpt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>概要（抜粋）</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="記事の概要を入力（検索結果やカードで表示されます）" 
-                          className="min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-              
-              <TabsContent value="settings" className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="category_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>カテゴリ</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="カテゴリを選択" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="tags"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>タグ</FormLabel>
-                      <FormControl>
-                        <Input placeholder="タグをカンマ区切りで入力（例: マッサージ, リラクゼーション）" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="published"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-2 space-y-0">
-                      <FormControl>
-                        <Input 
-                          type="checkbox" 
-                          checked={field.value}
-                          onChange={(e) => field.onChange(e.target.checked)}
-                          className="w-4 h-4" 
-                        />
-                      </FormControl>
-                      <FormLabel className="mt-0">すぐに公開する</FormLabel>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="scheduled_for"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>公開予定日</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={!field.value ? "text-muted-foreground" : ""}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, "yyyy年MM月dd日") : "公開日を選択"}
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value || undefined}
-                            onSelect={(date) => field.onChange(date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-              
-              <TabsContent value="media" className="space-y-4">
-                <FormItem>
-                  <FormLabel>カバー画像</FormLabel>
-                  <div className="grid gap-4">
-                    <div className="border-2 border-dashed rounded-md p-4">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        {imagePreview ? (
-                          <div className="relative w-full">
-                            <img
-                              src={imagePreview}
-                              alt="Preview"
-                              className="rounded-md w-full max-h-[300px] object-cover"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="absolute top-2 right-2"
-                              onClick={() => {
-                                setImagePreview(null);
-                                form.setValue('cover_image', null);
-                              }}
-                            >
-                              削除
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <FileImage className="h-10 w-10 text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">
-                              クリックして画像をアップロード
-                            </p>
-                          </>
-                        )}
-                        
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={onFileChange}
-                          className={imagePreview ? "hidden" : ""}
-                          disabled={uploadingImage}
-                        />
-                        
-                        {uploadingImage && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            アップロード中...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </FormItem>
-              </TabsContent>
-            </Tabs>
+    <Card>
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">タイトル <span className="text-destructive">*</span></Label>
+              <Input 
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="記事のタイトルを入力"
+                required
+              />
+            </div>
             
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
+            <div>
+              <Label htmlFor="excerpt">概要 <span className="text-destructive">*</span></Label>
+              <Textarea 
+                id="excerpt"
+                value={excerpt}
+                onChange={(e) => setExcerpt(e.target.value)}
+                placeholder="記事の概要を入力（検索結果やリスト表示で使用されます）"
+                rows={3}
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="category">カテゴリ <span className="text-destructive">*</span></Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="カテゴリを選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="content">内容 <span className="text-destructive">*</span></Label>
+              <Textarea 
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="記事の内容を入力"
+                rows={15}
+                required
+                className="min-h-[250px]"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="coverImage">カバー画像</Label>
+              <Input 
+                id="coverImage"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="mt-1"
+              />
+              {(imagePreview || coverImage) && (
+                <div className="mt-2">
+                  <p className="text-sm mb-1">プレビュー</p>
+                  <img 
+                    src={imagePreview || coverImage} 
+                    alt="カバー画像プレビュー" 
+                    className="max-h-40 rounded-md"
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <Label htmlFor="tags">タグ</Label>
+              <div className="flex gap-2 mt-1">
+                <Input 
+                  id="tags"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  placeholder="タグを入力"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                />
+                <Button 
+                  type="button" 
+                  onClick={handleAddTag}
+                  variant="outline"
+                >
+                  追加
+                </Button>
+              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {tags.map((tag) => (
+                    <div 
+                      key={tag} 
+                      className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm flex items-center gap-1"
+                    >
+                      {tag}
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveTag(tag)}
+                        className="text-primary hover:text-destructive"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <Label htmlFor="author">作成者</Label>
+              <Input 
+                id="author"
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                placeholder="作成者名を入力"
+              />
+            </div>
+            
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="published" 
+                  checked={isPublished}
+                  onCheckedChange={(checked) => setIsPublished(checked as boolean)}
+                />
+                <Label htmlFor="published">公開する</Label>
+              </div>
+              
+              <div>
+                <Label htmlFor="scheduledFor" className="block mb-1">予約投稿</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[240px] justify-start text-left font-normal",
+                        !scheduledFor && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {scheduledFor ? format(scheduledFor, "yyyy/MM/dd") : "日付を選択"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={scheduledFor}
+                      onSelect={setScheduledFor}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            {initialData && (
+              <Button 
+                type="button" 
                 variant="outline"
-                onClick={onSave}
+                onClick={onSuccess}
               >
                 キャンセル
               </Button>
-              <Button
-                type="submit"
-                disabled={loading || uploadingImage}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    保存中...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    保存
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? '保存中...' : initialData ? '更新する' : '作成する'}
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );

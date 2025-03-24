@@ -1,52 +1,63 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
-// Sample data
-const storeRequests = [
-  { 
-    id: '17400020276463087771230118852001', 
-    name: '東京秘密基地', 
-    email: 'accounttype@gmail.com',
-    date: '2025/02/19 22:53',
-    status: '許可'
-  },
-  { 
-    id: '17400020276463087771230118852002', 
-    name: '大阪リラクゼーションスペース', 
-    email: 'osaka@example.com',
-    date: '2025/02/18 14:23',
-    status: '保留中'
-  },
-  { 
-    id: '17400020276463087771230118852003', 
-    name: '名古屋ヒーリングルーム', 
-    email: 'nagoya@example.com',
-    date: '2025/02/17 09:15',
-    status: '許可'
-  },
-  { 
-    id: '17400020276463087771230118852004', 
-    name: '福岡セラピーセンター', 
-    email: 'fukuoka@example.com',
-    date: '2025/02/16 16:42',
-    status: '保留中'
-  },
-];
-
-const sortOptions = [
-  { label: '全店舗表示', value: 'all' },
-  { label: '許可済みのみ', value: 'approved' },
-  { label: '保留中のみ', value: 'pending' },
-  { label: '新しい順', value: 'newest' },
-  { label: '古い順', value: 'oldest' },
-];
+interface StoreRequest {
+  id: string;
+  name: string;
+  email: string;
+  date: string;
+  status: string;
+}
 
 const AdminRequests = () => {
   const { toast } = useToast();
-  const [filteredRequests, setFilteredRequests] = useState(storeRequests);
+  const [isLoading, setIsLoading] = useState(true);
+  const [storeRequests, setStoreRequests] = useState<StoreRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<StoreRequest[]>([]);
+
+  useEffect(() => {
+    fetchStoreRequests();
+  }, []);
+
+  const fetchStoreRequests = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('stores')
+        .select('id, name, email, created_at, status')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      if (data) {
+        const formattedRequests = data.map((store): StoreRequest => ({
+          id: store.id,
+          name: store.name,
+          email: store.email,
+          date: format(new Date(store.created_at), 'yyyy/MM/dd HH:mm'),
+          status: store.status
+        }));
+        
+        setStoreRequests(formattedRequests);
+        setFilteredRequests(formattedRequests);
+      }
+    } catch (error) {
+      console.error('Error fetching store requests:', error);
+      toast({
+        title: 'エラー',
+        description: '店舗データの取得に失敗しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSearch = (term: string) => {
     if (!term.trim()) {
@@ -71,10 +82,10 @@ const AdminRequests = () => {
         setFilteredRequests(storeRequests);
         return;
       case 'approved':
-        setFilteredRequests(storeRequests.filter(req => req.status === '許可'));
+        setFilteredRequests(storeRequests.filter(req => req.status === 'active'));
         return;
       case 'pending':
-        setFilteredRequests(storeRequests.filter(req => req.status === '保留中'));
+        setFilteredRequests(storeRequests.filter(req => req.status === 'pending'));
         return;
       case 'newest':
         sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -87,6 +98,36 @@ const AdminRequests = () => {
     setFilteredRequests(sorted);
   };
 
+  const updateStoreStatus = async (storeId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('stores')
+        .update({ status })
+        .eq('id', storeId);
+        
+      if (error) throw error;
+      
+      // Update local state
+      const updatedRequests = storeRequests.map(request => 
+        request.id === storeId 
+          ? { ...request, status } 
+          : request
+      );
+      
+      setStoreRequests(updatedRequests);
+      setFilteredRequests(filteredRequests.map(request => 
+        request.id === storeId 
+          ? { ...request, status } 
+          : request
+      ));
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating store status:', error);
+      return false;
+    }
+  };
+
   const columns = [
     { key: 'id', label: 'ストアID' },
     { key: 'name', label: '店舗名' },
@@ -95,14 +136,41 @@ const AdminRequests = () => {
     { 
       key: 'status', 
       label: 'ステータス',
-      render: (value: string) => <StatusBadge status={value} />
+      render: (value: string) => {
+        let label = '';
+        switch (value) {
+          case 'active':
+            label = '許可';
+            break;
+          case 'pending':
+            label = '保留中';
+            break;
+          case 'rejected':
+            label = '拒否';
+            break;
+          case 'inactive':
+            label = '停止中';
+            break;
+          default:
+            label = value;
+        }
+        return <StatusBadge status={value} label={label} />;
+      }
     },
+  ];
+
+  const sortOptions = [
+    { label: '全店舗表示', value: 'all' },
+    { label: '許可済みのみ', value: 'approved' },
+    { label: '保留中のみ', value: 'pending' },
+    { label: '新しい順', value: 'newest' },
+    { label: '古い順', value: 'oldest' },
   ];
 
   const actionMenuItems = [
     { 
       label: '詳細を見る', 
-      onClick: (request: any) => {
+      onClick: (request: StoreRequest) => {
         toast({
           title: "リクエスト詳細",
           description: `${request.name}の詳細を表示します`,
@@ -111,22 +179,58 @@ const AdminRequests = () => {
     },
     { 
       label: '承認する', 
-      onClick: (request: any) => {
-        toast({
-          title: "承認",
-          description: `${request.name}を承認しました`,
-          variant: "default",
-        });
+      onClick: async (request: StoreRequest) => {
+        if (request.status === 'active') {
+          toast({
+            title: "情報",
+            description: `${request.name}はすでに承認されています`,
+          });
+          return;
+        }
+        
+        const success = await updateStoreStatus(request.id, 'active');
+        
+        if (success) {
+          toast({
+            title: "承認",
+            description: `${request.name}を承認しました`,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "エラー",
+            description: `${request.name}の承認に失敗しました`,
+            variant: "destructive",
+          });
+        }
       } 
     },
     { 
       label: '拒否する', 
-      onClick: (request: any) => {
-        toast({
-          title: "拒否確認",
-          description: `${request.name}を拒否しますか？`,
-          variant: "destructive",
-        });
+      onClick: async (request: StoreRequest) => {
+        if (request.status === 'rejected') {
+          toast({
+            title: "情報",
+            description: `${request.name}はすでに拒否されています`,
+          });
+          return;
+        }
+        
+        const success = await updateStoreStatus(request.id, 'rejected');
+        
+        if (success) {
+          toast({
+            title: "拒否",
+            description: `${request.name}を拒否しました`,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "エラー",
+            description: `${request.name}の拒否に失敗しました`,
+            variant: "destructive",
+          });
+        }
       } 
     },
   ];
@@ -146,6 +250,7 @@ const AdminRequests = () => {
         onSearchChange={handleSearch}
         onSortChange={handleSortChange}
         actionMenuItems={actionMenuItems}
+        isLoading={isLoading}
       />
     </div>
   );

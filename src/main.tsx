@@ -1,5 +1,17 @@
-import { createRoot } from 'react-dom/client'
+
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { Toaster } from '@/components/ui/toaster'
+import { initializeStorage } from './supabase/storage-setup.ts'
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Initialize storage buckets
+initializeStorage();
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+    <Toaster />
+  </React.StrictMode>,
+)

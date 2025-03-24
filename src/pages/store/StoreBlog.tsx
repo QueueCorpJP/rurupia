@@ -1,19 +1,14 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle,
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Calendar, Search, Plus, Eye, Edit, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { BlogEditor } from '@/components/admin/BlogEditor';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,89 +17,226 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { 
-  Calendar, 
-  Search, 
-  Plus, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  MoreHorizontal,
-  FileImage
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+  Dialog, 
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-// サンプルデータ
-const blogPosts = [
-  {
-    id: 1,
-    title: '夏の疲れを癒す！おすすめのマッサージコース',
-    status: '公開',
-    category: '季節のお知らせ',
-    date: '2025/02/15',
-    author: '田中 健',
-    views: 245
-  },
-  {
-    id: 2,
-    title: 'リラクゼーションとアロマの効果',
-    status: '公開',
-    category: '健康情報',
-    date: '2025/02/10',
-    author: '佐藤 愛',
-    views: 187
-  },
-  {
-    id: 3,
-    title: '新メニュー「ホットストーンマッサージ」のご案内',
-    status: '公開予定',
-    category: '新メニュー',
-    date: '2025/02/25',
-    author: '鈴木 美優',
-    views: 0
-  },
-  {
-    id: 4,
-    title: 'マッサージ前後の水分補給の重要性',
-    status: '下書き',
-    category: '健康情報',
-    date: '-',
-    author: '高橋 誠',
-    views: 0
-  }
-];
+interface BlogPost {
+  id: number;
+  title: string;
+  status: string;
+  category: string;
+  date: string;
+  author: string;
+  views: number;
+  published: boolean;
+  published_at: string;
+  category_id: string;
+  category_name?: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  count?: number;
+}
 
 const StoreBlog = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredPosts, setFilteredPosts] = useState(blogPosts);
-  const [isNewPostDialogOpen, setIsNewPostDialogOpen] = useState(false);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [popularPosts, setPopularPosts] = useState<{title: string, views: number}[]>([]);
+  const [postStats, setPostStats] = useState({
+    published: 0,
+    scheduled: 0,
+    draft: 0,
+    total: 0
+  });
+  const [categoryStats, setCategoryStats] = useState<Category[]>([]);
   
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    
-    if (query.trim() === '') {
+  useEffect(() => {
+    fetchBlogData();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
       setFilteredPosts(blogPosts);
       return;
     }
     
     const filtered = blogPosts.filter(
       post => 
-        post.title.toLowerCase().includes(query.toLowerCase()) ||
-        post.category.toLowerCase().includes(query.toLowerCase()) ||
-        post.author.toLowerCase().includes(query.toLowerCase())
+        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.category_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.author.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
     setFilteredPosts(filtered);
+  }, [searchQuery, blogPosts]);
+
+  const fetchBlogData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('blog_categories')
+        .select('*');
+      
+      if (categoriesError) throw categoriesError;
+      
+      if (categoriesData) {
+        setCategories(categoriesData);
+      }
+      
+      // Fetch blog posts
+      const { data: postsData, error: postsError } = await supabase
+        .from('blog_posts')
+        .select(`
+          id,
+          title,
+          author_name,
+          published_at,
+          published,
+          views,
+          category_id,
+          scheduled_for
+        `)
+        .order('published_at', { ascending: false });
+      
+      if (postsError) throw postsError;
+      
+      if (postsData) {
+        // Transform posts data to match the component's expected format
+        const formattedPosts = postsData.map(post => {
+          const category = categoriesData?.find(cat => cat.id === post.category_id);
+          
+          let status = '下書き';
+          if (post.published) {
+            status = '公開';
+          } else if (post.scheduled_for) {
+            status = '公開予定';
+          }
+          
+          return {
+            id: post.id,
+            title: post.title,
+            status: status,
+            category: category?.name || '未分類',
+            category_name: category?.name || '未分類',
+            category_id: post.category_id,
+            date: post.published_at ? format(new Date(post.published_at), 'yyyy/MM/dd') : '-',
+            author: post.author_name || '未設定',
+            views: post.views || 0,
+            published: post.published,
+            published_at: post.published_at
+          };
+        });
+        
+        setBlogPosts(formattedPosts);
+        setFilteredPosts(formattedPosts);
+        
+        // Calculate stats
+        const published = formattedPosts.filter(p => p.status === '公開').length;
+        const scheduled = formattedPosts.filter(p => p.status === '公開予定').length;
+        const draft = formattedPosts.filter(p => p.status === '下書き').length;
+        
+        setPostStats({
+          published,
+          scheduled,
+          draft,
+          total: formattedPosts.length
+        });
+        
+        // Popular posts
+        const sortedByViews = [...formattedPosts].sort((a, b) => b.views - a.views);
+        setPopularPosts(sortedByViews.slice(0, 5).map(p => ({
+          title: p.title,
+          views: p.views
+        })));
+        
+        // Category stats
+        const catCounts: {[key: string]: number} = {};
+        formattedPosts.forEach(post => {
+          const catName = post.category_name || '未分類';
+          catCounts[catName] = (catCounts[catName] || 0) + 1;
+        });
+        
+        const catStats = Object.entries(catCounts).map(([name, count]) => {
+          const category = categoriesData?.find(c => c.name === name);
+          return {
+            id: category?.id || '',
+            name,
+            count
+          };
+        });
+        
+        setCategoryStats(catStats);
+      }
+    } catch (error) {
+      console.error('Error fetching blog data:', error);
+      toast({
+        title: 'エラー',
+        description: 'ブログデータの取得に失敗しました。',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNewPost = () => {
+    setSelectedPostId(null);
+    setIsEditorOpen(true);
+  };
+
+  const handleEditPost = (postId: string) => {
+    setSelectedPostId(postId);
+    setIsEditorOpen(true);
+  };
+
+  const handleDeletePost = async () => {
+    if (!selectedPostId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('blog_posts')
+        .delete()
+        .eq('id', selectedPostId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: '削除完了',
+        description: '投稿が削除されました。'
+      });
+      
+      // Refresh the data
+      fetchBlogData();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({
+        title: 'エラー',
+        description: '投稿の削除に失敗しました。',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setSelectedPostId(null);
+    }
+  };
+
+  const confirmDelete = (postId: string) => {
+    setSelectedPostId(postId);
+    setIsDeleteDialogOpen(true);
   };
 
   return (
@@ -114,68 +246,10 @@ const StoreBlog = () => {
           <h1 className="text-3xl font-bold tracking-tight">ブログ管理</h1>
           <p className="text-muted-foreground mt-2">店舗ブログの投稿・管理</p>
         </div>
-        <Dialog open={isNewPostDialogOpen} onOpenChange={setIsNewPostDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              新規投稿
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[800px]">
-            <DialogHeader>
-              <DialogTitle>新規ブログ投稿</DialogTitle>
-              <DialogDescription>
-                ブログ記事の内容を入力してください。下書き保存か公開を選択できます。
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">タイトル</Label>
-                <Input id="title" placeholder="記事のタイトルを入力" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">カテゴリ</Label>
-                  <Input id="category" placeholder="例: 健康情報" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="publish-date">公開日</Label>
-                  <div className="flex">
-                    <Input id="publish-date" type="date" />
-                    <Button variant="outline" size="icon" className="ml-2">
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="content">本文</Label>
-                <Textarea 
-                  id="content" 
-                  placeholder="記事の本文を入力してください" 
-                  className="min-h-[200px]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>画像の追加</Label>
-                <div className="border-2 border-dashed rounded-md p-6 text-center">
-                  <FileImage className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    ドラッグ＆ドロップまたはクリックして画像をアップロード
-                  </p>
-                  <Button variant="outline" size="sm">
-                    画像を選択
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsNewPostDialogOpen(false)}>キャンセル</Button>
-              <Button variant="secondary">下書き保存</Button>
-              <Button type="submit">公開する</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={handleNewPost}>
+          <Plus className="mr-2 h-4 w-4" />
+          新規投稿
+        </Button>
       </div>
 
       <Card>
@@ -188,7 +262,7 @@ const StoreBlog = () => {
                 placeholder="タイトルやカテゴリで検索"
                 className="pl-8"
                 value={searchQuery}
-                onChange={handleSearch}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
@@ -197,67 +271,84 @@ const StoreBlog = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>タイトル</TableHead>
-                <TableHead>カテゴリ</TableHead>
-                <TableHead>状態</TableHead>
-                <TableHead>公開日</TableHead>
-                <TableHead>投稿者</TableHead>
-                <TableHead className="text-right">閲覧数</TableHead>
-                <TableHead className="text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPosts.map((post) => (
-                <TableRow key={post.id}>
-                  <TableCell className="font-medium">{post.title}</TableCell>
-                  <TableCell>{post.category}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                      post.status === '公開' 
-                        ? 'bg-green-100 text-green-800' 
-                        : post.status === '公開予定' 
-                          ? 'bg-amber-100 text-amber-800' 
-                          : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {post.status || '未定義'}
-                    </span>
-                  </TableCell>
-                  <TableCell>{post.date}</TableCell>
-                  <TableCell>{post.author}</TableCell>
-                  <TableCell className="text-right">{post.views}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">メニューを開く</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>アクション</DropdownMenuLabel>
-                        <DropdownMenuItem>
-                          <Eye className="mr-2 h-4 w-4" />
-                          <span>プレビュー</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          <span>編集する</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>削除する</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>タイトル</TableHead>
+                  <TableHead>カテゴリ</TableHead>
+                  <TableHead>状態</TableHead>
+                  <TableHead>公開日</TableHead>
+                  <TableHead>投稿者</TableHead>
+                  <TableHead className="text-right">閲覧数</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredPosts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      表示するデータがありません
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPosts.map((post) => (
+                    <TableRow key={post.id}>
+                      <TableCell className="font-medium">{post.title}</TableCell>
+                      <TableCell>{post.category}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                          post.status === '公開' 
+                            ? 'bg-green-100 text-green-800' 
+                            : post.status === '公開予定' 
+                              ? 'bg-amber-100 text-amber-800' 
+                              : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {post.status || '未定義'}
+                        </span>
+                      </TableCell>
+                      <TableCell>{post.date}</TableCell>
+                      <TableCell>{post.author}</TableCell>
+                      <TableCell className="text-right">{post.views}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">メニューを開く</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>アクション</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => window.open(`/blog/${post.id}`, '_blank')}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              <span>プレビュー</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditPost(String(post.id))}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>編集する</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive" 
+                              onClick={() => confirmDelete(String(post.id))}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>削除する</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
       
@@ -270,22 +361,27 @@ const StoreBlog = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ol className="space-y-3">
-              <li className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full">1</span>
-                  <span className="text-sm">夏の疲れを癒す！おすすめのマッサージコース</span>
-                </div>
-                <span className="text-sm font-medium">245</span>
-              </li>
-              <li className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full">2</span>
-                  <span className="text-sm">リラクゼーションとアロマの効果</span>
-                </div>
-                <span className="text-sm font-medium">187</span>
-              </li>
-            </ol>
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : popularPosts.length > 0 ? (
+              <ol className="space-y-3">
+                {popularPosts.map((post, index) => (
+                  <li key={index} className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-blue-100 text-blue-800 text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full">{index + 1}</span>
+                      <span className="text-sm">{post.title}</span>
+                    </div>
+                    <span className="text-sm font-medium">{post.views}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-center py-4 text-sm text-muted-foreground">
+                データがありません
+              </p>
+            )}
           </CardContent>
         </Card>
         
@@ -296,24 +392,30 @@ const StoreBlog = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">公開済み</span>
-                <span className="font-medium">2</span>
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">公開予定</span>
-                <span className="font-medium">1</span>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">公開済み</span>
+                  <span className="font-medium">{postStats.published}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">公開予定</span>
+                  <span className="font-medium">{postStats.scheduled}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">下書き</span>
+                  <span className="font-medium">{postStats.draft}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-sm font-medium">合計</span>
+                  <span className="font-medium">{postStats.total}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">下書き</span>
-                <span className="font-medium">1</span>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t">
-                <span className="text-sm font-medium">合計</span>
-                <span className="font-medium">4</span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
         
@@ -324,23 +426,65 @@ const StoreBlog = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">健康情報</span>
-                <span className="font-medium">2</span>
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">季節のお知らせ</span>
-                <span className="font-medium">1</span>
+            ) : categoryStats.length > 0 ? (
+              <div className="space-y-2">
+                {categoryStats.map((category, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-sm">{category.name}</span>
+                    <span className="font-medium">{category.count}</span>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">新メニュー</span>
-                <span className="font-medium">1</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-center py-4 text-sm text-muted-foreground">
+                データがありません
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Editor Dialog */}
+      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedPostId ? "投稿を編集" : "新規投稿を作成"}
+            </DialogTitle>
+          </DialogHeader>
+          <BlogEditor 
+            onSave={() => {
+              setIsEditorOpen(false);
+              fetchBlogData();
+            }} 
+            postId={selectedPostId || undefined}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>投稿を削除</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>本当にこの投稿を削除しますか？この操作は元に戻せません。</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              キャンセル
+            </Button>
+            <Button variant="destructive" onClick={handleDeletePost}>
+              削除する
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

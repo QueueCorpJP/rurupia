@@ -42,17 +42,41 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_avatar: string | null
           author_name: string
           category: string
+          category_id: string | null
           content: string
           cover_image: string | null
           excerpt: string
           id: string
+          published: boolean | null
           published_at: string
           read_time: number
+          scheduled_for: string | null
           slug: string
           tags: string[]
           title: string
@@ -62,12 +86,15 @@ export type Database = {
           author_avatar?: string | null
           author_name: string
           category: string
+          category_id?: string | null
           content: string
           cover_image?: string | null
           excerpt: string
           id?: string
+          published?: boolean | null
           published_at?: string
           read_time?: number
+          scheduled_for?: string | null
           slug: string
           tags?: string[]
           title: string
@@ -77,18 +104,29 @@ export type Database = {
           author_avatar?: string | null
           author_name?: string
           category?: string
+          category_id?: string | null
           content?: string
           cover_image?: string | null
           excerpt?: string
           id?: string
+          published?: boolean | null
           published_at?: string
           read_time?: number
+          scheduled_for?: string | null
           slug?: string
           tags?: string[]
           title?: string
           views?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "blog_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bookings: {
         Row: {

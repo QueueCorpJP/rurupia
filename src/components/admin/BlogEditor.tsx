@@ -208,34 +208,18 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       console.log('Validation passed, setting isSubmitting');
       setIsSubmitting(true);
       
-      // Ensure a valid session exists with admin access
-      console.log('Setting up admin session...');
-      try {
-        // Sign in with email - we'll use hardcoded admin email for this demo
-        // In production, you would use a more secure approach
-        const adminEmail = "admin@serenitysage.com"; // This should match the admin email in Supabase Auth
-        const adminPassword = "AdminPassword123"; // This should be real admin password
-        
-        // Try to sign in if no session exists
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: adminEmail,
-          password: adminPassword,
-        });
-        
-        if (error) {
-          console.error('Error signing in admin:', error);
-          toast.error('管理者認証に失敗しました');
-          setIsSubmitting(false);
-          return;
-        }
-        
-        console.log('Admin auth successful');
-      } catch (authError) {
-        console.error('Auth error:', authError);
-        toast.error('認証エラーが発生しました');
+      // Check for an existing session, but don't try to create one
+      console.log('Checking session status...');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session && !isAdminFromStorage) {
+        console.log('No active session and not using admin from storage');
+        toast.error('セッションが無効です。再ログインしてください。');
         setIsSubmitting(false);
         return;
       }
+      
+      console.log('Session check passed. Proceeding as admin.');
       
       // First upload the image if we have a new one
       let coverImageUrl = coverImage;

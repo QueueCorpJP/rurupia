@@ -34,3 +34,11 @@ dist-ssr
 # Build files
 build/
 coverage/
+
+# Environment files
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+.next

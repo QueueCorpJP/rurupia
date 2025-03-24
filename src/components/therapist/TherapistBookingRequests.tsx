@@ -16,20 +16,28 @@ export const TherapistBookingRequests = ({ therapistId }: TherapistBookingReques
   useEffect(() => {
     const fetchBookingRequests = async () => {
       try {
+        if (!therapistId) {
+          console.log("No therapist ID provided");
+          setIsLoading(false);
+          return;
+        }
+        
         let query = supabase
           .from('bookings')
-          .select('*');
-        
-        // Filter by therapist ID if provided
-        if (therapistId) {
-          query = query.eq('therapist_id', therapistId);
-        }
+          .select('*')
+          .eq('therapist_id', therapistId);
         
         const { data, error } = await query;
         
         if (error) {
           console.error("Error fetching booking requests:", error);
           toast.error("予約リクエストの取得に失敗しました");
+          return;
+        }
+        
+        if (!data || data.length === 0) {
+          setBookingRequests([]);
+          setIsLoading(false);
           return;
         }
         
@@ -133,4 +141,3 @@ export const TherapistBookingRequests = ({ therapistId }: TherapistBookingReques
     </div>
   );
 };
-

@@ -24,14 +24,22 @@ export const TherapistProfileForm = ({
   onSuccess 
 }: TherapistProfileFormProps) => {
   // Use existingData if provided, otherwise use therapist
-  const [profile, setProfile] = useState(existingData || therapist || {
+  const initialProfile = {
+    name: '',
     workingDays: [],
     workingHours: { start: "09:00", end: "18:00" },
     pricePerHour: 0,
     bio: "",
-    serviceAreas: {}
-  });
+    serviceAreas: { prefecture: '', cities: [] },
+    height: undefined,
+    weight: undefined,
+    hobbies: [],
+    specialties: [],
+    avatarUrl: '',
+    ...existingData
+  };
   
+  const [profile, setProfile] = useState(initialProfile);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [healthDoc, setHealthDoc] = useState<File | null>(null);
@@ -50,12 +58,7 @@ export const TherapistProfileForm = ({
     const checkBuckets = async () => {
       try {
         const { data: buckets } = await supabase.storage.listBuckets();
-        const requiredBuckets = ['therapists'];
-        
-        if (buckets) {
-          const existingBucketNames = buckets.map(b => b.name);
-          console.log("Existing buckets:", existingBucketNames);
-        }
+        console.log("Existing buckets:", buckets ? buckets.map(b => b.name) : []);
       } catch (error) {
         console.error("Error checking buckets:", error);
       }
@@ -194,12 +197,19 @@ export const TherapistProfileForm = ({
         }
       }
       
+      // Safe values for database
+      const safeSpecialties = Array.isArray(updatedProfile.specialties) ? updatedProfile.specialties : [];
+      const safeBio = updatedProfile.bio || '';
+      const safeName = updatedProfile.name || 'New Therapist';
+      const safePrice = updatedProfile.pricePerHour || 0;
+      const safeLocation = updatedProfile.serviceAreas?.prefecture || 'Tokyo';
+      
       console.log("Updating therapist with data:", {
-        name: updatedProfile.name,
-        description: updatedProfile.bio,
-        price: updatedProfile.pricePerHour,
-        specialties: updatedProfile.specialties || [],
-        location: updatedProfile.serviceAreas?.prefecture || 'Tokyo',
+        name: safeName,
+        description: safeBio,
+        price: safePrice,
+        specialties: safeSpecialties,
+        location: safeLocation,
         image_url: updatedProfile.avatarUrl
       });
       
@@ -208,7 +218,7 @@ export const TherapistProfileForm = ({
         .from('therapists')
         .select('id')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (therapistCheckError && !therapistCheckError.message.includes('No rows found')) {
         console.error("Error checking therapist:", therapistCheckError);
@@ -221,11 +231,11 @@ export const TherapistProfileForm = ({
           .from('therapists')
           .insert([{
             id: userId,
-            name: updatedProfile.name || 'New Therapist',
-            description: updatedProfile.bio || 'No description',
-            price: updatedProfile.pricePerHour || 0,
-            specialties: updatedProfile.specialties || [],
-            location: updatedProfile.serviceAreas?.prefecture || 'Tokyo',
+            name: safeName,
+            description: safeBio,
+            price: safePrice,
+            specialties: safeSpecialties,
+            location: safeLocation,
             image_url: updatedProfile.avatarUrl
           }]);
           
@@ -238,11 +248,11 @@ export const TherapistProfileForm = ({
         const { error: updateTherapistError } = await supabase
           .from('therapists')
           .update({
-            name: updatedProfile.name,
-            description: updatedProfile.bio,
-            price: updatedProfile.pricePerHour,
-            specialties: updatedProfile.specialties || [],
-            location: updatedProfile.serviceAreas?.prefecture || 'Tokyo',
+            name: safeName,
+            description: safeBio,
+            price: safePrice,
+            specialties: safeSpecialties,
+            location: safeLocation,
             image_url: updatedProfile.avatarUrl
           })
           .eq('id', userId);
@@ -257,7 +267,7 @@ export const TherapistProfileForm = ({
       const { error: updateProfileError } = await supabase
         .from('profiles')
         .update({
-          name: updatedProfile.name,
+          name: safeName,
           avatar_url: updatedProfile.avatarUrl
         })
         .eq('id', userId);
@@ -368,11 +378,21 @@ export const TherapistProfileForm = ({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="name">名前</Label>
+          <Input 
+            id="name" 
+            placeholder="セラピスト名"
+            value={profile.name || ""}
+            onChange={(e) => setProfile({...profile, name: e.target.value})}
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="hobbies">趣味</Label>
           <Input 
             id="hobbies" 
             placeholder="映画鑑賞、料理、旅行など"
-            value={profile.hobbies?.join(', ') || ""}
+            value={Array.isArray(profile.hobbies) ? profile.hobbies.join(', ') : ""}
             onChange={(e) => setProfile({...profile, hobbies: e.target.value.split(',').map(h => h.trim())})}
           />
         </div>
@@ -384,7 +404,7 @@ export const TherapistProfileForm = ({
             value={profile.serviceAreas?.prefecture || ""}
             onChange={(e) => setProfile({
               ...profile, 
-              serviceAreas: {...profile.serviceAreas, prefecture: e.target.value} as any
+              serviceAreas: {...(profile.serviceAreas || {}), prefecture: e.target.value}
             })}
           />
         </div>
@@ -393,13 +413,13 @@ export const TherapistProfileForm = ({
           <Label>詳細エリア (区市町村)</Label>
           <Input 
             placeholder="渋谷区、新宿区"
-            value={profile.serviceAreas?.cities?.join('、') || ""}
+            value={Array.isArray(profile.serviceAreas?.cities) ? profile.serviceAreas?.cities?.join('、') : ""}
             onChange={(e) => setProfile({
               ...profile, 
               serviceAreas: {
-                ...profile.serviceAreas, 
+                ...(profile.serviceAreas || {}), 
                 cities: e.target.value.split('、').map(c => c.trim())
-              } as any
+              }
             })}
           />
         </div>
@@ -411,17 +431,19 @@ export const TherapistProfileForm = ({
               <div key={day.id} className="flex items-center space-x-2">
                 <Checkbox 
                   id={day.id}
-                  checked={profile.workingDays.includes(day.label.charAt(0))}
+                  checked={Array.isArray(profile.workingDays) && profile.workingDays.includes(day.label.charAt(0))}
                   onCheckedChange={(checked) => {
                     if (checked) {
                       setProfile({
                         ...profile,
-                        workingDays: [...profile.workingDays, day.label.charAt(0)]
+                        workingDays: [...(Array.isArray(profile.workingDays) ? profile.workingDays : []), day.label.charAt(0)]
                       });
                     } else {
                       setProfile({
                         ...profile,
-                        workingDays: profile.workingDays.filter(d => d !== day.label.charAt(0))
+                        workingDays: Array.isArray(profile.workingDays) 
+                          ? profile.workingDays.filter(d => d !== day.label.charAt(0))
+                          : []
                       });
                     }
                   }}
@@ -441,10 +463,10 @@ export const TherapistProfileForm = ({
                 <Input 
                   id="startTime" 
                   type="time" 
-                  value={profile.workingHours.start} 
+                  value={profile.workingHours?.start || "09:00"} 
                   onChange={(e) => setProfile({
                     ...profile, 
-                    workingHours: {...profile.workingHours, start: e.target.value}
+                    workingHours: {...(profile.workingHours || {}), start: e.target.value}
                   })}
                 />
               </div>
@@ -453,10 +475,10 @@ export const TherapistProfileForm = ({
                 <Input 
                   id="endTime" 
                   type="time" 
-                  value={profile.workingHours.end} 
+                  value={profile.workingHours?.end || "18:00"} 
                   onChange={(e) => setProfile({
                     ...profile, 
-                    workingHours: {...profile.workingHours, end: e.target.value}
+                    workingHours: {...(profile.workingHours || {}), end: e.target.value}
                   })}
                 />
               </div>
@@ -471,7 +493,7 @@ export const TherapistProfileForm = ({
                 id="price" 
                 type="text" 
                 className="pl-8"
-                value={profile.pricePerHour?.toString() || ""}
+                value={(profile.pricePerHour || 0).toString()}
                 onChange={(e) => {
                   const onlyNums = e.target.value.replace(/[^0-9]/g, '');
                   setProfile({...profile, pricePerHour: parseInt(onlyNums) || 0});
@@ -488,7 +510,7 @@ export const TherapistProfileForm = ({
             id="bio" 
             placeholder="あなたの強みや特徴を記入してください"
             rows={5}
-            value={profile.bio}
+            value={profile.bio || ""}
             onChange={(e) => setProfile({...profile, bio: e.target.value})}
           />
         </div>

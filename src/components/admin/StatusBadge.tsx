@@ -9,9 +9,10 @@ export interface StatusBadgeProps {
 
 export function StatusBadge({ status, className, label }: StatusBadgeProps) {
   let badgeStyles = '';
-  const displayText = label || status; // Use label if provided, otherwise use status
+  const statusValue = status || '未定義'; // Add default value if status is undefined
+  const displayText = label || statusValue; // Use label if provided, otherwise use status
   
-  switch (status) {
+  switch (statusValue) {
     case '確定':
     case '在籍中':
       badgeStyles = 'bg-green-100 text-green-800 border-green-200';

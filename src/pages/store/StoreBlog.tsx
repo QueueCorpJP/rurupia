@@ -222,7 +222,7 @@ const StoreBlog = () => {
                           ? 'bg-amber-100 text-amber-800' 
                           : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {post.status}
+                      {post.status || '未定義'}
                     </span>
                   </TableCell>
                   <TableCell>{post.date}</TableCell>

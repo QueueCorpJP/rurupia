@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,7 +83,7 @@ const UserBookings = () => {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-medium">{therapistName}へのリクエスト</h3>
-              <StatusBadge status={booking.status} />
+              <StatusBadge status={booking.status || '未定義'} />
             </div>
             
             <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">

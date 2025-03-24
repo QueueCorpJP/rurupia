@@ -131,13 +131,17 @@ const AdminBlog = () => {
       key: "status",
       label: "ステータス",
       accessorKey: "status",
-      render: ({ row }: any) => (
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          row.status === "公開中" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-        }`}>
-          {row.status}
-        </span>
-      )
+      render: ({ row }: any) => {
+        // Fix the issue by adding a null check
+        const status = row?.status || '未定義';
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs ${
+            status === "公開中" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+          }`}>
+            {status}
+          </span>
+        );
+      }
     },
     {
       key: "views",

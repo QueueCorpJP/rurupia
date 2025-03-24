@@ -78,7 +78,8 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
   };
 
   const getStatusBadge = () => {
-    switch (request.status) {
+    const status = request?.status || '未定義';
+    switch (status) {
       case "承認待ち":
         return <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">承認待ち</span>;
       case "確定":
@@ -88,7 +89,7 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
       case "完了":
         return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">完了</span>;
       default:
-        return null;
+        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">未定義</span>;
     }
   };
 

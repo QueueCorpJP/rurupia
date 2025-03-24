@@ -201,7 +201,7 @@ export const TherapistProfileForm = ({
       const safeSpecialties = Array.isArray(updatedProfile.specialties) ? updatedProfile.specialties : [];
       const safeBio = updatedProfile.bio || '';
       const safeName = updatedProfile.name || 'New Therapist';
-      const safePrice = updatedProfile.pricePerHour || 0;
+      const safePrice = typeof updatedProfile.pricePerHour === 'number' ? updatedProfile.pricePerHour : 0;
       const safeLocation = updatedProfile.serviceAreas?.prefecture || 'Tokyo';
       
       console.log("Updating therapist with data:", {
@@ -236,7 +236,8 @@ export const TherapistProfileForm = ({
             price: safePrice,
             specialties: safeSpecialties,
             location: safeLocation,
-            image_url: updatedProfile.avatarUrl
+            image_url: updatedProfile.avatarUrl,
+            galleryImages: updatedProfile.galleryImages || []
           }]);
           
         if (insertError) {
@@ -253,7 +254,8 @@ export const TherapistProfileForm = ({
             price: safePrice,
             specialties: safeSpecialties,
             location: safeLocation,
-            image_url: updatedProfile.avatarUrl
+            image_url: updatedProfile.avatarUrl,
+            galleryImages: updatedProfile.galleryImages || []
           })
           .eq('id', userId);
           
@@ -351,6 +353,23 @@ export const TherapistProfileForm = ({
               ))}
             </div>
           )}
+          
+          {Array.isArray(profile.galleryImages) && profile.galleryImages.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium mb-2">現在のギャラリー写真</h4>
+              <div className="flex flex-wrap gap-2">
+                {profile.galleryImages.map((imageUrl: string, index: number) => (
+                  <div key={index} className="w-20 h-20 relative">
+                    <img 
+                      src={imageUrl} 
+                      alt={`Existing Gallery ${index}`} 
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -431,12 +450,14 @@ export const TherapistProfileForm = ({
               <div key={day.id} className="flex items-center space-x-2">
                 <Checkbox 
                   id={day.id}
-                  checked={Array.isArray(profile.workingDays) && profile.workingDays.includes(day.label.charAt(0))}
+                  checked={Array.isArray(profile.workingDays) && 
+                    profile.workingDays.includes(day.label.charAt(0))}
                   onCheckedChange={(checked) => {
                     if (checked) {
                       setProfile({
                         ...profile,
-                        workingDays: [...(Array.isArray(profile.workingDays) ? profile.workingDays : []), day.label.charAt(0)]
+                        workingDays: [...(Array.isArray(profile.workingDays) ? 
+                                       profile.workingDays : []), day.label.charAt(0)]
                       });
                     } else {
                       setProfile({
@@ -491,12 +512,15 @@ export const TherapistProfileForm = ({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">¥</span>
               <Input 
                 id="price" 
-                type="text" 
+                type="number"
                 className="pl-8"
-                value={(profile.pricePerHour || 0).toString()}
+                value={profile.pricePerHour || ""}
                 onChange={(e) => {
-                  const onlyNums = e.target.value.replace(/[^0-9]/g, '');
-                  setProfile({...profile, pricePerHour: parseInt(onlyNums) || 0});
+                  const value = parseInt(e.target.value);
+                  setProfile({
+                    ...profile, 
+                    pricePerHour: isNaN(value) ? 0 : value
+                  });
                 }}
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">〜</span>

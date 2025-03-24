@@ -1,50 +1,104 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { therapists } from '../utils/data';
-import { Message } from '../utils/types';
+import { supabase } from '@/integrations/supabase/client';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Search } from 'lucide-react';
 
-// Fixed mockConversations to use string IDs, not multiplying by number
-const mockConversations = therapists.map(therapist => {
-  const lastMessage = {
-    id: `msg-${therapist.id}`,
-    senderId: therapist.id,
-    receiverId: 0, // User ID
-    content: "こんにちは！セッションのご予約ありがとうございます。お役に立てることがあれば、お気軽にお問い合わせください。",
-    timestamp: new Date(Date.now() - Math.random() * 1000000000).toISOString(),
-    isRead: Math.random() > 0.5
-  };
-  
-  return {
-    therapistId: therapist.id,
-    therapist,
-    lastMessage,
-    unreadCount: lastMessage.isRead ? 0 : 1
-  };
-});
-
 const MessageList = () => {
   const navigate = useNavigate();
-  const [conversations, setConversations] = useState(mockConversations);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
+    const fetchConversations = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        // Fetch messages (this is simplified, in real app you'd group by conversation)
+        const { data: messages, error } = await supabase
+          .from('messages')
+          .select(`
+            id,
+            content,
+            sender_id,
+            receiver_id,
+            timestamp,
+            is_read,
+            therapists:sender_id (name, image_url)
+          `)
+          .eq('receiver_id', user.id)
+          .order('timestamp', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching messages:', error);
+          return;
+        }
+        
+        // Process messages into conversations (simplified)
+        const processedConversations = messages ? messages.reduce((acc: any[], message: any) => {
+          // Check if we already have a conversation with this sender
+          const existingConvo = acc.find(c => c.therapistId === message.sender_id);
+          
+          if (existingConvo) {
+            // If message is newer than last message, update the last message
+            if (new Date(message.timestamp) > new Date(existingConvo.lastMessage.timestamp)) {
+              existingConvo.lastMessage = {
+                id: message.id,
+                content: message.content,
+                timestamp: message.timestamp,
+                isRead: message.is_read
+              };
+            }
+            
+            // Update unread count if message is unread
+            if (!message.is_read) {
+              existingConvo.unreadCount += 1;
+            }
+          } else {
+            // Create new conversation
+            acc.push({
+              therapistId: message.sender_id,
+              therapist: {
+                id: message.sender_id,
+                name: message.therapists?.name || 'Unknown',
+                imageUrl: message.therapists?.image_url || ''
+              },
+              lastMessage: {
+                id: message.id,
+                content: message.content,
+                timestamp: message.timestamp,
+                isRead: message.is_read
+              },
+              unreadCount: message.is_read ? 0 : 1
+            });
+          }
+          
+          return acc;
+        }, []) : [];
+        
+        setConversations(processedConversations);
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    return () => clearTimeout(timer);
+    fetchConversations();
   }, []);
 
   const filteredConversations = conversations.filter(
     convo => convo.therapist.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleConversationClick = (therapistId: number | string) => {
+  const handleConversationClick = (therapistId: string) => {
     navigate(`/messages/${therapistId}`);
   };
 
@@ -93,7 +147,7 @@ const MessageList = () => {
       <div className="overflow-y-auto flex-1">
         {filteredConversations.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground">
-            検索結果がありません
+            メッセージがありません
           </div>
         ) : (
           filteredConversations.map((conversation) => (
@@ -106,7 +160,7 @@ const MessageList = () => {
             >
               <div className="flex-shrink-0">
                 <img
-                  src={conversation.therapist.imageUrl}
+                  src={conversation.therapist.imageUrl || '/placeholder.svg'}
                   alt={conversation.therapist.name}
                   className="w-12 h-12 rounded-full object-cover"
                 />

@@ -38,13 +38,28 @@ const TherapistDashboard = () => {
         
         setTherapistData(therapist || { id: user.id, name: 'セラピスト' });
         
-        // In a real app, you would fetch actual statistics
-        // This is a mock implementation for demonstration
+        // Fetch actual stats from Supabase
+        const { data: bookingsData } = await supabase
+          .from('bookings')
+          .select('*', { count: 'exact' })
+          .eq('therapist_id', user.id);
+          
+        const { data: messagesData } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact' })
+          .eq('receiver_id', user.id)
+          .eq('is_read', false);
+          
+        const { data: postsData } = await supabase
+          .from('therapist_posts')
+          .select('*', { count: 'exact' })
+          .eq('therapist_id', user.id);
+          
         setStats({
-          bookings: Math.floor(Math.random() * 10),
-          pendingRequests: Math.floor(Math.random() * 5),
-          messages: Math.floor(Math.random() * 15),
-          posts: Math.floor(Math.random() * 3)
+          bookings: bookingsData?.length || 0,
+          pendingRequests: 0, // Could be calculated if there's a requests table
+          messages: messagesData?.length || 0,
+          posts: postsData?.length || 0
         });
       } catch (error) {
         console.error('Dashboard error:', error);
@@ -70,9 +85,24 @@ const TherapistDashboard = () => {
   return (
     <TherapistLayout>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">
-          ようこそ、{therapistData?.name || 'セラピスト'}さん
-        </h1>
+        <div className="flex items-center space-x-4">
+          <div className="h-16 w-16 rounded-full overflow-hidden">
+            {therapistData?.image_url ? (
+              <img 
+                src={therapistData.image_url} 
+                alt={therapistData?.name || 'セラピスト'} 
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                {(therapistData?.name || 'セラピスト').charAt(0)}
+              </div>
+            )}
+          </div>
+          <h1 className="text-2xl font-bold">
+            ようこそ、{therapistData?.name || 'セラピスト'}さん
+          </h1>
+        </div>
         
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>

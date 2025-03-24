@@ -376,53 +376,6 @@ const AdminBlog = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Debug Section - Add this before the end of the component */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Debug Tools</CardTitle>
-          <CardDescription>
-            Simple tools to test blog post creation
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="text-sm font-medium">Title</label>
-              <Input 
-                value={debugTitle}
-                onChange={(e) => setDebugTitle(e.target.value)}
-                placeholder="Test title"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Category</label>
-              {categories.length > 0 ? (
-                <select 
-                  value={debugCategory} 
-                  onChange={(e) => setDebugCategory(e.target.value)}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p>No categories available</p>
-              )}
-            </div>
-            <Button
-              onClick={handleSimplePostCreation}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Create Simple Test Post"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

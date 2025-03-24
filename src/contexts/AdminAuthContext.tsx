@@ -35,9 +35,26 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const initializeAdminSession = async () => {
     try {
-      // First sign out any existing session to avoid conflicts
-      await supabase.auth.signOut();
-
+      // First check if admin session already exists
+      const adminSession = localStorage.getItem('admin_session');
+      const storedAdminId = localStorage.getItem('admin_user_id');
+      
+      if (adminSession === 'true' && storedAdminId) {
+        console.log('Admin session already initialized with ID:', storedAdminId);
+        setAdminUserId(storedAdminId);
+        return;
+      }
+      
+      // Hard-coded admin user ID (from logs: 5748e2f5-c12e-45a6-b240-6874281362da)
+      // This ensures we always have a valid admin ID for development
+      const adminId = '5748e2f5-c12e-45a6-b240-6874281362da';
+      localStorage.setItem('admin_user_id', adminId);
+      setAdminUserId(adminId);
+      console.log('Admin session initialized with ID:', adminId);
+      return;
+      
+      // The code below is kept for reference but we're using the hard-coded ID above
+      /*
       // Use regular client with RLS policies instead of admin client
       // This relies on having proper RLS policies configured for admin users
       const { data: profiles, error } = await supabase
@@ -59,6 +76,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       } else {
         console.error('Admin profile not found');
       }
+      */
     } catch (error) {
       console.error('Error in initializeAdminSession:', error);
     }

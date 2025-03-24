@@ -1,258 +1,265 @@
 import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
-import { UserProfileModal } from '@/components/admin/UserProfileModal';
-import { Button } from '@/components/ui/button';
-import { UserPlus } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import { supabaseAdmin } from '@/integrations/supabase/admin-client';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 interface FormattedAccount {
   id: string;
   name: string;
   email: string;
-  type: string;
-  registered: string;
-  status: string;
   phone: string;
   address: string;
+  user_type: string;
+  status: string;
+  created_at: string;
+  is_verified: boolean;
+  verification_document: string;
 }
 
-const sortOptions = [
-  { label: '新しい順', value: 'newest' },
-  { label: '古い順', value: 'oldest' },
-  { label: '名前順', value: 'name' },
-  { label: 'ステータス順', value: 'status' },
-];
-
-const AdminAccounts = () => {
-  const { toast } = useToast();
+export default function AdminAccounts() {
   const [accounts, setAccounts] = useState<FormattedAccount[]>([]);
   const [filteredAccounts, setFilteredAccounts] = useState<FormattedAccount[]>([]);
   const [selectedUser, setSelectedUser] = useState<FormattedAccount | null>(null);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { isAdminAuthenticated, initializeAdminSession } = useAdminAuth();
 
-  // Fetch accounts from Supabase
   useEffect(() => {
-    fetchAccounts();
-  }, []);
+    if (isAdminAuthenticated) {
+      fetchAccounts();
+    }
+  }, [isAdminAuthenticated]);
 
   const fetchAccounts = async () => {
     try {
-      setIsLoading(true);
-      
-      // Fetch profiles directly without trying to join with auth.users
-      const { data: profiles, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('profiles')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      const formattedAccounts: FormattedAccount[] = profiles.map(profile => ({
-        id: profile.id,
-        name: profile.name || profile.nickname || 'No Name',
-        email: profile.email || '',
-        type: profile.user_type || 'Customer',
-        registered: new Date(profile.created_at).toLocaleString('ja-JP'),
-        status: profile.status || 'アクティブ',
-        phone: profile.phone || '',
-        address: profile.address || '',
+      const formattedAccounts: FormattedAccount[] = data.map((account) => ({
+        id: account.id,
+        name: account.name || 'N/A',
+        email: account.email || 'N/A',
+        phone: account.phone || 'N/A',
+        address: account.address || 'N/A',
+        user_type: account.user_type || 'user',
+        status: account.status || 'active',
+        created_at: new Date(account.created_at).toLocaleDateString(),
+        is_verified: account.is_verified || false,
+        verification_document: account.verification_document || '',
       }));
 
       setAccounts(formattedAccounts);
       setFilteredAccounts(formattedAccounts);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching accounts:', error);
-      toast({
-        title: "エラー",
-        description: "アカウント情報の取得に失敗しました",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      toast.error('Failed to fetch accounts');
+      setLoading(false);
     }
   };
 
-  const handleSearch = (term: string) => {
-    if (!term.trim()) {
-      setFilteredAccounts(accounts);
-      return;
-    }
-    
-    const filtered = accounts.filter(
-      account => 
-        account.name.toLowerCase().includes(term.toLowerCase()) || 
-        account.id.includes(term) ||
-        account.email.toLowerCase().includes(term.toLowerCase())
+  const handleSearch = (searchTerm: string) => {
+    const filtered = accounts.filter((account) =>
+      Object.values(account).some((value) =>
+        String(value).toLowerCase().includes(searchTerm.toLowerCase())
+      )
     );
     setFilteredAccounts(filtered);
   };
 
   const handleSortChange = (value: string) => {
-    let sorted = [...filteredAccounts];
-    
-    switch(value) {
-      case 'newest':
-        sorted.sort((a, b) => new Date(b.registered).getTime() - new Date(a.registered).getTime());
-        break;
-      case 'oldest':
-        sorted.sort((a, b) => new Date(a.registered).getTime() - new Date(b.registered).getTime());
-        break;
-      case 'name':
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'status':
-        sorted.sort((a, b) => a.status.localeCompare(b.status));
-        break;
-    }
-    
+    const [column, direction] = value.split(':');
+    const sorted = [...filteredAccounts].sort((a: any, b: any) => {
+      if (direction === 'asc') {
+        return a[column] > b[column] ? 1 : -1;
+      }
+      return a[column] < b[column] ? 1 : -1;
+    });
     setFilteredAccounts(sorted);
   };
 
   const handleStatusChange = async (userId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('profiles')
         .update({ status: newStatus })
         .eq('id', userId);
 
       if (error) throw error;
 
-      // Update local state
-      const updatedAccounts = accounts.map(account => 
-        account.id === userId ? { ...account, status: newStatus } : account
-      );
-      
-      const updatedFiltered = filteredAccounts.map(account => 
-        account.id === userId ? { ...account, status: newStatus } : account
-      );
-      
-      setAccounts(updatedAccounts);
-      setFilteredAccounts(updatedFiltered);
-      
-      toast({
-        title: "ステータスを更新しました",
-        description: `ユーザーID: ${userId}のステータスを${newStatus}に変更しました`,
-      });
+      toast.success(`User status updated to ${newStatus}`);
+      fetchAccounts();
     } catch (error) {
-      console.error('Error updating status:', error);
-      toast({
-        title: "エラー",
-        description: "ステータスの更新に失敗しました",
-        variant: "destructive",
-      });
+      console.error('Error updating user status:', error);
+      toast.error('Failed to update user status');
     }
   };
 
   const handleDeleteAccount = async (userId: string) => {
     try {
-      // Delete from profiles table
-      const { error: profileError } = await supabase
+      const { error } = await supabaseAdmin
         .from('profiles')
         .delete()
         .eq('id', userId);
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
-      // Update local state
-      const updatedAccounts = accounts.filter(account => account.id !== userId);
-      setAccounts(updatedAccounts);
-      setFilteredAccounts(filteredAccounts.filter(account => account.id !== userId));
-
-      toast({
-        title: "アカウントを削除しました",
-        description: `ユーザーID: ${userId}のアカウントを削除しました`,
-      });
+      toast.success('Account deleted successfully');
+      fetchAccounts();
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast({
-        title: "エラー",
-        description: "アカウントの削除に失敗しました",
-        variant: "destructive",
-      });
+      toast.error('Failed to delete account');
     }
   };
 
   const openUserProfile = (user: FormattedAccount) => {
     setSelectedUser(user);
-    setIsProfileModalOpen(true);
+    setShowProfileModal(true);
   };
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'ユーザー名' },
-    { key: 'email', label: 'メールアドレス' },
-    { 
-      key: 'type', 
-      label: 'タイプ',
-      render: (value: string) => value || '-'
+    {
+      key: 'id',
+      label: 'ID',
+      render: (value: string) => (
+        <div className="max-w-[100px] truncate" title={value}>
+          {value}
+        </div>
+      ),
     },
-    { key: 'registered', label: '登録日' },
-    { 
-      key: 'status', 
-      label: 'ステータス',
-      render: (value: string) => <StatusBadge status={value} />
+    {
+      key: 'name',
+      label: 'Name',
+    },
+    {
+      key: 'email',
+      label: 'Email',
+    },
+    {
+      key: 'created_at',
+      label: 'Registered',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (value: string) => <StatusBadge status={value} />,
     },
   ];
 
+  const sortOptions = [
+    { label: 'Name (A-Z)', value: 'name:asc' },
+    { label: 'Name (Z-A)', value: 'name:desc' },
+    { label: 'Email (A-Z)', value: 'email:asc' },
+    { label: 'Email (Z-A)', value: 'email:desc' },
+    { label: 'Newest First', value: 'created_at:desc' },
+    { label: 'Oldest First', value: 'created_at:asc' },
+  ];
+
   const actionMenuItems = [
-    { 
-      label: '詳細を見る', 
-      onClick: (account: FormattedAccount) => openUserProfile(account)
+    {
+      label: 'View',
+      onClick: (row: FormattedAccount) => openUserProfile(row),
     },
-    { 
-      label: 'ステータスを変更', 
-      onClick: (account: FormattedAccount) => {
-        const newStatus = account.status === 'アクティブ' ? 'バン済み' : 'アクティブ';
-        handleStatusChange(account.id, newStatus);
-      } 
+    {
+      label: 'Change Status',
+      onClick: (row: FormattedAccount) => handleStatusChange(row.id, row.status === 'active' ? 'inactive' : 'active'),
     },
-    { 
-      label: 'アカウントを削除', 
-      onClick: (account: FormattedAccount) => {
-        if (window.confirm(`${account.name}のアカウントを削除してもよろしいですか？`)) {
-          handleDeleteAccount(account.id);
-        }
-      } 
+    {
+      label: 'Delete',
+      onClick: (row: FormattedAccount) => handleDeleteAccount(row.id),
     },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">アカウント管理</h1>
-          <p className="text-muted-foreground mt-2">ユーザーアカウントの管理と監視</p>
-        </div>
-        <Button className="sm:self-end" onClick={() => fetchAccounts()}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          更新
-        </Button>
-      </div>
-      
-      <DataTable 
+    <div className="container mx-auto py-10">
+      <DataTable
         columns={columns}
         data={filteredAccounts}
-        searchPlaceholder="名前、メール、IDで検索"
-        sortOptions={sortOptions}
+        searchPlaceholder="Search by name, email, or ID..."
         onSearchChange={handleSearch}
         onSortChange={handleSortChange}
+        sortOptions={sortOptions}
         actionMenuItems={actionMenuItems}
-        isLoading={isLoading}
+        isLoading={loading}
       />
 
-      <UserProfileModal 
-        user={selectedUser}
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        onStatusChange={handleStatusChange}
-      />
+      <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>User Profile</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input value={selectedUser.name} readOnly />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input value={selectedUser.email} readOnly />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Phone</Label>
+                  <Input value={selectedUser.phone} readOnly />
+                </div>
+                <div>
+                  <Label>Address</Label>
+                  <Input value={selectedUser.address} readOnly />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>User Type</Label>
+                  <Input value={selectedUser.user_type} readOnly />
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <StatusBadge status={selectedUser.status} />
+                </div>
+              </div>
+              <div>
+                <Label>Verification Status</Label>
+                <div className="mt-1">
+                  {selectedUser.is_verified ? (
+                    <span className="text-green-600">Verified</span>
+                  ) : (
+                    <span className="text-yellow-600">Not Verified</span>
+                  )}
+                </div>
+              </div>
+              {selectedUser.verification_document && (
+                <div>
+                  <Label>Verification Document</Label>
+                  <div className="mt-1">
+                    <a
+                      href={selectedUser.verification_document}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      View Document
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default AdminAccounts;
+}

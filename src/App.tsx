@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
@@ -49,62 +48,64 @@ import AdminRequests from './pages/admin/AdminRequests';
 import AdminAuth from './pages/admin/AdminAuth';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import NotFound from './pages/NotFound';
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminSetup from './pages/admin/AdminSetup';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/line-callback" element={<LineCallback />} />
-        <Route path="/therapists" element={<Therapists />} />
-        <Route path="/therapists/:id" element={<TherapistDetail />} />
-        <Route path="/booking" element={<Booking />} />
-        <Route path="/messages" element={<Messages />}>
-          <Route index element={<MessagesIndex />} />
-        </Route>
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/blog" element={<Blog />} />
-        <Route path="/blog/:slug" element={<BlogDetail />} />
-        <Route path="/user-profile" element={<UserProfile />} />
-        <Route path="/user-bookings" element={<UserBookings />} />
-        <Route path="/followed-therapists" element={<FollowedTherapists />} />
-        <Route path="/notification-settings" element={<NotificationSettings />} />
-        <Route path="/delete-account" element={<DeleteAccount />} />
-        
-        {/* Store Admin Routes */}
-        <Route path="/store-signup" element={<StoreSignup />} />
-        <Route path="/store-login" element={<StoreLogin />} />
-        <Route path="/store-admin" element={<StoreAdminLayout />}>
-          <Route index element={<StoreAdminDashboard />} />
-          <Route path="bookings" element={<StoreBookings />} />
-          <Route path="therapists" element={<StoreTherapists />} />
-          <Route path="courses" element={<StoreCourses />} />
-          <Route path="blog" element={<StoreBlog />} />
-          <Route path="analytics" element={<StoreAnalytics />} />
-          <Route path="inquiries" element={<StoreInquiries />} />
-          <Route path="settings" element={<StoreSettings />} />
-        </Route>
-        
-        {/* Therapist Routes */}
-        <Route path="/therapist-login" element={<TherapistLogin />} />
-        <Route path="/therapist-signup" element={<TherapistSignup />} />
-        <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
-        <Route path="/therapist-profile" element={<TherapistProfile />} />
-        <Route path="/therapist-bookings" element={<TherapistBookings />} />
-        <Route path="/therapist-messages" element={<TherapistMessages />} />
-        <Route path="/therapist-posts" element={<TherapistPosts />} />
-        <Route path="/therapist-settings" element={<TherapistSettings />} />
-        
-        {/* Admin Auth Route */}
-        <Route path="/admin-auth" element={<AdminAuth />} />
-        
-        {/* Protected Admin Routes */}
-        <Route element={<AdminProtectedRoute />}>
+    <AdminAuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/line-callback" element={<LineCallback />} />
+          <Route path="/therapists" element={<Therapists />} />
+          <Route path="/therapists/:id" element={<TherapistDetail />} />
+          <Route path="/booking" element={<Booking />} />
+          <Route path="/messages" element={<Messages />}>
+            <Route index element={<MessagesIndex />} />
+          </Route>
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogDetail />} />
+          <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/user-bookings" element={<UserBookings />} />
+          <Route path="/followed-therapists" element={<FollowedTherapists />} />
+          <Route path="/notification-settings" element={<NotificationSettings />} />
+          <Route path="/delete-account" element={<DeleteAccount />} />
+          
+          {/* Store Admin Routes */}
+          <Route path="/store-signup" element={<StoreSignup />} />
+          <Route path="/store-login" element={<StoreLogin />} />
+          <Route path="/store-admin" element={<StoreAdminLayout />}>
+            <Route index element={<StoreAdminDashboard />} />
+            <Route path="bookings" element={<StoreBookings />} />
+            <Route path="therapists" element={<StoreTherapists />} />
+            <Route path="courses" element={<StoreCourses />} />
+            <Route path="blog" element={<StoreBlog />} />
+            <Route path="analytics" element={<StoreAnalytics />} />
+            <Route path="inquiries" element={<StoreInquiries />} />
+            <Route path="settings" element={<StoreSettings />} />
+          </Route>
+          
+          {/* Therapist Routes */}
+          <Route path="/therapist-login" element={<TherapistLogin />} />
+          <Route path="/therapist-signup" element={<TherapistSignup />} />
+          <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
+          <Route path="/therapist-profile" element={<TherapistProfile />} />
+          <Route path="/therapist-bookings" element={<TherapistBookings />} />
+          <Route path="/therapist-messages" element={<TherapistMessages />} />
+          <Route path="/therapist-posts" element={<TherapistPosts />} />
+          <Route path="/therapist-settings" element={<TherapistSettings />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/setup" element={<AdminSetup />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
@@ -112,12 +113,13 @@ function App() {
             <Route path="blog" element={<AdminBlog />} />
             <Route path="inquiries" element={<AdminInquiries />} />
             <Route path="requests" element={<AdminRequests />} />
+            <Route path="auth" element={<AdminAuth />} />
           </Route>
-        </Route>
-        
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </AdminAuthProvider>
   );
 }
 

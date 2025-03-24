@@ -1,8 +1,8 @@
-
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface DashboardCardProps {
   icon: ReactNode;
@@ -13,9 +13,29 @@ interface DashboardCardProps {
     positive?: boolean;
   };
   className?: string;
+  isLoading?: boolean;
 }
 
-export function DashboardCard({ icon, title, value, change, className }: DashboardCardProps) {
+export function DashboardCard({ icon, title, value, change, className, isLoading }: DashboardCardProps) {
+  if (isLoading) {
+    return (
+      <Card className={cn("overflow-hidden", className)}>
+        <CardContent className="p-6">
+          <div className="flex items-center">
+            <div className="mr-4 rounded-full bg-primary/10 p-2 text-primary">
+              {icon}
+            </div>
+            <div className="flex-1">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-32 mt-1" />
+            </div>
+            <Skeleton className="h-6 w-20 ml-auto" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardContent className="p-6">

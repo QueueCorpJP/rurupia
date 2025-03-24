@@ -17,15 +17,6 @@ const ADMIN_CREDENTIALS = {
   password: '5ecurity@SageAdmin2025'
 };
 
-// Export the hook as a named constant instead of a function declaration
-export const useAdminAuth = () => {
-  const context = useContext(AdminAuthContext);
-  if (context === undefined) {
-    throw new Error('useAdminAuth must be used within an AdminAuthProvider');
-  }
-  return context;
-};
-
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminUserId, setAdminUserId] = useState<string | null>(null);
@@ -103,4 +94,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AdminAuthContext.Provider>
   );
+}
+
+export function useAdminAuth() {
+  const context = useContext(AdminAuthContext);
+  if (context === undefined) {
+    throw new Error('useAdminAuth must be used within an AdminAuthProvider');
+  }
+  return context;
 } 

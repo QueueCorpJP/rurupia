@@ -1,4 +1,3 @@
-
 import { 
   LineChart as RechartsLineChart, 
   Line, 
@@ -9,6 +8,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ChartData {
   name: string;
@@ -20,21 +20,38 @@ interface LineChartProps {
   data: ChartData[];
   color?: string;
   height?: number;
+  isLoading?: boolean;
 }
 
 export function LineChart({ 
   title, 
   data, 
   color = "#0ea5e9", 
-  height = 300 
+  height = 300,
+  isLoading
 }: LineChartProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div style={{ height }}>
+            <Skeleton className="w-full h-full" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div style={{ height: height }}>
+        <div style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">
             <RechartsLineChart
               data={data}

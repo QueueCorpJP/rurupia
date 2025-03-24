@@ -1,73 +1,92 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/admin/DataTable';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { supabaseAdmin } from '@/integrations/supabase/admin-client';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { format } from 'date-fns';
 
-// Sample data
-const inquiries = [
-  { 
-    id: '1',
-    date: '2025/02/25 15:42',
-    username: 'tanaka_miyuki',
-    type: 'サポート',
-    status: '未対応',
-    content: '予約した後にキャンセルする方法が分かりません。教えてください。'
-  },
-  { 
-    id: '2',
-    date: '2025/02/24 11:23',
-    username: 'yamada_ken',
-    type: 'クレーム',
-    status: '対応中',
-    content: 'セラピストが予約時間に来ませんでした。返金を希望します。'
-  },
-  { 
-    id: '3',
-    date: '2025/02/22 09:15',
-    username: 'suzuki_ai',
-    type: '提案',
-    status: '完了',
-    content: 'アプリでも予約できるようにしてほしいです。とても便利だと思います。'
-  },
-  { 
-    id: '4',
-    date: '2025/02/20 16:38',
-    username: 'sato_takeshi',
-    type: '質問',
-    status: '完了',
-    content: '料金体系について詳しく知りたいです。'
-  },
-  { 
-    id: '5',
-    date: '2025/02/18 14:05',
-    username: 'nakamura_yuki',
-    type: 'バグ報告',
-    status: '未対応',
-    content: 'プロフィール写真がアップロードできません。エラーが発生します。'
-  },
-];
-
-const sortOptions = [
-  { label: '新しい順', value: 'newest' },
-  { label: '古い順', value: 'oldest' },
-  { label: '未対応のみ', value: 'unresolved' },
-  { label: '対応中のみ', value: 'inProgress' },
-  { label: '完了のみ', value: 'completed' },
-];
+interface Inquiry {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  date: string;
+  status: string;
+  response?: string;
+  responded_at?: string;
+}
 
 const typeColors: Record<string, string> = {
-  'サポート': 'default',
-  'クレーム': 'destructive',
-  '提案': 'secondary',
-  '質問': 'primary',
-  'バグ報告': 'outline'
+  'general': 'default',
+  'complaint': 'destructive',
+  'suggestion': 'secondary',
+  'question': 'primary',
+  'bug': 'outline'
+};
+
+const typeLabels: Record<string, string> = {
+  'support': 'サポート',
+  'complaint': 'クレーム',
+  'suggestion': '提案',
+  'question': '質問',
+  'bug': 'バグ報告'
+};
+
+const statusLabels: Record<string, string> = {
+  'pending': '未対応',
+  'in_progress': '対応中',
+  'resolved': '完了'
 };
 
 const AdminInquiries = () => {
   const { toast } = useToast();
-  const [filteredInquiries, setFilteredInquiries] = useState(inquiries);
+  const { isAdminAuthenticated } = useAdminAuth();
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [filteredInquiries, setFilteredInquiries] = useState<Inquiry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isAdminAuthenticated) {
+      fetchInquiries();
+    }
+  }, [isAdminAuthenticated]);
+
+  const fetchInquiries = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabaseAdmin
+        .from('inquiries')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedInquiries = data.map(inquiry => ({
+          ...inquiry,
+          date: format(new Date(inquiry.date), 'yyyy/MM/dd HH:mm'),
+          responded_at: inquiry.responded_at 
+            ? format(new Date(inquiry.responded_at), 'yyyy/MM/dd HH:mm')
+            : undefined
+        }));
+        setInquiries(formattedInquiries);
+        setFilteredInquiries(formattedInquiries);
+      }
+    } catch (error) {
+      console.error('Error fetching inquiries:', error);
+      toast({
+        title: "エラー",
+        description: "お問い合わせデータの取得に失敗しました",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSearch = (term: string) => {
     if (!term.trim()) {
@@ -77,9 +96,10 @@ const AdminInquiries = () => {
     
     const filtered = inquiries.filter(
       inquiry => 
-        inquiry.username.toLowerCase().includes(term.toLowerCase()) || 
-        inquiry.content.toLowerCase().includes(term.toLowerCase()) ||
-        inquiry.type.toLowerCase().includes(term.toLowerCase())
+        inquiry.name.toLowerCase().includes(term.toLowerCase()) || 
+        inquiry.email.toLowerCase().includes(term.toLowerCase()) ||
+        inquiry.subject.toLowerCase().includes(term.toLowerCase()) ||
+        inquiry.message.toLowerCase().includes(term.toLowerCase())
     );
     setFilteredInquiries(filtered);
   };
@@ -97,40 +117,61 @@ const AdminInquiries = () => {
         setFilteredInquiries(sorted);
         break;
       case 'unresolved':
-        setFilteredInquiries(inquiries.filter(item => item.status === '未対応'));
+        setFilteredInquiries(inquiries.filter(item => item.status === 'pending'));
         break;
       case 'inProgress':
-        setFilteredInquiries(inquiries.filter(item => item.status === '対応中'));
+        setFilteredInquiries(inquiries.filter(item => item.status === 'in_progress'));
         break;
       case 'completed':
-        setFilteredInquiries(inquiries.filter(item => item.status === '完了'));
+        setFilteredInquiries(inquiries.filter(item => item.status === 'resolved'));
         break;
+    }
+  };
+
+  const updateInquiryStatus = async (id: string, status: string) => {
+    try {
+      const { error } = await supabaseAdmin
+        .from('inquiries')
+        .update({ 
+          status,
+          ...(status === 'resolved' ? { responded_at: new Date().toISOString() } : {})
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        description: `ステータスを「${statusLabels[status]}」に変更しました`,
+      });
+
+      fetchInquiries();
+    } catch (error) {
+      console.error('Error updating inquiry status:', error);
+      toast({
+        title: "エラー",
+        description: "ステータスの更新に失敗しました",
+        variant: "destructive",
+      });
     }
   };
 
   const columns = [
     { key: 'date', label: '日時' },
-    { key: 'username', label: 'ユーザー名' },
-    { 
-      key: 'type', 
-      label: '種類',
-      render: (value: string) => (
-        <Badge variant={typeColors[value] as any || 'default'}>{value}</Badge>
-      )
-    },
+    { key: 'name', label: '名前' },
+    { key: 'email', label: 'メール' },
+    { key: 'subject', label: '件名' },
     { 
       key: 'status', 
       label: 'ステータス',
-      render: (value: string) => {
-        const status = 
-          value === '未対応' ? 'pending' : 
-          value === '対応中' ? 'active' : 
-          'approved';
-        return <StatusBadge status={status} label={value} />;
-      }
+      render: (value: string) => (
+        <StatusBadge 
+          status={value} 
+          label={statusLabels[value] || value}
+        />
+      )
     },
     { 
-      key: 'content', 
+      key: 'message', 
       label: '内容',
       render: (value: string) => (
         <div className="max-w-xs truncate" title={value}>
@@ -140,30 +181,45 @@ const AdminInquiries = () => {
     },
   ];
 
+  const sortOptions = [
+    { label: '新しい順', value: 'newest' },
+    { label: '古い順', value: 'oldest' },
+    { label: '未対応のみ', value: 'unresolved' },
+    { label: '対応中のみ', value: 'inProgress' },
+    { label: '完了のみ', value: 'completed' },
+  ];
+
   const actionMenuItems = [
     { 
       label: '詳細を表示', 
-      onClick: (inquiry: any) => {
+      onClick: (inquiry: Inquiry) => {
         toast({
           title: "問い合わせ詳細",
-          description: `${inquiry.username}からの問い合わせを表示します`,
+          description: `
+            名前: ${inquiry.name}
+            メール: ${inquiry.email}
+            件名: ${inquiry.subject}
+            内容: ${inquiry.message}
+            ${inquiry.response ? `\n回答: ${inquiry.response}` : ''}
+            ${inquiry.responded_at ? `\n回答日時: ${inquiry.responded_at}` : ''}
+          `,
         });
       } 
     },
     { 
       label: '対応中にする', 
-      onClick: (inquiry: any) => {
-        toast({
-          description: `ステータスを「対応中」に変更しました`,
-        });
+      onClick: (inquiry: Inquiry) => {
+        if (inquiry.status !== 'in_progress') {
+          updateInquiryStatus(inquiry.id, 'in_progress');
+        }
       } 
     },
     { 
       label: '完了にする', 
-      onClick: (inquiry: any) => {
-        toast({
-          description: `ステータスを「完了」に変更しました`,
-        });
+      onClick: (inquiry: Inquiry) => {
+        if (inquiry.status !== 'resolved') {
+          updateInquiryStatus(inquiry.id, 'resolved');
+        }
       } 
     },
   ];
@@ -178,11 +234,12 @@ const AdminInquiries = () => {
       <DataTable 
         columns={columns}
         data={filteredInquiries}
-        searchPlaceholder="ユーザーIDで検索"
+        searchPlaceholder="名前、メール、件名で検索"
         sortOptions={sortOptions}
         onSearchChange={handleSearch}
         onSortChange={handleSortChange}
         actionMenuItems={actionMenuItems}
+        isLoading={isLoading}
       />
     </div>
   );

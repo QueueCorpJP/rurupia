@@ -1,13 +1,51 @@
-
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { SidebarNav } from './SidebarNav';
 import { UserNav } from './UserNav';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard } from 'lucide-react';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useToast } from '@/components/ui/use-toast';
 
 const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [initializingSession, setInitializingSession] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { isAdminAuthenticated, initializeAdminSession, adminUserId } = useAdminAuth();
+
+  useEffect(() => {
+    if (!isAdminAuthenticated) {
+      console.log('Not authenticated, redirecting to login');
+      navigate('/admin/login');
+      return;
+    }
+    
+    // Initialize Supabase session with admin credentials
+    const setupAdmin = async () => {
+      try {
+        setInitializingSession(true);
+        console.log('Initializing admin session...');
+        await initializeAdminSession();
+        console.log('Admin session initialized, userId:', adminUserId);
+      } catch (error) {
+        console.error('Error initializing admin session:', error);
+        toast({
+          title: "エラー",
+          description: "管理者セッションの初期化に失敗しました",
+          variant: "destructive",
+        });
+      } finally {
+        setInitializingSession(false);
+      }
+    };
+    
+    setupAdmin();
+  }, [isAdminAuthenticated]);
+
+  if (!isAdminAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -36,7 +74,16 @@ const AdminLayout = () => {
         
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto p-4 md:p-6">
-          <Outlet />
+          {initializingSession ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">セッションを初期化中...</p>
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>

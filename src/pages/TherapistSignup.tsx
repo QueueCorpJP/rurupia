@@ -179,7 +179,7 @@ const TherapistSignup = () => {
           name: userData.name,
           description: "セラピストの紹介文はまだありません", // Default description
           location: userData.location,
-          price: null, // Set price to null initially
+          price: 5000, // Use default price instead of null to prevent not-null constraint
           specialties: [],
           experience: 0,
           rating: 0,
@@ -264,20 +264,33 @@ const TherapistSignup = () => {
       }
 
       // Create a relation between the therapist and the inviting store
-      if (storeId) {
-        const { error: relationError } = await supabase
-          .from('store_therapists')
-          .insert({
+      try {
+        if (storeId) {
+          console.log("Creating store-therapist relationship with:", {
             store_id: storeId,
             therapist_id: authData.user.id,
             status: 'pending'
           });
           
-        if (relationError) {
-          console.error("Failed to create store-therapist relation:", relationError);
-        } else {
-          console.log("Store-therapist relation created successfully");
+          // Try to create the relationship
+          const { error: relationError } = await supabase
+            .from('store_therapists')
+            .insert({
+              store_id: storeId,
+              therapist_id: authData.user.id,
+              status: 'pending'
+            });
+            
+          if (relationError) {
+            console.error("Failed to create store-therapist relation:", relationError);
+            console.log("Note: This is expected if RLS policies don't allow therapists to create this relation. The store will need to approve the therapist manually.");
+          } else {
+            console.log("Store-therapist relation created successfully");
+          }
         }
+      } catch (relationError) {
+        console.error("Error creating store-therapist relation:", relationError);
+        // Don't block the signup process if this fails
       }
 
       // Show success message

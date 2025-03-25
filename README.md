@@ -133,3 +133,44 @@ Required environment variables:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+# Memory and Lesson Management System
+
+This system maintains user interactions, memories, and learned lessons through two primary JSON files:
+
+## memory.json
+Stores user-related information including:
+- Basic identity
+- Behaviors
+- Preferences
+- Goals
+- Relationships (up to 3 degrees of separation)
+- Entities and their relationships
+
+## lessons.json
+Tracks error-related information including:
+- Error patterns
+- Solutions
+- Success metrics
+- Verification steps
+
+## File Management
+- Files automatically split at 1000 lines
+- Atomic and factual observations
+- Clear naming conventions
+- Regular updates and maintenance
+
+## Quality Guidelines
+### Lessons
+- Descriptive names (e.g., "NEXTJS_BUILD_ERROR_001")
+- Detailed error patterns
+- Testable verification steps
+- Environmental requirements
+- Solution effectiveness tracking
+
+### Memory
+- Atomic observations
+- Active voice relations
+- Consistent entity naming
+- Meaningful connections
+- Regular cleanup

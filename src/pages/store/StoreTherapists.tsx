@@ -77,7 +77,20 @@ const StoreTherapists = () => {
       
       setStoreId(user.id);
 
+      // Get active store-therapist relationships first
+      const { data: activeRelations, error: relationError } = await supabase
+        .from("store_therapists")
+        .select("therapist_id, status")
+        .eq("store_id", user.id)
+        .eq("status", "active");
+      
+      if (relationError) throw relationError;
+      
+      // Get IDs of active therapists
+      const activeTherapistIds = activeRelations?.map(r => r.therapist_id) || [];
+      
       // First, get pending therapists from profiles
+      // IMPORTANT: Exclude therapists that already have an active relationship
       const { data: pendingData, error: pendingError } = await supabase
         .from("profiles")
         .select(`
@@ -92,25 +105,20 @@ const StoreTherapists = () => {
         .eq("status", "pending_therapist_approval");
 
       if (pendingError) throw pendingError;
-      setPendingTherapists(pendingData || []);
+      
+      // Filter out therapists that already have an active relationship
+      const filteredPendingData = pendingData?.filter(
+        therapist => !activeTherapistIds.includes(therapist.id)
+      ) || [];
+      
+      setPendingTherapists(filteredPendingData);
       
       // Get active store therapist relationships
-      const { data: activeRelations, error: relationError } = await supabase
-        .from("store_therapists")
-        .select("therapist_id, status")
-        .eq("store_id", user.id)
-        .eq("status", "active");
-      
-      if (relationError) throw relationError;
-      
       if (!activeRelations || activeRelations.length === 0) {
         setTherapists([]);
         setLoading(false);
         return;
       }
-      
-      // Get IDs of active therapists
-      const activeTherapistIds = activeRelations.map(r => r.therapist_id);
       
       // Get profile data for these therapists
       const { data: therapistProfiles, error: profileError } = await supabase
@@ -193,7 +201,20 @@ const StoreTherapists = () => {
         throw new Error("Therapist not found in pending list");
       }
       
-      // 2. Check for existing store_therapist relation and create/update it
+      // 2. Update profile status to active FIRST
+      // This is important - update the profile status before creating the relationship
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ status: "active" })
+        .eq("id", therapistId)
+        .eq("invited_by_store_id", storeId);
+        
+      if (profileError) {
+        console.error("Error updating profile status:", profileError);
+        throw profileError; // Throw the error to stop the process if this fails
+      }
+      
+      // 3. Check for existing store_therapist relation and create/update it
       const { data: existingRelations, error: relationCheckError } = await supabase
         .from("store_therapists")
         .select("id, status")
@@ -224,18 +245,13 @@ const StoreTherapists = () => {
           }]);
       }
       
-      try {
-        const { error: relationError } = await relationOperation;
-        if (relationError) {
-          console.error("Error updating store_therapist relation:", relationError);
-          // Log but continue - don't throw
-        }
-      } catch (relationError) {
-        console.error("Error in store_therapists operation:", relationError);
-        // Log but continue - don't throw
+      const { error: relationError } = await relationOperation;
+      if (relationError) {
+        console.error("Error updating store_therapist relation:", relationError);
+        throw relationError;
       }
       
-      // 3. Check if therapist record exists (it should exist with the new flow)
+      // 4. Check if therapist record exists
       const { data: existingTherapists, error: therapistCheckError } = await supabase
         .from("therapists")
         .select("id")
@@ -249,11 +265,10 @@ const StoreTherapists = () => {
         ? existingTherapists[0] 
         : null;
       
-      // 4. If therapist record doesn't exist for some reason, create it
+      // 5. If therapist record doesn't exist, create it
       if (!existingTherapist) {
         console.log("No therapist record found. Creating one from profile data.");
         try {
-          // Simplest approach - direct insert with minimal fields
           const { error: insertError } = await supabase
             .from("therapists")
             .insert({
@@ -272,8 +287,6 @@ const StoreTherapists = () => {
           if (insertError) {
             console.log("Could not create therapist record:", insertError);
             toast.warning("セラピスト情報の作成中にエラーが発生しました。後で編集してください。");
-          } else {
-            console.log("Successfully created therapist record");
           }
         } catch (error: any) {
           console.error("Note: Couldn't create therapist record:", error);
@@ -282,25 +295,8 @@ const StoreTherapists = () => {
         }
       }
 
-      // 5. Update profile status to active
-      try {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ status: "active" })
-          .eq("id", therapistId);
-          
-        if (profileError) {
-          console.error("Error updating profile status:", profileError);
-          // Log but continue - don't throw
-        }
-      } catch (profileError) {
-        console.error("Error in profile update operation:", profileError);
-        // Log but continue - don't throw
-      }
-
       console.log("Therapist approval process completed");
       
-      // Always update the UI regardless of backend errors
       // Update the UI by removing the approved therapist from pending list
       setPendingTherapists(prevTherapists => 
         prevTherapists.filter(t => t.id !== therapistId)

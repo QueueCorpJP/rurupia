@@ -258,40 +258,35 @@ const StoreTherapists = () => {
         .eq("id", therapistId);
         
       if (therapistCheckError) {
+        console.error("Error checking if therapist exists:", therapistCheckError);
         throw therapistCheckError;
       }
       
-      const existingTherapist = existingTherapists && existingTherapists.length > 0 
-        ? existingTherapists[0] 
-        : null;
+      const existingTherapist = existingTherapists && existingTherapists.length > 0;
       
       // 5. If therapist record doesn't exist, create it
       if (!existingTherapist) {
         console.log("No therapist record found. Creating one from profile data.");
-        try {
-          const { error: insertError } = await supabase
-            .from("therapists")
-            .insert({
-              id: therapistId,
-              name: therapistToApprove.name,
-              description: "セラピストの紹介文はまだありません",
-              location: "東京",
-              price: 5000,
-              specialties: [],
-              experience: 0,
-              rating: 0,
-              reviews: 0,
-              availability: []
-            });
+        const { error: insertError } = await supabase
+          .from("therapists")
+          .insert({
+            id: therapistId,
+            name: therapistToApprove.name,
+            description: "セラピストの紹介文はまだありません",
+            location: "東京",
+            price: 5000,
+            specialties: [],
+            experience: 0,
+            rating: 0,
+            reviews: 0,
+            availability: []
+          });
             
-          if (insertError) {
-            console.log("Could not create therapist record:", insertError);
-            toast.warning("セラピスト情報の作成中にエラーが発生しました。後で編集してください。");
-          }
-        } catch (error: any) {
-          console.error("Note: Couldn't create therapist record:", error);
-          toast.warning("セラピスト情報の作成に失敗しました。後で再試行してください。");
-          // Don't throw the error, just log it and continue
+        if (insertError) {
+          console.error("Could not create therapist record:", insertError);
+          // This is a critical error since we need the therapist record
+          toast.error("セラピスト情報の作成に失敗しました。管理者に連絡してください。");
+          throw insertError;
         }
       }
 

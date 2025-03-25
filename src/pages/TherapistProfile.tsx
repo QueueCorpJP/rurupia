@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TherapistProfileForm } from '@/components/therapist/TherapistProfileForm';
@@ -7,6 +6,22 @@ import { TherapistLayout } from '@/components/therapist/TherapistLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// Helper function to map database fields to component format
+const mapDatabaseToComponentFormat = (data: any) => {
+  if (!data) return null;
+  
+  // Map relevant fields from database format to component format
+  return {
+    ...data,
+    avatarUrl: data.avatar_url || data.image_url || '',
+    galleryImages: data.gallery_images || [],
+    workingDays: data.working_days || data.availability || [],
+    pricePerHour: data.price || 0,
+    bio: data.description || '',
+    // Map additional fields as needed
+  };
+};
 
 const TherapistProfile = () => {
   const [loading, setLoading] = useState(true);
@@ -44,7 +59,12 @@ const TherapistProfile = () => {
         }
         
         console.log("Therapist data fetched:", data);
-        setTherapistData(data || { id: user.id });
+        
+        // Map data to component format before setting state
+        const mappedData = mapDatabaseToComponentFormat(data) || { id: user.id };
+        console.log("Mapped therapist data:", mappedData);
+        
+        setTherapistData(mappedData);
       } catch (error) {
         console.error('Error in checkAuth:', error);
         toast.error('プロフィール情報の取得に失敗しました');
@@ -70,7 +90,13 @@ const TherapistProfile = () => {
           .maybeSingle();
           
         if (error) throw error;
-        if (refreshedData) setTherapistData(refreshedData);
+        
+        // Map the refreshed data to component format
+        if (refreshedData) {
+          const mappedData = mapDatabaseToComponentFormat(refreshedData);
+          console.log("Refreshed therapist data:", mappedData);
+          setTherapistData(mappedData);
+        }
       }
     } catch (error) {
       console.error('Error refreshing profile data:', error);

@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { TherapistLayout } from '@/components/therapist/TherapistLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Users, MessageSquare, FileText } from 'lucide-react';
+import { Calendar, Users, MessageSquare, FileText, Heart } from 'lucide-react';
 
 const TherapistDashboard = () => {
   const [therapistData, setTherapistData] = useState<any>(null);
@@ -12,7 +11,8 @@ const TherapistDashboard = () => {
     bookings: 0,
     pendingRequests: 0,
     messages: 0,
-    posts: 0
+    posts: 0,
+    followers: 0
   });
 
   useEffect(() => {
@@ -55,11 +55,22 @@ const TherapistDashboard = () => {
           .select('*', { count: 'exact' })
           .eq('therapist_id', user.id);
           
+        // Fetch follower count
+        const { count: followersCount, error: followersError } = await supabase
+          .from('followed_therapists')
+          .select('*', { count: 'exact', head: true })
+          .eq('therapist_id', user.id);
+          
+        if (followersError) {
+          console.error('Error fetching followers count:', followersError);
+        }
+          
         setStats({
           bookings: bookingsData?.length || 0,
           pendingRequests: 0, // Could be calculated if there's a requests table
           messages: messagesData?.length || 0,
-          posts: postsData?.length || 0
+          posts: postsData?.length || 0,
+          followers: followersCount || 0
         });
       } catch (error) {
         console.error('Dashboard error:', error);
@@ -104,7 +115,7 @@ const TherapistDashboard = () => {
           </h1>
         </div>
         
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">予約数</CardTitle>
@@ -153,6 +164,19 @@ const TherapistDashboard = () => {
               <div className="text-2xl font-bold">{stats.posts}</div>
               <p className="text-xs text-muted-foreground">
                 公開中の記事
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">フォロワー</CardTitle>
+              <Heart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.followers}</div>
+              <p className="text-xs text-muted-foreground">
+                あなたをフォロー中
               </p>
             </CardContent>
           </Card>

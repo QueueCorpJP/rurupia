@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +5,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { TherapistProfile } from "@/utils/types";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+
+// List of all Japanese prefectures
+const japanesePrefectures = [
+  '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
+  '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
+  '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県',
+  '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県',
+  '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県',
+  '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県',
+  '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'
+];
 
 interface TherapistProfileFormProps {
   therapist?: TherapistProfile;
@@ -17,6 +34,58 @@ interface TherapistProfileFormProps {
   onSuccess?: (data: any) => void;
 }
 
+// Function to convert database fields to component format
+const mapDatabaseToComponentFormat = (data: any) => {
+  if (!data) return {};
+
+  // Map working days - if a DB format exists, transform it, otherwise use empty array
+  let workingDays: string[] = [];
+  
+  // Working days could be stored in several formats, try to handle all reasonable ones
+  if (data.working_days && Array.isArray(data.working_days)) {
+    // Map full day names to Japanese day first characters
+    const dayNameToChar: { [key: string]: string } = {
+      'monday': '月',
+      'tuesday': '火',
+      'wednesday': '水',
+      'thursday': '木',
+      'friday': '金',
+      'saturday': '土',
+      'sunday': '日'
+    };
+    
+    workingDays = data.working_days.map((day: string) => {
+      return dayNameToChar[day.toLowerCase()] || day.charAt(0);
+    });
+  } else if (data.workingDays && Array.isArray(data.workingDays)) {
+    workingDays = data.workingDays;
+  } else if (data.availability && Array.isArray(data.availability)) {
+    // Map availability days to workingDays if necessary
+    workingDays = data.availability.map((day: string) => day.charAt(0));
+  }
+
+  // Map the price field - could be in price or pricePerHour
+  const price = data.price_per_hour || data.pricePerHour || data.price || 0;
+
+  // Create a mapped object with the correct field names
+  return {
+    name: data.name || '',
+    workingDays,
+    workingHours: data.working_hours || data.workingHours || { start: "09:00", end: "18:00" },
+    pricePerHour: price,
+    bio: data.bio || data.description || '',
+    serviceAreas: data.service_areas || data.serviceAreas || { prefecture: data.location || '', cities: [] },
+    height: data.height,
+    weight: data.weight,
+    hobbies: data.hobbies || [],
+    specialties: data.specialties || [],
+    avatarUrl: data.avatar_url || data.image_url || data.avatarUrl || '',
+    galleryImages: data.gallery_images || data.galleryImages || [],
+    healthDocumentUrl: data.health_document_url || '',
+    // Add any other fields that need mapping here
+  };
+};
+
 export const TherapistProfileForm = ({ 
   therapist, 
   existingData, 
@@ -24,6 +93,8 @@ export const TherapistProfileForm = ({
   onSuccess 
 }: TherapistProfileFormProps) => {
   // Use existingData if provided, otherwise use therapist
+  const mappedData = mapDatabaseToComponentFormat(existingData || therapist);
+  
   const initialProfile = {
     name: '',
     workingDays: [],
@@ -36,7 +107,8 @@ export const TherapistProfileForm = ({
     hobbies: [],
     specialties: [],
     avatarUrl: '',
-    ...existingData
+    healthDocumentUrl: '',
+    ...mappedData
   };
   
   const [profile, setProfile] = useState(initialProfile);
@@ -45,6 +117,7 @@ export const TherapistProfileForm = ({
   const [healthDoc, setHealthDoc] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [hobbyInput, setHobbyInput] = useState('');
   
   useEffect(() => {
     const getUserId = async () => {
@@ -66,6 +139,18 @@ export const TherapistProfileForm = ({
     
     checkBuckets();
   }, []);
+
+  useEffect(() => {
+    // Update profile if existingData changes
+    if (existingData) {
+      const mappedData = mapDatabaseToComponentFormat(existingData);
+      setProfile(prev => ({
+        ...prev,
+        ...mappedData
+      }));
+      console.log("Updated profile with mapped data:", mappedData);
+    }
+  }, [existingData]);
   
   const weekdays = [
     { id: "monday", label: "月曜" },
@@ -155,6 +240,43 @@ export const TherapistProfileForm = ({
     }
   };
 
+  // Return mapped data for saving to database
+  const mapComponentToDatabaseFormat = (data: any) => {
+    // Convert working days from UI format (single characters) to database format
+    // Store the full day name to make it more readable in the database
+    const workingDaysMap: { [key: string]: string } = {
+      '月': 'monday',
+      '火': 'tuesday',
+      '水': 'wednesday',
+      '木': 'thursday',
+      '金': 'friday',
+      '土': 'saturday',
+      '日': 'sunday'
+    };
+    
+    const fullWorkingDays = Array.isArray(data.workingDays) 
+      ? data.workingDays.map((day: string) => workingDaysMap[day] || day)
+      : [];
+    
+    return {
+      id: userId,
+      name: data.name,
+      description: data.bio,
+      price: data.pricePerHour,
+      specialties: Array.isArray(data.specialties) ? data.specialties : [],
+      location: data.serviceAreas?.prefecture || 'Tokyo',
+      image_url: data.avatarUrl,
+      gallery_images: data.galleryImages || [],
+      working_days: fullWorkingDays,
+      working_hours: data.workingHours,
+      height: data.height,
+      weight: data.weight,
+      hobbies: data.hobbies || [],
+      health_document_url: data.healthDocumentUrl,
+      service_areas: data.serviceAreas || { prefecture: 'Tokyo', cities: [] }
+    };
+  };
+
   const handleSave = async () => {
     if (!userId) {
       toast.error("ユーザー情報が見つかりません");
@@ -197,26 +319,15 @@ export const TherapistProfileForm = ({
         }
       }
       
-      // Safe values for database
-      const safeSpecialties = Array.isArray(updatedProfile.specialties) ? updatedProfile.specialties : [];
-      const safeBio = updatedProfile.bio || '';
-      const safeName = updatedProfile.name || 'New Therapist';
-      const safePrice = typeof updatedProfile.pricePerHour === 'number' ? updatedProfile.pricePerHour : 0;
-      const safeLocation = updatedProfile.serviceAreas?.prefecture || 'Tokyo';
+      // Map data for database
+      const dbData = mapComponentToDatabaseFormat(updatedProfile);
       
-      console.log("Updating therapist with data:", {
-        name: safeName,
-        description: safeBio,
-        price: safePrice,
-        specialties: safeSpecialties,
-        location: safeLocation,
-        image_url: updatedProfile.avatarUrl
-      });
+      console.log("Updating therapist with data:", dbData);
       
       // Update therapist data in the database
       const { data: therapistData, error: therapistCheckError } = await supabase
         .from('therapists')
-        .select('id')
+        .select('id, gallery_images')
         .eq('id', userId)
         .maybeSingle();
       
@@ -229,34 +340,34 @@ export const TherapistProfileForm = ({
         // If therapist record doesn't exist yet, insert it
         const { error: insertError } = await supabase
           .from('therapists')
-          .insert([{
-            id: userId,
-            name: safeName,
-            description: safeBio,
-            price: safePrice,
-            specialties: safeSpecialties,
-            location: safeLocation,
-            image_url: updatedProfile.avatarUrl,
-            galleryImages: updatedProfile.galleryImages || []
-          }]);
+          .insert([dbData]);
           
         if (insertError) {
           console.error("Error inserting therapist:", insertError);
           throw insertError;
         }
       } else {
+        // Merge existing gallery images with new ones if needed
+        let mergedGalleryImages = updatedProfile.galleryImages || [];
+        
+        // If there were existing gallery images and we didn't just reset them
+        if (therapistData.gallery_images && galleryImages.length > 0) {
+          mergedGalleryImages = [
+            ...(therapistData.gallery_images || []),
+            ...mergedGalleryImages
+          ];
+        } else if (therapistData.gallery_images && !updatedProfile.galleryImages) {
+          // If we're not adding new images, keep existing ones
+          mergedGalleryImages = therapistData.gallery_images;
+        }
+        
+        // Update the gallery images in the database data
+        dbData.gallery_images = mergedGalleryImages;
+        
         // Update existing therapist record
         const { error: updateTherapistError } = await supabase
           .from('therapists')
-          .update({
-            name: safeName,
-            description: safeBio,
-            price: safePrice,
-            specialties: safeSpecialties,
-            location: safeLocation,
-            image_url: updatedProfile.avatarUrl,
-            galleryImages: updatedProfile.galleryImages || []
-          })
+          .update(dbData)
           .eq('id', userId);
           
         if (updateTherapistError) {
@@ -269,7 +380,7 @@ export const TherapistProfileForm = ({
       const { error: updateProfileError } = await supabase
         .from('profiles')
         .update({
-          name: safeName,
+          name: updatedProfile.name,
           avatar_url: updatedProfile.avatarUrl
         })
         .eq('id', userId);
@@ -290,9 +401,39 @@ export const TherapistProfileForm = ({
     }
   };
 
+  const handleAddHobby = () => {
+    if (hobbyInput.trim()) {
+      // Split by commas or spaces to allow multiple entries at once
+      const newHobbies = hobbyInput.split(/[,、]/).map(h => h.trim()).filter(h => h);
+      
+      // Filter out duplicates
+      const uniqueNewHobbies = newHobbies.filter(
+        hobby => !profile.hobbies.includes(hobby)
+      );
+      
+      if (uniqueNewHobbies.length > 0) {
+        setProfile({
+          ...profile,
+          hobbies: [...profile.hobbies, ...uniqueNewHobbies]
+        });
+      }
+      setHobbyInput('');
+    }
+  };
+  
+  const handleRemoveHobby = (hobbyToRemove: string) => {
+    setProfile({
+      ...profile,
+      hobbies: Array.isArray(profile.hobbies) 
+        ? profile.hobbies.filter(hobby => hobby !== hobbyToRemove)
+        : []
+    });
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">プロフィール設定</h2>
+      <p className="text-sm text-muted-foreground mb-4">現在のプロフィール設定を変更します</p>
 
       <div className="space-y-6">
         <div>
@@ -408,24 +549,63 @@ export const TherapistProfileForm = ({
 
         <div className="space-y-2">
           <Label htmlFor="hobbies">趣味</Label>
-          <Input 
-            id="hobbies" 
-            placeholder="映画鑑賞、料理、旅行など"
-            value={Array.isArray(profile.hobbies) ? profile.hobbies.join(', ') : ""}
-            onChange={(e) => setProfile({...profile, hobbies: e.target.value.split(',').map(h => h.trim())})}
-          />
+          <div className="flex gap-2 mt-1">
+            <Input 
+              id="hobbies" 
+              placeholder="映画鑑賞、料理、旅行など（カンマ区切り）"
+              value={hobbyInput}
+              onChange={(e) => setHobbyInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddHobby())}
+            />
+            <Button 
+              type="button" 
+              onClick={handleAddHobby}
+              variant="outline"
+            >
+              追加
+            </Button>
+          </div>
+          {Array.isArray(profile.hobbies) && profile.hobbies.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {profile.hobbies.map((hobby) => (
+                <div 
+                  key={hobby} 
+                  className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm flex items-center gap-1"
+                >
+                  {hobby}
+                  <button 
+                    type="button" 
+                    onClick={() => handleRemoveHobby(hobby)}
+                    className="text-primary hover:text-destructive"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label>対応エリア (都道府県)</Label>
-          <Input 
-            placeholder="東京都"
+          <Select 
             value={profile.serviceAreas?.prefecture || ""}
-            onChange={(e) => setProfile({
+            onValueChange={(value) => setProfile({
               ...profile, 
-              serviceAreas: {...(profile.serviceAreas || {}), prefecture: e.target.value}
+              serviceAreas: {...(profile.serviceAreas || {}), prefecture: value}
             })}
-          />
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="都道府県を選択" />
+            </SelectTrigger>
+            <SelectContent>
+              {japanesePrefectures.map((prefecture) => (
+                <SelectItem key={prefecture} value={prefecture}>
+                  {prefecture}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
@@ -543,10 +723,50 @@ export const TherapistProfileForm = ({
           <h3 className="text-lg font-medium mb-2">性病検査結果</h3>
           <div className="flex items-center justify-center w-full">
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <UploadCloud className="w-8 h-8 mb-2 text-gray-500" />
-                <p className="text-sm text-gray-500">証明書をアップロード</p>
-              </div>
+              {profile.healthDocumentUrl ? (
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  {profile.healthDocumentUrl.toLowerCase().endsWith('.pdf') ? (
+                    // For PDF documents
+                    <div className="flex flex-col items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm text-center text-gray-500 mt-1">現在のドキュメント</p>
+                      <a 
+                        href={profile.healthDocumentUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-500 hover:underline mt-1"
+                      >
+                        ドキュメントを表示
+                      </a>
+                    </div>
+                  ) : (
+                    // For image documents
+                    <div className="flex flex-col items-center">
+                      <img 
+                        src={profile.healthDocumentUrl} 
+                        alt="Health Document" 
+                        className="h-16 object-contain mb-1" 
+                      />
+                      <p className="text-sm text-center text-gray-500">現在のドキュメント</p>
+                      <a 
+                        href={profile.healthDocumentUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-500 hover:underline mt-1"
+                      >
+                        拡大表示
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <UploadCloud className="w-8 h-8 mb-2 text-gray-500" />
+                  <p className="text-sm text-gray-500">証明書をアップロード</p>
+                </div>
+              )}
               <input 
                 id="health-document" 
                 type="file" 

@@ -1,6 +1,5 @@
-
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Plus, UploadCloud } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -14,17 +13,39 @@ export const TherapistGalleryView = ({
   onUploadClick 
 }: TherapistGalleryViewProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [displayImages, setDisplayImages] = useState<string[]>([]);
+
+  // Effect to set display images and validate them
+  useEffect(() => {
+    if (!galleryImages || !Array.isArray(galleryImages)) {
+      console.log("Gallery images not provided or not in expected format:", galleryImages);
+      setDisplayImages([]);
+      return;
+    }
+
+    // Filter out any invalid URLs
+    const validImages = galleryImages.filter(url => 
+      typeof url === 'string' && url.trim() !== '');
+
+    console.log("Valid gallery images:", validImages);
+    setDisplayImages(validImages);
+    
+    // Reset current index if it's out of bounds
+    if (currentIndex >= validImages.length) {
+      setCurrentIndex(0);
+    }
+  }, [galleryImages, currentIndex]);
 
   const goToPrevious = () => {
-    if (galleryImages.length === 0) return;
+    if (displayImages.length === 0) return;
     const isFirstSlide = currentIndex === 0;
-    const newIndex = isFirstSlide ? galleryImages.length - 1 : currentIndex - 1;
+    const newIndex = isFirstSlide ? displayImages.length - 1 : currentIndex - 1;
     setCurrentIndex(newIndex);
   };
 
   const goToNext = () => {
-    if (galleryImages.length === 0) return;
-    const isLastSlide = currentIndex === galleryImages.length - 1;
+    if (displayImages.length === 0) return;
+    const isLastSlide = currentIndex === displayImages.length - 1;
     const newIndex = isLastSlide ? 0 : currentIndex + 1;
     setCurrentIndex(newIndex);
   };
@@ -34,10 +55,10 @@ export const TherapistGalleryView = ({
       <CardContent className="p-4">
         <h3 className="text-lg font-medium mb-4">ギャラリー写真</h3>
         
-        {galleryImages.length > 0 ? (
+        {displayImages.length > 0 ? (
           <div className="relative w-full h-80">
             <img
-              src={galleryImages[currentIndex]}
+              src={displayImages[currentIndex]}
               alt={`Gallery image ${currentIndex + 1}`}
               className="w-full h-full object-cover rounded-md"
             />
@@ -61,7 +82,7 @@ export const TherapistGalleryView = ({
             
             <div className="absolute bottom-4 left-0 right-0">
               <div className="flex items-center justify-center gap-2">
-                {galleryImages.map((_, slideIndex) => (
+                {displayImages.map((_, slideIndex) => (
                   <div
                     key={slideIndex}
                     onClick={() => setCurrentIndex(slideIndex)}
@@ -74,14 +95,34 @@ export const TherapistGalleryView = ({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-80 bg-muted/20 rounded-md">
-            <p className="text-muted-foreground mb-4">ギャラリー写真がありません</p>
+          <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-md border border-dashed border-gray-300 h-80">
+            <UploadCloud className="h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-500 mb-4 text-center">
+              ギャラリーに写真がありません。<br/>
+              プロフィールタブからアップロードしてください。
+            </p>
             {onUploadClick && (
-              <Button onClick={onUploadClick} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button 
+                variant="outline" 
+                onClick={onUploadClick} 
+                className="mt-2"
+              >
+                <Plus className="mr-2 h-4 w-4" />
                 写真をアップロード
               </Button>
             )}
+          </div>
+        )}
+        
+        {displayImages.length > 0 && onUploadClick && (
+          <div className="mt-4 flex justify-center">
+            <Button 
+              variant="outline" 
+              onClick={onUploadClick}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              もっと写真をアップロード
+            </Button>
           </div>
         )}
       </CardContent>

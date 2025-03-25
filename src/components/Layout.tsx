@@ -92,7 +92,7 @@ const Layout = ({ children }: LayoutProps) => {
     
     switch (userProfile.user_type) {
       case 'store':
-        return "/store-admin";  // Store users always go to store admin
+        return "/store-admin";
       case 'therapist':
         return "/therapist-dashboard";
       default:
@@ -120,7 +120,7 @@ const Layout = ({ children }: LayoutProps) => {
             <span className="font-semibold text-lg text-foreground">のくとる</span>
           </Link>
           
-          <nav className="flex ml-auto items-center gap-1 md:gap-6">
+          <nav className="hidden md:flex ml-auto items-center gap-1 md:gap-6">
             <Link 
               to="/therapists" 
               className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
@@ -149,25 +149,16 @@ const Layout = ({ children }: LayoutProps) => {
                 <NavigationMenuList>
                   <NavigationMenuItem>
                     <NavigationMenuTrigger className="text-sm">
-                      {userProfile?.user_type === 'store' ? (
-                        <>
-                          <Store className="h-4 w-4 mr-1" />
-                          店舗管理
-                        </>
-                      ) : (
-                        <>
-                          <User className="h-4 w-4 mr-1" />
-                          マイページ
-                        </>
-                      )}
+                      <User className="h-4 w-4 mr-1" />
+                      マイページ
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="grid w-[200px] gap-2 p-4">
                         {userProfile?.user_type === 'store' ? (
                           <>
-                            <Link to="/notification-settings" className="block p-2 hover:bg-muted rounded-md">
-                              <Settings className="h-4 w-4 inline mr-2" />
-                              通知設定
+                            <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
+                              <Store className="h-4 w-4 inline mr-2" />
+                              店舗管理
                             </Link>
                           </>
                         ) : userProfile?.user_type === 'therapist' ? (
@@ -260,7 +251,7 @@ const Layout = ({ children }: LayoutProps) => {
           {/* Mobile menu button */}
           <Button 
             variant="ghost" 
-            className="md:hidden px-0 h-9 w-9"
+            className="ml-auto md:hidden px-0 h-9 w-9"
             onClick={toggleMobileMenu}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -302,17 +293,8 @@ const Layout = ({ children }: LayoutProps) => {
                       className="block py-2 text-sm font-medium"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {userProfile?.user_type === 'store' ? (
-                        <>
-                          <Store className="h-4 w-4 inline mr-2" />
-                          店舗管理
-                        </>
-                      ) : (
-                        <>
-                          <User className="h-4 w-4 inline mr-2" />
-                          マイページ
-                        </>
-                      )}
+                      <User className="h-4 w-4 inline mr-2" />
+                      マイページ
                     </Link>
                     <button
                       onClick={() => {

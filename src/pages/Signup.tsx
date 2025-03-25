@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -160,14 +159,68 @@ const Signup = () => {
           toast.error("ログインに失敗しました");
           navigate('/login');
         } else {
-          // Successful login, show toast and redirect
+          // Successful login, check user type for proper redirection
           toast.success("登録が完了しました！");
-          navigate("/");
+          
+          // Check user type by querying specific tables instead of profiles
+          // First check if user is a store
+          const { data: storeData } = await supabase
+            .from('stores')
+            .select('id')
+            .eq('id', signInData.user.id)
+            .maybeSingle();
+            
+          if (storeData) {
+            navigate("/store-admin");
+            return;
+          }
+          
+          // Then check if user is a therapist
+          const { data: therapistData } = await supabase
+            .from('therapists')
+            .select('id')
+            .eq('id', signInData.user.id)
+            .maybeSingle();
+            
+          if (therapistData) {
+            navigate("/therapist-dashboard");
+            return;
+          }
+          
+          // Default to regular user
+          navigate("/user-profile");
         }
       } else {
         // Already have a session from sign up
         toast.success("登録が完了しました！");
-        navigate("/");
+        
+        // Check user type by querying specific tables instead of profiles
+        // First check if user is a store
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('id')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+          
+        if (storeData) {
+          navigate("/store-admin");
+          return;
+        }
+        
+        // Then check if user is a therapist
+        const { data: therapistData } = await supabase
+          .from('therapists')
+          .select('id')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+          
+        if (therapistData) {
+          navigate("/therapist-dashboard");
+          return;
+        }
+        
+        // Default to regular user
+        navigate("/user-profile");
       }
       
     } catch (error) {

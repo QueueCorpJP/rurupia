@@ -37,27 +37,32 @@ const Login = () => {
           dismissible: true,
         });
         
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('user_type')
+        // Check if user is a store
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('id')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
           
-        if (profile) {
-          switch (profile.user_type) {
-            case 'store':
-              navigate("/store-admin");
-              break;
-            case 'therapist':
-              navigate("/therapist-dashboard");
-              break;
-            default:
-              navigate("/user-profile");
-              break;
-          }
-        } else {
-          navigate("/user-profile");
+        if (storeData) {
+          navigate("/store-admin");
+          return;
         }
+        
+        // Check if user is a therapist
+        const { data: therapistData } = await supabase
+          .from('therapists')
+          .select('id')
+          .eq('id', data.user.id)
+          .maybeSingle();
+          
+        if (therapistData) {
+          navigate("/therapist-dashboard");
+          return;
+        }
+        
+        // Default to user profile for other user types
+        navigate("/user-profile");
       }
     } catch (error) {
       console.error("Login error:", error);

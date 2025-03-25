@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -44,19 +43,10 @@ const TherapistLogin = () => {
       }
       
       if (!therapistData) {
-        // Try checking profiles table with user_type
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', data.user?.id)
-          .single();
-          
-        if (profileError || profileData.user_type !== 'therapist') {
-          // Not a therapist
-          await supabase.auth.signOut();
-          toast.error("セラピストアカウントが見つかりませんでした");
-          return;
-        }
+        // Not a therapist - simply sign out without querying profiles
+        await supabase.auth.signOut();
+        toast.error("セラピストアカウントが見つかりませんでした");
+        return;
       }
 
       toast.success("ログインしました");

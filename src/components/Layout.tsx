@@ -20,7 +20,7 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userType, setUserType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -29,26 +29,48 @@ const Layout = ({ children }: LayoutProps) => {
       try {
         // Clear state first to prevent stale data if auth fails
         setUser(null);
-        setUserProfile(null);
+        setUserType(null);
         
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
           setUser(session.user);
           
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          // Instead of querying profiles table directly, check different tables
+          // to determine user type
           
-          setUserProfile(profile);
+          // First check if user is a store
+          const { data: storeData } = await supabase
+            .from('stores')
+            .select('id')
+            .eq('id', session.user.id)
+            .maybeSingle();
+            
+          if (storeData) {
+            setUserType('store');
+            return;
+          }
+          
+          // Then check if user is a therapist
+          const { data: therapistData } = await supabase
+            .from('therapists')
+            .select('id')
+            .eq('id', session.user.id)
+            .maybeSingle();
+            
+          if (therapistData) {
+            setUserType('therapist');
+            return;
+          }
+          
+          // Default to regular user
+          setUserType('user');
         }
       } catch (error) {
         console.error("Auth check error:", error);
         // Ensure user is logged out if there's an error
         setUser(null);
-        setUserProfile(null);
+        setUserType(null);
       } finally {
         setLoading(false);
       }
@@ -60,16 +82,36 @@ const Layout = ({ children }: LayoutProps) => {
       if (session?.user) {
         setUser(session.user);
         
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
+        // Same checks as above, but for auth state changes
+        // First check if user is a store
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('id')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
+          
+        if (storeData) {
+          setUserType('store');
+          return;
+        }
         
-        setUserProfile(profile);
+        // Then check if user is a therapist
+        const { data: therapistData } = await supabase
+          .from('therapists')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+          
+        if (therapistData) {
+          setUserType('therapist');
+          return;
+        }
+        
+        // Default to regular user
+        setUserType('user');
       } else {
         setUser(null);
-        setUserProfile(null);
+        setUserType(null);
       }
     });
 
@@ -80,7 +122,7 @@ const Layout = ({ children }: LayoutProps) => {
     try {
       await supabase.auth.signOut();
       setUser(null);
-      setUserProfile(null);
+      setUserType(null);
       navigate("/");
     } catch (error) {
       console.error("Sign out error:", error);
@@ -88,9 +130,9 @@ const Layout = ({ children }: LayoutProps) => {
   };
 
   const getUserDashboardLink = () => {
-    if (!userProfile) return "/user-profile";
+    if (!userType) return "/user-profile";
     
-    switch (userProfile.user_type) {
+    switch (userType) {
       case 'store':
         return "/store-admin";
       case 'therapist':
@@ -106,8 +148,8 @@ const Layout = ({ children }: LayoutProps) => {
 
   // For debugging
   useEffect(() => {
-    console.log("Auth state:", { user, loading });
-  }, [user, loading]);
+    console.log("Auth state:", { user, userType, loading });
+  }, [user, userType, loading]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -154,14 +196,14 @@ const Layout = ({ children }: LayoutProps) => {
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="grid w-[200px] gap-2 p-4">
-                        {userProfile?.user_type === 'store' ? (
+                        {userType === 'store' ? (
                           <>
                             <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
                               <Store className="h-4 w-4 inline mr-2" />
                               店舗管理
                             </Link>
                           </>
-                        ) : userProfile?.user_type === 'therapist' ? (
+                        ) : userType === 'therapist' ? (
                           <>
                             <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
                               <User className="h-4 w-4 inline mr-2" />

@@ -1,0 +1,167 @@
+{
+  "users": {
+    "default_user": {
+      "basic_identity": {
+        "last_interaction": "2024-03-25",
+        "os": "darwin 24.1.0",
+        "workspace": "/Users/einarsoderberg/therapist-connectivity-17"
+      },
+      "behaviors": {
+        "development_environment": "Next.js with TypeScript",
+        "preferred_port": 8080,
+        "database_usage": "Supabase with RLS policies",
+        "content_management": "TinyMCE rich text editor"
+      },
+      "preferences": {
+        "tech_stack": {
+          "frontend": ["React", "TypeScript", "Vite", "Shadcn/Radix UI", "Tailwind CSS"],
+          "state_management": ["React Query"],
+          "database": ["Supabase (PostgreSQL)"],
+          "auth": ["Supabase Auth"],
+          "storage": ["Supabase Storage"]
+        }
+      },
+      "goals": {
+        "project_objectives": [
+          "Connect therapists with clients",
+          "Manage therapy services",
+          "Handle appointments",
+          "Provide messaging system",
+          "Blog content management",
+          "Analytics tracking"
+        ]
+      },
+      "relationships": {
+        "first_degree": {},
+        "second_degree": {},
+        "third_degree": {}
+      }
+    }
+  },
+  "entities": {
+    "project": {
+      "name": "Therapist Connectivity Project",
+      "type": "web_application",
+      "deployment_options": ["Vercel", "Netlify", "Firebase"],
+      "repository_status": "active",
+      "features": {
+        "user_management": {
+          "roles": ["admin", "therapist", "client", "store"],
+          "capabilities": ["authentication", "authorization", "profile management"],
+          "auth_flows": {
+            "login": {
+              "implementation": "src/pages/Login.tsx",
+              "redirects": {
+                "store": "/store-admin",
+                "therapist": "/therapist-dashboard",
+                "default": "/user-profile"
+              }
+            },
+            "signup": {
+              "implementation": "src/pages/Signup.tsx",
+              "redirects": {
+                "store": "/store-admin",
+                "therapist": "/therapist-dashboard",
+                "default": "/user-profile"
+              },
+              "fixes_applied": ["Added user_type check for proper redirection"]
+            },
+            "store_login": {
+              "implementation": "src/pages/StoreLogin.tsx",
+              "redirect": "/store-admin"
+            },
+            "store_signup": {
+              "implementation": "src/pages/StoreSignup.tsx",
+              "redirect": "/store-admin"
+            }
+          }
+        },
+        "content_management": {
+          "blog": {
+            "editor": "TinyMCE",
+            "storage": "Supabase Storage",
+            "access_control": "RLS policies"
+          }
+        },
+        "analytics": {
+          "page_views": {
+            "tracking": true,
+            "access": "admin only"
+          }
+        }
+      }
+    },
+    "tech_stack": {
+      "frontend": {
+        "framework": "React",
+        "language": "TypeScript",
+        "bundler": "Vite",
+        "ui": ["Shadcn", "Radix UI"],
+        "styling": "Tailwind CSS"
+      },
+      "backend": {
+        "database": "Supabase PostgreSQL",
+        "auth": "Supabase Auth",
+        "storage": "Supabase Storage"
+      },
+      "development": {
+        "linting": "ESLint",
+        "type_checking": "TypeScript",
+        "package_manager": "npm"
+      }
+    },
+    "architecture": {
+      "frontend_structure": {
+        "components": "/src/components",
+        "pages": "/src/pages",
+        "hooks": "/src/hooks",
+        "contexts": "/src/contexts",
+        "utils": "/src/utils",
+        "types": "/src/types",
+        "integrations": "/src/integrations",
+        "supabase": "/src/supabase"
+      },
+      "database_schema": {
+        "tables": {
+          "profiles": {
+            "fields": ["id", "user_type", "created_at"],
+            "policies": "RLS enabled"
+          },
+          "blog_posts": {
+            "fields": ["id", "title", "content", "author_id", "created_at"],
+            "policies": "Admin access only"
+          },
+          "page_views": {
+            "fields": ["id", "page", "created_at"],
+            "policies": "Admin view, authenticated insert"
+          },
+          "stores": {
+            "fields": ["id", "name", "email", "phone", "address", "description", "status"],
+            "policies": "Store access controlled"
+          }
+        }
+      }
+    }
+  },
+  "relations": [
+    {
+      "source": "default_user",
+      "relation": "develops",
+      "target": "project"
+    },
+    {
+      "source": "project",
+      "relation": "uses",
+      "target": "tech_stack"
+    },
+    {
+      "source": "project",
+      "relation": "implements",
+      "target": "architecture"
+    }
+  ],
+  "metadata": {
+    "last_updated": "2024-03-25",
+    "version": "1.0"
+  }
+} 

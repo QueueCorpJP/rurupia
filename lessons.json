@@ -1,0 +1,119 @@
+{
+  "lessons": {
+    "NEXTJS_ENV_001": {
+      "name": "Missing Environment Variables",
+      "pattern": "Error: Missing environment variable: [VARIABLE_NAME]",
+      "context": "Application startup",
+      "solution": "Ensure all required environment variables are set in .env.local",
+      "verification": ["Check .env.local exists", "Verify all required variables are present", "Restart development server"],
+      "success_rate": 1.0
+    },
+    "AUTH_FLOW_001": {
+      "name": "Authentication Flow Error",
+      "pattern": "Error: No authorization token was found",
+      "context": "Protected route access",
+      "solution": "Verify NextAuth.js setup and token handling",
+      "verification": ["Check NextAuth configuration", "Verify session handling", "Test protected route access"],
+      "success_rate": 1.0
+    },
+    "MCP_SERVER_001": {
+      "name": "MCP Server Configuration Update",
+      "pattern": "MCP Server configuration change",
+      "context": "MCP server setup",
+      "solution": "Update MCP configuration with correct server settings",
+      "verification": [
+        "Verify @modelcontextprotocol/server-postgres package is available",
+        "Check connection string format (no angle brackets)",
+        "Validate server configuration in mcp.json",
+        "Test server connection"
+      ],
+      "configuration_details": {
+        "server_type": "Postgres",
+        "package": "@modelcontextprotocol/server-postgres",
+        "required_params": ["connection-string"],
+        "location": ".cursor/mcp.json",
+        "connection_string_format": {
+          "template": "postgresql://[user]:[password]@[host]:[port]/[database]",
+          "common_errors": [
+            "Extra angle brackets around connection string",
+            "Missing or incorrect protocol (should be postgresql://)",
+            "Incorrect port number",
+            "Invalid credentials format"
+          ]
+        }
+      },
+      "success_rate": 1.0
+    },
+    "AUTH_REDIRECT_001": {
+      "name": "User Type Redirect After Registration",
+      "pattern": "Store user redirected to index page instead of store dashboard after registration",
+      "context": "User authentication flow",
+      "solution": "Add user_type check after registration in the signup flow",
+      "verification": [
+        "Check signup flow in src/pages/Signup.tsx",
+        "Add code to check user_type from profiles table",
+        "Update redirect logic based on user_type",
+        "Test signup flow for different user types"
+      ],
+      "code_changes": {
+        "file": "src/pages/Signup.tsx",
+        "changes": [
+          "Add user_type query to profiles table after successful authentication",
+          "Implement switch statement for different user types",
+          "Update redirect paths based on user type"
+        ]
+      },
+      "success_rate": 1.0
+    }
+  },
+  "error_patterns": {
+    "environment": ["Missing environment variable", "Invalid environment variable"],
+    "authentication": ["No authorization token", "Invalid token", "Session expired", "Incorrect redirection after auth"],
+    "api": ["API route not found", "Method not allowed", "Invalid request body"],
+    "database": ["Connection error", "Query failed", "Validation error"],
+    "mcp": [
+      "Failed to initialize MCP server",
+      "Server not found",
+      "Failed to fetch config with API key",
+      "Invalid connection string format",
+      "Connection string wrapped in angle brackets"
+    ]
+  },
+  "solutions": {
+    "environment_setup": {
+      "steps": ["Copy .env.example to .env.local", "Fill in required variables", "Restart development server"],
+      "verification": "Application starts without environment errors"
+    },
+    "authentication_setup": {
+      "steps": ["Configure NextAuth.js", "Set up authentication provider", "Implement session handling"],
+      "verification": "User can successfully log in and access protected routes"
+    },
+    "mcp_server_setup": {
+      "steps": [
+        "Install @modelcontextprotocol/server-postgres",
+        "Configure connection string (remove any angle brackets)",
+        "Update mcp.json configuration",
+        "Verify server connection"
+      ],
+      "verification": "MCP Postgres server initializes successfully"
+    },
+    "auth_redirect_fix": {
+      "steps": [
+        "Identify inconsistent auth redirection logic",
+        "Add user_type check after login/registration",
+        "Implement conditional redirection based on user type",
+        "Test different user type flows"
+      ],
+      "verification": "Each user type redirects to their appropriate dashboard"
+    }
+  },
+  "metadata": {
+    "last_updated": "2024-03-25",
+    "version": "1.0",
+    "total_lessons": 4,
+    "success_metrics": {
+      "total_attempts": 2,
+      "successful_resolutions": 2
+    }
+  }
+} 

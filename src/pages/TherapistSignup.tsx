@@ -152,6 +152,25 @@ const TherapistSignup = () => {
   // Create a basic therapist record
   const createTherapistRecord = async (userId: string, userData: any) => {
     try {
+      console.log("Attempting to create therapist record for user ID:", userId);
+      
+      // Check if a therapist record already exists
+      const { data: existingTherapist, error: checkError } = await supabase
+        .from("therapists")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error("Error checking for existing therapist record:", checkError);
+        // Continue with the insert attempt even if check fails
+      }
+      
+      if (existingTherapist) {
+        console.log("Therapist record already exists, skipping creation");
+        return true;
+      }
+      
       // Insert basic therapist record with user-provided values for key fields
       const { error: insertError } = await supabase
         .from("therapists")
@@ -170,6 +189,10 @@ const TherapistSignup = () => {
 
       if (insertError) {
         console.error("Failed to create therapist record:", insertError);
+        // Log more detailed information about the error
+        if (insertError.code) {
+          console.error(`Error code: ${insertError.code}, Message: ${insertError.message}, Details: ${insertError.details}`);
+        }
         return false;
       }
       

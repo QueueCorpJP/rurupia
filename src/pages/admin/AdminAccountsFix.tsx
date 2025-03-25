@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DataTable } from '@/components/admin/DataTable';
+import { DataTable } from '@/components/admin/DataTableFix'; // Use fixed DataTable
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseAdmin } from '@/integrations/supabase/admin-client';
@@ -133,7 +133,7 @@ export default function AdminAccounts() {
       key: 'id',
       label: 'ID',
       accessorKey: 'id',
-      render: (data: any) => {
+      render: (data: { row: any }) => {
         if (!data || !data.row) return null;
         return (
           <div className="max-w-[100px] truncate" title={data.row.id}>
@@ -161,7 +161,7 @@ export default function AdminAccounts() {
       key: 'status',
       label: 'Status',
       accessorKey: 'status',
-      render: (data: any) => {
+      render: (data: { row: any }) => {
         if (!data || !data.row) return null;
         return <StatusBadge status={data.row.status} />;
       },
@@ -273,4 +273,4 @@ export default function AdminAccounts() {
       </Dialog>
     </div>
   );
-}
+} 

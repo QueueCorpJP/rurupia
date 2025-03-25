@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,11 @@ import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Search } from 'lucide-react';
 
-const MessageList = () => {
+interface MessageListProps {
+  activeConversationId?: string;
+}
+
+const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,7 +21,9 @@ const MessageList = () => {
         setIsLoading(true);
         
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data } = await supabase.auth.getSession();
+        const user = data.session?.user;
+        
         if (!user) return;
         
         // Fetch messages (this is simplified, in real app you'd group by conversation)
@@ -155,7 +160,7 @@ const MessageList = () => {
               key={conversation.therapistId}
               className={`p-4 flex gap-3 border-b hover:bg-muted/50 cursor-pointer transition-colors ${
                 conversation.unreadCount > 0 ? 'bg-muted/30' : ''
-              }`}
+              } ${activeConversationId === conversation.therapistId ? 'bg-muted' : ''}`}
               onClick={() => handleConversationClick(conversation.therapistId)}
             >
               <div className="flex-shrink-0">

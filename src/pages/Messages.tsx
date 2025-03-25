@@ -1,121 +1,269 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import MessageList from '../components/MessageList';
-import { therapists } from '../utils/data';
 import { Therapist, Message } from '../utils/types';
 import { Send, Paperclip, ArrowLeft, Check, CheckCheck, Image, Smile, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
+
+// Updated interface for messages from Supabase
+interface IMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  image_url: string | null;
+  timestamp: string;
+  is_read: boolean;
+}
+
+// Simple Therapist interface
+interface TherapistInfo {
+  id: string;
+  name: string;
+  imageUrl: string;
+  specialties: string[];
+}
 
 const Messages = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [therapist, setTherapist] = useState<Therapist | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [therapist, setTherapist] = useState<TherapistInfo | null>(null);
+  const [messages, setMessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Set up real-time subscription for new messages
   useEffect(() => {
-    setIsLoading(true);
-    // Simulate API call to fetch therapist data
-    setTimeout(() => {
-      if (id) {
-        // Ensure proper comparison by converting types appropriately
-        const foundTherapist = therapists.find(t => String(t.id) === id);
-        setTherapist(foundTherapist || null);
-        
-        if (foundTherapist) {
-          // Generate a few mock messages for this therapist
-          const mockMessages: Message[] = [
-            {
-              id: '1',
-              senderId: foundTherapist.id,
-              receiverId: 0, // User ID
-              content: "こんにちは！セッションのご予約ありがとうございます。お役に立てることがあれば、お気軽にお問い合わせください。",
-              timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-              isRead: true,
-              imageUrl: null
-            },
-            {
-              id: '2',
-              senderId: 0,
-              receiverId: foundTherapist.id,
-              content: "ありがとうございます。マッサージの予約をしたいのですが、来週の空き状況を教えていただけますか？",
-              timestamp: new Date(Date.now() - 3600000 * 23).toISOString(),
-              isRead: true,
-              imageUrl: null
-            },
-            {
-              id: '3',
-              senderId: foundTherapist.id,
-              receiverId: 0,
-              content: "もちろんです。来週は火曜日の午後2時と、木曜日の午前10時に空きがあります。ご都合はいかがでしょうか？",
-              timestamp: new Date(Date.now() - 3600000 * 22).toISOString(),
-              isRead: true,
-              imageUrl: "https://images.unsplash.com/photo-1519682577862-22b62b24e493?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1740&q=80"
-            }
-          ];
-          
-          setMessages(mockMessages);
-        }
+    const setupSubscription = async () => {
+      // Get the current user
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      
+      if (!user) {
+        toast.error("ログインが必要です");
+        navigate('/login');
+        return;
       }
-      setIsLoading(false);
-    }, 800);
-  }, [id]);
+      
+      setUserId(user.id);
+      
+      // Subscribe to new messages
+      const subscription = supabase
+        .channel('messages-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `receiver_id=eq.${user.id}`
+          },
+          (payload) => {
+            // If the message is for the current conversation, add it to the messages
+            if (id && payload.new.sender_id === id) {
+              setMessages(prev => [...prev, payload.new as IMessage]);
+              // Play notification sound or show toast
+              toast.success('新しいメッセージが届きました');
+            } else {
+              // If it's from another conversation, just show a notification
+              toast.success('新しいメッセージが届きました');
+            }
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        subscription.unsubscribe();
+      };
+    };
+    
+    setupSubscription();
+  }, [navigate, id]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      
+      try {
+        if (!id) return;
+        
+        // Get the current user
+        const { data } = await supabase.auth.getSession();
+        const user = data.session?.user;
+        
+        if (!user) {
+          toast.error("ログインが必要です");
+          navigate('/login');
+          return;
+        }
+        
+        setUserId(user.id);
+        
+        // Fetch therapist info
+        const { data: therapistData, error: therapistError } = await supabase
+          .from('therapists')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (therapistError) {
+          console.error('Error fetching therapist:', therapistError);
+          toast.error('セラピスト情報の取得に失敗しました');
+          return;
+        }
+        
+        if (therapistData) {
+          // Create a TherapistInfo object from therapistData
+          setTherapist({
+            id: therapistData.id,
+            name: therapistData.name,
+            imageUrl: therapistData.image_url || '/placeholder.svg',
+            specialties: therapistData.specialties || ['マッサージ'],
+          });
+        }
+        
+        // Fetch messages between current user and therapist
+        const { data: messagesData, error: messagesError } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${user.id})`)
+          .order('timestamp', { ascending: true });
+          
+        if (messagesError) {
+          console.error('Error fetching messages:', messagesError);
+          toast.error('メッセージの取得に失敗しました');
+          return;
+        }
+        
+        if (messagesData) {
+          setMessages(messagesData);
+          
+          // Mark all messages from therapist as read
+          const unreadMessages = messagesData.filter(msg => 
+            msg.sender_id === id && 
+            msg.receiver_id === user.id && 
+            !msg.is_read
+          );
+          
+          if (unreadMessages.length > 0) {
+            const messageIds = unreadMessages.map(msg => msg.id);
+            await supabase
+              .from('messages')
+              .update({ is_read: true })
+              .in('id', messageIds);
+              
+            // Update the local state as well
+            setMessages(prev => 
+              prev.map(msg => 
+                messageIds.includes(msg.id) 
+                  ? { ...msg, is_read: true } 
+                  : msg
+              )
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('データの取得に失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [id, navigate]);
 
   useEffect(() => {
     // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if ((!newMessage.trim() && !selectedImage) || !therapist) return;
+    if ((!newMessage.trim() && !selectedImage) || !therapist || !userId) return;
     
-    // Create a new message
-    const userMessage: Message = {
-      id: `msg-${Date.now()}`,
-      senderId: 0, // User ID
-      receiverId: therapist.id,
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-      isRead: true,
-      imageUrl: imagePreview
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setNewMessage('');
-    setSelectedImage(null);
-    setImagePreview(null);
-    
-    // Simulate therapist response after a short delay
-    setTimeout(() => {
-      const therapistResponse: Message = {
-        id: `msg-${Date.now() + 1}`,
-        senderId: therapist.id,
-        receiverId: 0,
-        content: "ご連絡ありがとうございます。できるだけ早くご返信いたします。",
+    try {
+      let imageUrl = null;
+      
+      // If there's an image, upload it first
+      if (selectedImage) {
+        const fileExt = selectedImage.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        const filePath = `message-images/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('messages')
+          .upload(filePath, selectedImage);
+          
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          toast.error('画像のアップロードに失敗しました');
+          return;
+        }
+        
+        const { data: urlData } = supabase.storage
+          .from('messages')
+          .getPublicUrl(filePath);
+          
+        imageUrl = urlData.publicUrl;
+      }
+      
+      // Create a new message in the database
+      const newMessageData = {
+        sender_id: userId,
+        receiver_id: therapist.id, // This is a string now
+        content: newMessage.trim(),
+        image_url: imageUrl,
         timestamp: new Date().toISOString(),
-        isRead: false,
-        imageUrl: null
+        is_read: false
       };
       
-      setMessages(prev => [...prev, therapistResponse]);
-      toast.success('新しいメッセージが届きました');
-    }, 2000);
+      const { data, error } = await supabase
+        .from('messages')
+        .insert(newMessageData)
+        .select();
+        
+      if (error) {
+        console.error('Error sending message:', error);
+        toast.error('メッセージの送信に失敗しました');
+        return;
+      }
+      
+      if (data && data[0]) {
+        // Add the new message to the state
+        setMessages(prev => [...prev, data[0]]);
+      }
+      
+      // Clear the input fields
+      setNewMessage('');
+      setSelectedImage(null);
+      setImagePreview(null);
+    } catch (error) {
+      console.error('Error in handleSendMessage:', error);
+      toast.error('メッセージの送信中にエラーが発生しました');
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('画像サイズは5MB以下にしてください');
+        return;
+      }
+      
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -135,10 +283,10 @@ const Messages = () => {
     });
   };
 
-  const getMessageStatus = (message: Message) => {
-    if (message.senderId !== 0) return null; // Only show status for sent messages
+  const getMessageStatus = (message: IMessage) => {
+    if (message.sender_id !== userId) return null; // Only show status for sent messages
     
-    return message.isRead ? (
+    return message.is_read ? (
       <CheckCheck className="h-3.5 w-3.5 text-primary ml-1" />
     ) : (
       <Check className="h-3.5 w-3.5 text-muted-foreground ml-1" />
@@ -191,7 +339,7 @@ const Messages = () => {
         </button>
         
         <div className="bg-card rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100vh-200px)]">
-          <MessageList />
+          <MessageList activeConversationId={id} />
           
           <div className="flex-1 flex flex-col">
             <div className="p-4 border-b flex items-center justify-between">
@@ -226,11 +374,11 @@ const Messages = () => {
               {messages.map((message) => (
                 <div 
                   key={message.id} 
-                  className={`flex ${message.senderId === 0 ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
                     className={`rounded-2xl p-3 max-w-[80%] ${
-                      message.senderId === 0 
+                      message.sender_id === userId 
                         ? 'bg-primary text-primary-foreground rounded-br-none' 
                         : 'bg-card border rounded-tl-none'
                     }`}
@@ -239,19 +387,19 @@ const Messages = () => {
                       <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     )}
                     
-                    {message.imageUrl && (
+                    {message.image_url && (
                       <div className="mt-2 max-w-[240px]">
                         <img 
-                          src={message.imageUrl} 
+                          src={message.image_url} 
                           alt="Shared" 
                           className="rounded-lg w-full h-auto object-cover cursor-pointer"
-                          onClick={() => window.open(message.imageUrl || '', '_blank')}
+                          onClick={() => window.open(message.image_url || '', '_blank')}
                         />
                       </div>
                     )}
                     
-                    <div className="flex items-center justify-end mt-1 gap-1">
-                      <span className={`text-xs ${message.senderId === 0 ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                    <div className="flex items-center justify-end gap-0.5 mt-1">
+                      <span className="text-[10px] opacity-70">
                         {formatMessageDate(message.timestamp)}
                       </span>
                       {getMessageStatus(message)}
@@ -262,74 +410,58 @@ const Messages = () => {
               <div ref={messagesEndRef} />
             </div>
             
-            {imagePreview && (
-              <div className="p-3 border-t bg-card">
-                <div className="relative inline-block">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    className="h-20 w-auto rounded-lg border"
-                  />
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setImagePreview(null);
-                    }}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+            <form onSubmit={handleSendMessage} className="p-4 border-t">
+              {imagePreview && (
+                <div className="mb-3 relative bg-muted/20 p-2 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                      }}
+                      className="p-1 bg-card rounded-full shadow-sm border"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Input
+                  placeholder="メッセージを入力..."
+                  value={newMessage}
+                  onChange={e => setNewMessage(e.target.value)}
+                  className="flex-1"
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                />
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Paperclip className="h-5 w-5" />
+                </button>
+                <button
+                  type="submit"
+                  className="bg-primary text-primary-foreground p-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!newMessage.trim() && !selectedImage}
+                >
+                  <Send className="h-5 w-5" />
+                </button>
               </div>
-            )}
-            
-            <form onSubmit={handleSendMessage} className="p-3 border-t flex gap-2 bg-card">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageUpload}
-                accept="image/*"
-                className="hidden"
-              />
-              
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="shrink-0 rounded-md h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              >
-                <Paperclip className="h-5 w-5" />
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="shrink-0 rounded-md h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              >
-                <Image className="h-5 w-5" />
-              </button>
-              
-              <Input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="メッセージを入力..."
-                className="flex-1"
-              />
-              
-              <button
-                type="button"
-                className="shrink-0 rounded-md h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              >
-                <Smile className="h-5 w-5" />
-              </button>
-              
-              <button
-                type="submit"
-                disabled={!newMessage.trim() && !selectedImage}
-                className="shrink-0 bg-primary text-primary-foreground h-10 w-10 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="h-4 w-4" />
-              </button>
             </form>
           </div>
         </div>

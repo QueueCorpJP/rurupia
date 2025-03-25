@@ -35,13 +35,13 @@ import TherapistSignup from './pages/TherapistSignup';
 import TherapistDashboard from './pages/TherapistDashboard';
 import TherapistProfile from './pages/TherapistProfile';
 import TherapistBookings from './pages/TherapistBookings';
-import TherapistMessages from './pages/TherapistMessages';
+import TherapistMessagesFix from './pages/TherapistMessagesFix';
 import TherapistPosts from './pages/TherapistPosts';
 import TherapistSettings from './pages/TherapistSettings';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSettings from './pages/admin/AdminSettings';
-import AdminAccounts from './pages/admin/AdminAccounts';
+import AdminAccountsFix from './pages/admin/AdminAccountsFix';
 import AdminBlog from './pages/admin/AdminBlog';
 import AdminInquiries from './pages/admin/AdminInquiries';
 import AdminRequests from './pages/admin/AdminRequests';
@@ -67,6 +67,7 @@ function App() {
           <Route path="/messages" element={<Messages />}>
             <Route index element={<MessagesIndex />} />
           </Route>
+          <Route path="/messages/:id" element={<Messages />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/terms" element={<Terms />} />
@@ -99,7 +100,8 @@ function App() {
           <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
           <Route path="/therapist-profile" element={<TherapistProfile />} />
           <Route path="/therapist-bookings" element={<TherapistBookings />} />
-          <Route path="/therapist-messages" element={<TherapistMessages />} />
+          <Route path="/therapist-messages" element={<TherapistMessagesFix />} />
+          <Route path="/therapist-messages/:id" element={<TherapistMessagesFix />} />
           <Route path="/therapist-posts" element={<TherapistPosts />} />
           <Route path="/therapist-settings" element={<TherapistSettings />} />
           
@@ -109,7 +111,7 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
-            <Route path="accounts" element={<AdminAccounts />} />
+            <Route path="accounts" element={<AdminAccountsFix />} />
             <Route path="blog" element={<AdminBlog />} />
             <Route path="inquiries" element={<AdminInquiries />} />
             <Route path="requests" element={<AdminRequests />} />

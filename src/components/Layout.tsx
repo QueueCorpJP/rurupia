@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings } from 'lucide-react';
@@ -27,28 +26,40 @@ const Layout = ({ children }: LayoutProps) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+      try {
+        // Clear state first to prevent stale data if auth fails
+        setUser(null);
+        setUserProfile(null);
         
-        setUserProfile(profile);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          setUser(session.user);
+          
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          setUserProfile(profile);
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+        // Ensure user is logged out if there's an error
+        setUser(null);
+        setUserProfile(null);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      
       if (session?.user) {
+        setUser(session.user);
+        
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -57,6 +68,7 @@ const Layout = ({ children }: LayoutProps) => {
         
         setUserProfile(profile);
       } else {
+        setUser(null);
         setUserProfile(null);
       }
     });
@@ -65,8 +77,14 @@ const Layout = ({ children }: LayoutProps) => {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setUserProfile(null);
+      navigate("/");
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
   };
 
   const getUserDashboardLink = () => {
@@ -85,6 +103,11 @@ const Layout = ({ children }: LayoutProps) => {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+
+  // For debugging
+  useEffect(() => {
+    console.log("Auth state:", { user, loading });
+  }, [user, loading]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -119,110 +142,108 @@ const Layout = ({ children }: LayoutProps) => {
             
             <div className="h-6 w-px bg-border mx-1"></div>
             
-            {!loading && (
-              <>
-                {user ? (
-                  <NavigationMenu>
-                    <NavigationMenuList>
-                      <NavigationMenuItem>
-                        <NavigationMenuTrigger className="text-sm">
-                          <User className="h-4 w-4 mr-1" />
-                          マイページ
-                        </NavigationMenuTrigger>
-                        <NavigationMenuContent>
-                          <div className="grid w-[200px] gap-2 p-4">
-                            {userProfile?.user_type === 'store' ? (
-                              <>
-                                <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
-                                  <Store className="h-4 w-4 inline mr-2" />
-                                  店舗管理
-                                </Link>
-                              </>
-                            ) : userProfile?.user_type === 'therapist' ? (
-                              <>
-                                <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
-                                  <User className="h-4 w-4 inline mr-2" />
-                                  セラピストダッシュボード
-                                </Link>
-                              </>
-                            ) : (
-                              <>
-                                <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
-                                  <User className="h-4 w-4 inline mr-2" />
-                                  プロフィール
-                                </Link>
-                                <Link to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
-                                  <Calendar className="h-4 w-4 inline mr-2" />
-                                  予約履歴
-                                </Link>
-                                <Link to="/messages" className="block p-2 hover:bg-muted rounded-md">
-                                  <MessageSquare className="h-4 w-4 inline mr-2" />
-                                  メッセージ
-                                </Link>
-                                <Link to="/followed-therapists" className="block p-2 hover:bg-muted rounded-md">
-                                  <Heart className="h-4 w-4 inline mr-2" />
-                                  お気に入りセラピスト
-                                </Link>
-                              </>
-                            )}
-                            <Link to="/notification-settings" className="block p-2 hover:bg-muted rounded-md">
-                              <Settings className="h-4 w-4 inline mr-2" />
-                              通知設定
+            {loading ? (
+              <div className="h-8 w-20 bg-gray-100 animate-pulse rounded-md"></div>
+            ) : user ? (
+              <NavigationMenu>
+                <NavigationMenuList>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger className="text-sm">
+                      <User className="h-4 w-4 mr-1" />
+                      マイページ
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <div className="grid w-[200px] gap-2 p-4">
+                        {userProfile?.user_type === 'store' ? (
+                          <>
+                            <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
+                              <Store className="h-4 w-4 inline mr-2" />
+                              店舗管理
                             </Link>
-                            <button
-                              onClick={handleSignOut}
-                              className="w-full text-left p-2 hover:bg-muted rounded-md text-red-500"
-                            >
-                              <LogOut className="h-4 w-4 inline mr-2" />
-                              ログアウト
-                            </button>
-                          </div>
-                        </NavigationMenuContent>
-                      </NavigationMenuItem>
-                    </NavigationMenuList>
-                  </NavigationMenu>
-                ) : (
-                  <>
-                    <NavigationMenu>
-                      <NavigationMenuList>
-                        <NavigationMenuItem>
-                          <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
-                          <NavigationMenuContent>
-                            <div className="grid w-[200px] gap-2 p-4">
-                              <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
-                                ユーザーログイン
-                              </Link>
-                              <Link to="/therapist-login" className="block p-2 hover:bg-muted rounded-md">
-                                セラピストログイン
-                              </Link>
-                              <Link to="/store-login" className="block p-2 hover:bg-muted rounded-md">
-                                店舗ログイン
-                              </Link>
-                            </div>
-                          </NavigationMenuContent>
-                        </NavigationMenuItem>
-                      </NavigationMenuList>
-                    </NavigationMenu>
-                    
-                    <NavigationMenu>
-                      <NavigationMenuList>
-                        <NavigationMenuItem>
-                          <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
-                          <NavigationMenuContent>
-                            <div className="grid w-[200px] gap-2 p-4">
-                              <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
-                                ユーザー登録
-                              </Link>
-                              <Link to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
-                                店舗登録
-                              </Link>
-                            </div>
-                          </NavigationMenuContent>
-                        </NavigationMenuItem>
-                      </NavigationMenuList>
-                    </NavigationMenu>
-                  </>
-                )}
+                          </>
+                        ) : userProfile?.user_type === 'therapist' ? (
+                          <>
+                            <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
+                              <User className="h-4 w-4 inline mr-2" />
+                              セラピストダッシュボード
+                            </Link>
+                          </>
+                        ) : (
+                          <>
+                            <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
+                              <User className="h-4 w-4 inline mr-2" />
+                              プロフィール
+                            </Link>
+                            <Link to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
+                              <Calendar className="h-4 w-4 inline mr-2" />
+                              予約履歴
+                            </Link>
+                            <Link to="/messages" className="block p-2 hover:bg-muted rounded-md">
+                              <MessageSquare className="h-4 w-4 inline mr-2" />
+                              メッセージ
+                            </Link>
+                            <Link to="/followed-therapists" className="block p-2 hover:bg-muted rounded-md">
+                              <Heart className="h-4 w-4 inline mr-2" />
+                              お気に入りセラピスト
+                            </Link>
+                          </>
+                        )}
+                        <Link to="/notification-settings" className="block p-2 hover:bg-muted rounded-md">
+                          <Settings className="h-4 w-4 inline mr-2" />
+                          通知設定
+                        </Link>
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full text-left p-2 hover:bg-muted rounded-md text-red-500"
+                        >
+                          <LogOut className="h-4 w-4 inline mr-2" />
+                          ログアウト
+                        </button>
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+            ) : (
+              <>
+                <NavigationMenu>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="grid w-[200px] gap-2 p-4">
+                          <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
+                            ユーザーログイン
+                          </Link>
+                          <Link to="/therapist-login" className="block p-2 hover:bg-muted rounded-md">
+                            セラピストログイン
+                          </Link>
+                          <Link to="/store-login" className="block p-2 hover:bg-muted rounded-md">
+                            店舗ログイン
+                          </Link>
+                        </div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+                
+                <NavigationMenu>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="grid w-[200px] gap-2 p-4">
+                          <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
+                            ユーザー登録
+                          </Link>
+                          <Link to="/store-signup" className="block p-2 hover:bg-muted rounded-md">
+                            店舗登録
+                          </Link>
+                        </div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
               </>
             )}
           </nav>
@@ -263,47 +284,45 @@ const Layout = ({ children }: LayoutProps) => {
                 
                 <div className="h-px w-full bg-gray-200"></div>
                 
-                {!loading && (
+                {loading ? (
+                  <div className="h-8 w-20 bg-gray-100 animate-pulse rounded-md"></div>
+                ) : user ? (
                   <>
-                    {user ? (
-                      <>
-                        <Link 
-                          to={getUserDashboardLink()} 
-                          className="block py-2 text-sm font-medium"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <User className="h-4 w-4 inline mr-2" />
-                          マイページ
-                        </Link>
-                        <button
-                          onClick={() => {
-                            handleSignOut();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="w-full text-left py-2 text-sm font-medium text-red-500"
-                        >
-                          <LogOut className="h-4 w-4 inline mr-2" />
-                          ログアウト
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Link 
-                          to="/login" 
-                          className="block py-2 text-sm font-medium"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          ログイン
-                        </Link>
-                        <Link 
-                          to="/signup" 
-                          className="block py-2 text-sm font-medium"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          新規登録
-                        </Link>
-                      </>
-                    )}
+                    <Link 
+                      to={getUserDashboardLink()} 
+                      className="block py-2 text-sm font-medium"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <User className="h-4 w-4 inline mr-2" />
+                      マイページ
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left py-2 text-sm font-medium text-red-500"
+                    >
+                      <LogOut className="h-4 w-4 inline mr-2" />
+                      ログアウト
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link 
+                      to="/login" 
+                      className="block py-2 text-sm font-medium"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      ログイン
+                    </Link>
+                    <Link 
+                      to="/signup" 
+                      className="block py-2 text-sm font-medium"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      新規登録
+                    </Link>
                   </>
                 )}
               </div>

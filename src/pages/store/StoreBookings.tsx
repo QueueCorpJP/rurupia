@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,65 +8,154 @@ import { Calendar, Clock, Users, Archive } from "lucide-react";
 import { DataTable } from "@/components/admin/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { format, isToday, parseISO } from "date-fns";
+import { ja } from "date-fns/locale";
+import { Loader2 } from "lucide-react";
 
-// Sample data for bookings
-const bookings = [
-  {
-    id: "BK-2023-001",
-    clientName: "田中さくら",
-    therapistName: "鈴木一郎",
-    service: "全身リラクゼーション",
-    date: "2023-10-15",
-    time: "14:00-15:30",
-    status: "確定",
-    price: "7,500円"
-  },
-  {
-    id: "BK-2023-002",
-    clientName: "佐藤ゆかり",
-    therapistName: "山田太郎",
-    service: "肩こり集中ケア",
-    date: "2023-10-16",
-    time: "11:00-12:00",
-    status: "キャンセル",
-    price: "6,000円"
-  },
-  {
-    id: "BK-2023-003",
-    clientName: "高橋美香",
-    therapistName: "佐々木健太",
-    service: "フットリフレ",
-    date: "2023-10-18",
-    time: "17:30-18:30",
-    status: "確定",
-    price: "5,000円"
-  },
-  {
-    id: "BK-2023-004",
-    clientName: "伊藤洋子",
-    therapistName: "鈴木一郎",
-    service: "全身リラクゼーション",
-    date: "2023-10-20",
-    time: "10:00-11:30",
-    status: "確定",
-    price: "7,500円"
-  },
-  {
-    id: "BK-2023-005",
-    clientName: "中村俊介",
-    therapistName: "山田太郎",
-    service: "ヘッドスパ",
-    date: "2023-10-21",
-    time: "15:00-16:00",
-    status: "仮予約",
-    price: "6,500円"
-  }
-];
+// Define booking interface
+interface Booking {
+  id: string;
+  clientName: string;
+  therapistName: string;
+  service: string;
+  date: string;
+  time: string;
+  status: string;
+  price: string;
+  raw_date: Date; // For date comparison
+}
 
 const StoreBookings = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [storeId, setStoreId] = useState<string | null>(null);
+  
+  // Fetch bookings from Supabase
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+
+      // Get current store ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      setStoreId(user.id);
+
+      // Get all store's therapists
+      const { data: storeTherapists, error: therapistsError } = await supabase
+        .from("store_therapists")
+        .select("therapist_id")
+        .eq("store_id", user.id)
+        .eq("status", "active");
+
+      if (therapistsError) throw therapistsError;
+      if (!storeTherapists || storeTherapists.length === 0) {
+        setBookings([]);
+        setTodayBookings([]);
+        setLoading(false);
+        return;
+      }
+
+      const therapistIds = storeTherapists.map(t => t.therapist_id);
+
+      // Get bookings for all store's therapists
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from("bookings")
+        .select(`
+          id,
+          therapist_id,
+          user_id,
+          service_id,
+          date,
+          status,
+          notes,
+          location,
+          price,
+          created_at
+        `)
+        .in("therapist_id", therapistIds)
+        .order("date", { ascending: true });
+
+      if (bookingsError) throw bookingsError;
+      if (!bookingsData || bookingsData.length === 0) {
+        setBookings([]);
+        setTodayBookings([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get user profiles to get client names
+      const userIds = bookingsData.map(booking => booking.user_id).filter(Boolean);
+      const { data: userProfiles, error: userError } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", userIds);
+
+      if (userError) throw userError;
+
+      // Get therapist profiles to get therapist names
+      const { data: therapistProfiles, error: therapistProfileError } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", therapistIds);
+
+      if (therapistProfileError) throw therapistProfileError;
+
+      // Get services to get service names
+      const serviceIds = bookingsData.map(booking => booking.service_id).filter(Boolean);
+      const { data: services, error: servicesError } = await supabase
+        .from("services")
+        .select("id, name")
+        .in("id", serviceIds);
+
+      if (servicesError) throw servicesError;
+
+      // Map data to UI format
+      const formattedBookings: Booking[] = bookingsData.map(booking => {
+        const client = userProfiles?.find(user => user.id === booking.user_id);
+        const therapist = therapistProfiles?.find(t => t.id === booking.therapist_id);
+        const service = services?.find(s => s.id === booking.service_id);
+        
+        const bookingDate = parseISO(booking.date);
+        const formattedDate = format(bookingDate, "yyyy-MM-dd", { locale: ja });
+        const formattedTime = format(bookingDate, "HH:mm", { locale: ja }) + "-" + 
+                             format(new Date(bookingDate.getTime() + 60*60*1000), "HH:mm", { locale: ja }); // Assuming 1 hour sessions
+        
+        return {
+          id: booking.id,
+          clientName: client?.name || "名前なし",
+          therapistName: therapist?.name || "未定",
+          service: service?.name || "未定",
+          date: formattedDate,
+          time: formattedTime,
+          status: booking.status === "confirmed" ? "確定" : 
+                  booking.status === "cancelled" ? "キャンセル" : "仮予約",
+          price: booking.price ? `${booking.price.toLocaleString()}円` : "未定",
+          raw_date: bookingDate
+        };
+      });
+
+      // Set all bookings and filter today's bookings
+      setBookings(formattedBookings);
+      setTodayBookings(formattedBookings.filter(booking => isToday(booking.raw_date)));
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      setError((error as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
   
   // Column definition for the bookings table
   const columns = [
@@ -136,10 +224,19 @@ const StoreBookings = () => {
     {
       key: "actions",
       label: "操作",
-      render: () => (
+      render: ({ row }: any) => (
         <div className="flex space-x-2">
-          <Button size="sm" variant="outline">詳細</Button>
-          <Button size="sm" variant="outline" className="text-red-500">キャンセル</Button>
+          <Button size="sm" variant="outline" onClick={() => handleViewBookingDetails(row.id)}>詳細</Button>
+          {row.status !== "キャンセル" && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-red-500"
+              onClick={() => handleCancelBooking(row.id)}
+            >
+              キャンセル
+            </Button>
+          )}
         </div>
       )
     }
@@ -156,12 +253,76 @@ const StoreBookings = () => {
     return matchesSearch && booking.status === statusFilter;
   });
 
-  const handleCheckIn = () => {
+  const handleCheckIn = async (bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "confirmed", checked_in_at: new Date().toISOString() })
+        .eq("id", bookingId);
+
+      if (error) throw error;
+
+      toast({
+        title: "チェックイン完了",
+        description: "顧客のチェックインが完了しました。",
+      });
+
+      fetchBookings(); // Refresh data
+    } catch (error) {
+      console.error("Error checking in:", error);
+      toast({
+        title: "エラー",
+        description: "チェックインに失敗しました。",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleViewBookingDetails = (bookingId: string) => {
+    // TODO: Implement booking details view
     toast({
-      title: "チェックイン完了",
-      description: "顧客のチェックインが完了しました。",
+      title: "詳細表示",
+      description: `予約ID: ${bookingId}の詳細を表示します。`,
     });
   };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm("この予約をキャンセルしてもよろしいですか？")) return;
+
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "cancelled" })
+        .eq("id", bookingId);
+
+      if (error) throw error;
+
+      toast({
+        title: "予約キャンセル",
+        description: "予約がキャンセルされました。",
+      });
+
+      fetchBookings(); // Refresh data
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      toast({
+        title: "エラー",
+        description: "キャンセル処理に失敗しました。",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="bg-red-100 text-red-800 p-4 rounded-md">
+          <h3 className="font-bold">エラーが発生しました</h3>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -188,81 +349,64 @@ const StoreBookings = () => {
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <CardTitle>本日の予約 (3件)</CardTitle>
-                  <CardDescription>2023年10月15日の予約一覧</CardDescription>
+                  <CardTitle>本日の予約 ({todayBookings.length}件)</CardTitle>
+                  <CardDescription>{format(new Date(), "yyyy年MM月dd日")}の予約一覧</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button size="sm" onClick={handleCheckIn}>チェックイン</Button>
+                  <Button size="sm">チェックイン</Button>
                   <Button size="sm" variant="outline">予約を追加</Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg overflow-hidden border">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時間</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">顧客名</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">セラピスト</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">サービス</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ステータス</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">アクション</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">10:00 - 11:30</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">伊藤洋子</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">鈴木一郎</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">全身リラクゼーション</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Badge variant="outline" className="bg-green-100 text-green-800 border-0">
-                          確定
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">詳細</Button>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">14:00 - 15:30</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">田中さくら</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">鈴木一郎</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">全身リラクゼーション</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Badge variant="outline" className="bg-green-100 text-green-800 border-0">
-                          確定
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">詳細</Button>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">16:00 - 17:00</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">小林直人</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">山田太郎</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">ヘッドスパ</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-0">
-                          仮予約
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">詳細</Button>
-                          <Button size="sm" variant="outline" className="text-green-500">確定</Button>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : todayBookings.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  本日の予約はありません
+                </div>
+              ) : (
+                <div className="rounded-lg overflow-hidden border">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">時間</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">顧客名</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">セラピスト</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">サービス</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ステータス</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">アクション</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {todayBookings.map((booking) => (
+                        <tr key={booking.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">{booking.time}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{booking.clientName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">{booking.therapistName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">{booking.service}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <Badge variant="outline" className={`
+                              ${booking.status === "確定" ? "bg-green-100 text-green-800" : 
+                                booking.status === "キャンセル" ? "bg-red-100 text-red-800" : 
+                                "bg-yellow-100 text-yellow-800"} border-0`}>
+                              {booking.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <div className="flex space-x-2">
+                              <Button size="sm" variant="outline" onClick={() => handleCheckIn(booking.id)}>チェックイン</Button>
+                              <Button size="sm" variant="outline" onClick={() => handleViewBookingDetails(booking.id)}>詳細</Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -270,15 +414,19 @@ const StoreBookings = () => {
         <TabsContent value="all" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex justify-between items-center">
                 <CardTitle>すべての予約</CardTitle>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <Select
-                    value={statusFilter}
-                    onValueChange={setStatusFilter}
-                  >
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="ステータス" />
+                <div className="flex gap-2">
+                  <div className="max-w-sm">
+                    <Input 
+                      placeholder="顧客名・セラピスト名・予約IDで検索" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="ステータスで絞り込み" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">すべて</SelectItem>
@@ -287,18 +435,21 @@ const StoreBookings = () => {
                       <SelectItem value="キャンセル">キャンセル</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input
-                    placeholder="検索..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full sm:w-[220px]"
-                  />
                 </div>
               </div>
-              <CardDescription>すべての予約の管理と詳細確認ができます。</CardDescription>
             </CardHeader>
             <CardContent>
-              <DataTable columns={columns} data={filteredBookings} />
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  該当する予約はありません
+                </div>
+              ) : (
+                <DataTable columns={columns} data={filteredBookings} />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -307,65 +458,18 @@ const StoreBookings = () => {
           <Card>
             <CardHeader>
               <CardTitle>セラピスト別予約状況</CardTitle>
-              <CardDescription>セラピスト別の予約状況を確認できます。</CardDescription>
+              <CardDescription>セラピスト別の予約状況を確認できます</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">鈴木一郎</CardTitle>
-                    <CardDescription>本日の予約: 2件</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="p-2 bg-gray-50 rounded flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">10:00 - 11:30</p>
-                          <p className="text-sm text-gray-500">伊藤洋子 - 全身リラクゼーション</p>
-                        </div>
-                        <Badge variant="outline" className="bg-green-100 text-green-800 border-0">確定</Badge>
-                      </div>
-                      <div className="p-2 bg-gray-50 rounded flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">14:00 - 15:30</p>
-                          <p className="text-sm text-gray-500">田中さくら - 全身リラクゼーション</p>
-                        </div>
-                        <Badge variant="outline" className="bg-green-100 text-green-800 border-0">確定</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">山田太郎</CardTitle>
-                    <CardDescription>本日の予約: 1件</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="p-2 bg-gray-50 rounded flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">16:00 - 17:00</p>
-                          <p className="text-sm text-gray-500">小林直人 - ヘッドスパ</p>
-                        </div>
-                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-0">仮予約</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">佐々木健太</CardTitle>
-                    <CardDescription>本日の予約: 0件</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[100px] flex items-center justify-center text-gray-400">
-                      <p>予約なし</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  機能開発中です。次回のアップデートでご利用いただけます。
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -373,49 +477,19 @@ const StoreBookings = () => {
         <TabsContent value="archived" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>過去の予約履歴</CardTitle>
-              <CardDescription>過去の予約履歴を確認できます。</CardDescription>
+              <CardTitle>過去の予約</CardTitle>
+              <CardDescription>過去の予約履歴を確認できます</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg overflow-hidden border">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">予約ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日付</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">顧客名</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">セラピスト</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">サービス</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">料金</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">詳細</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">BK-2023-001</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">2023-10-05</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">中村俊介</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">鈴木一郎</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">全身リラクゼーション</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">7,500円</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Button size="sm" variant="outline">詳細</Button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">BK-2023-002</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">2023-10-07</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">佐藤ゆかり</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">山田太郎</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">肩こり集中ケア</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">6,000円</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Button size="sm" variant="outline">詳細</Button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  機能開発中です。次回のアップデートでご利用いただけます。
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,4 +1,3 @@
-
 // Update the types.ts file to ensure consistency in ID types
 
 export interface BookingRequest {
@@ -93,6 +92,16 @@ export interface Therapist {
   qualifications: string[];
   specialties: string[];
   services: Service[];
+  // Additional fields from Supabase
+  galleryImages?: string[];
+  height?: number | null;
+  weight?: number | null;
+  workingDays?: string[];
+  workingHours?: { start?: string; end?: string } | Record<string, any>;
+  hobbies?: string[];
+  age?: string;
+  area?: string;
+  detailedArea?: string;
 }
 
 export interface Service {

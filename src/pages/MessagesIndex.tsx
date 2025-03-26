@@ -1,26 +1,87 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import MessageList from '../components/MessageList';
 import { MessageSquare, MessageCircle, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { supabase } from '../integrations/supabase/client';
+import { toast } from 'sonner';
 
 const MessagesIndex = () => {
   const navigate = useNavigate();
-  const [hasTherapists] = useState(false); // This would normally come from your data/API
+  const [hasConversations, setHasConversations] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkConversations = async () => {
+      try {
+        console.log("MessagesIndex: Checking for conversations");
+        setIsLoading(true);
+        
+        // Get current user
+        const { data } = await supabase.auth.getSession();
+        const user = data.session?.user;
+        
+        console.log("MessagesIndex: Current user:", user);
+        
+        if (!user) {
+          console.log("MessagesIndex: No user found, redirecting to login");
+          toast.error("ログインが必要です");
+          navigate('/login');
+          return;
+        }
+        
+        setUserId(user.id);
+        
+        // Check if the user has any conversations
+        const { data: messages, error, count } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact' })
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .limit(1);
+          
+        if (error) {
+          console.error("MessagesIndex: Error fetching messages:", error);
+          return;
+        }
+        
+        console.log("MessagesIndex: Conversations count:", count);
+        console.log("MessagesIndex: Messages data:", messages);
+        
+        setHasConversations(count !== null && count > 0);
+      } catch (error) {
+        console.error("MessagesIndex: Error in checkConversations:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkConversations();
+  }, [navigate]);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <span className="ml-3">読み込み中...</span>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">メッセージ</h1>
-          <p className="text-muted-foreground mt-2">
+      <div className="space-y-6 px-4 sm:px-6 mt-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight mb-3">メッセージ</h1>
+          <p className="text-muted-foreground">
             セラピストとのメッセージのやり取りを管理します
           </p>
         </div>
         
-        {hasTherapists ? (
+        {hasConversations ? (
           <div className="bg-card rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row">
             <MessageList />
             

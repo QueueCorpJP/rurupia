@@ -1,5 +1,9 @@
-import { Therapist } from '../utils/types';
-import { Star, MapPin, Clock, Award, Heart } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import { Button } from "./ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Separator } from "./ui/separator";
+import { Therapist } from "../utils/types";
+import { User } from "lucide-react";
 
 interface TherapistProfileProps {
   therapist: Therapist;
@@ -7,115 +11,146 @@ interface TherapistProfileProps {
   onToggleFollow: () => void;
 }
 
-const TherapistProfile = ({ therapist, isFollowing, onToggleFollow }: TherapistProfileProps) => {
-  // Format the name - use original name if available
-  const displayName = therapist.name || "-";
-  
-  // Get the followers count from data - show dash if missing
-  const followersCount = (therapist as any).followers_count ? `${(therapist as any).followers_count}人` : "-";
-  
-  // Get the working hours from data - show dash if missing
-  const workingHours = (therapist as any).working_hours || "-";
-  
-  // Get the service area from data - show dash if missing
-  const serviceArea = (therapist as any).area || therapist.location || "-";
-  
-  // Get age/demographics from data - show dash if missing
-  const ageInfo = (therapist as any).age_group || "-";
-  
-  // Get physical attributes - show dash if missing
-  const height = (therapist as any).height ? `${(therapist as any).height}cm` : "-";
-  const weight = (therapist as any).weight ? `${(therapist as any).weight}kg` : "-";
-  const physicalInfo = height !== "-" || weight !== "-" ? `${height} / ${weight}` : "-";
+export function TherapistProfile({
+  therapist,
+  isFollowing,
+  onToggleFollow,
+}: TherapistProfileProps) {
+  // Format or default values for therapist data
+  const formatValue = (value: any): string => {
+    if (value === null || value === undefined || value === '') {
+      return '-';
+    }
+    return String(value);
+  };
+
+  // Format height with cm
+  const formatHeight = (height: any): string => {
+    if (height === null || height === undefined || height === '') {
+      return '-';
+    }
+    return `${height}cm`;
+  };
+
+  // Format weight with kg
+  const formatWeight = (weight: any): string => {
+    if (weight === null || weight === undefined || weight === '') {
+      return '-';
+    }
+    return `${weight}kg`;
+  };
+
+  // Get initials for avatar fallback
+  const getInitials = (name: string): string => {
+    if (!name) return "?";
+    return name.charAt(0).toUpperCase();
+  };
 
   return (
-    <div>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{displayName}</h1>
-          <div className="flex items-center mt-2 text-sm">
-            <div className="flex items-center">
-              <Star className="h-4 w-4 fill-amber-500 text-amber-500 mr-1" />
-              <span className="font-medium">{therapist.rating || "-"}</span>
-              <span className="text-muted-foreground ml-1">（{therapist.reviews || 0}件のレビュー）</span>
-            </div>
-            <span className="mx-2 text-muted-foreground">•</span>
-            <div className="flex items-center text-muted-foreground">
-              <MapPin className="h-4 w-4 mr-1" />
-              {serviceArea}
-            </div>
+    <div className="space-y-6">
+      <div className="flex flex-col items-center justify-center space-y-3">
+        <Avatar className="h-24 w-24">
+          {therapist.imageUrl ? (
+            <AvatarImage src={therapist.imageUrl} alt={therapist.name} />
+          ) : (
+            <AvatarFallback className="text-lg">
+              {getInitials(therapist.name)}
+            </AvatarFallback>
+          )}
+        </Avatar>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">{therapist.name}</h2>
+          <p className="text-sm text-muted-foreground">{formatValue(therapist.location)}</p>
+        </div>
+        <div className="flex items-center gap-6 text-center text-sm">
+          <div>
+            <div className="font-medium">{formatValue(therapist.rating)}</div>
+            <div className="text-xs text-muted-foreground">評価</div>
+          </div>
+          <div>
+            <div className="font-medium">{formatValue(therapist.reviews)}</div>
+            <div className="text-xs text-muted-foreground">レビュー</div>
+          </div>
+          <div>
+            <div className="font-medium">{formatValue(therapist['followers_count'])}</div>
+            <div className="text-xs text-muted-foreground">フォロワー</div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onToggleFollow}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-              isFollowing 
-                ? 'bg-primary/10 text-primary' 
-                : 'bg-muted hover:bg-muted/80'
-            }`}
-          >
-            <Heart className={`h-4 w-4 ${isFollowing ? 'fill-primary text-primary' : ''}`} />
-            {isFollowing ? 'フォロー中' : 'フォローする'}
-          </button>
-          <div className="text-sm text-muted-foreground">{followersCount}がフォロー中</div>
-        </div>
+        <Button onClick={onToggleFollow} variant={isFollowing ? "outline" : "default"}>
+          {isFollowing ? "フォロー中" : "フォローする"}
+        </Button>
       </div>
-              
-      <div className="flex flex-wrap gap-2 mt-4">
-        {(therapist.specialties && therapist.specialties.length > 0) ? (
-          therapist.specialties.map((specialty, index) => (
-            <span 
-              key={index}
-              className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold"
-            >
-              {specialty === "Swedish" ? "スウェーディッシュ" : 
-              specialty === "Deep Tissue" ? "ディープティシュー" : 
-              specialty === "Sports" ? "スポーツ" : 
-              specialty === "Hot Stone" ? "ホットストーン" : 
-              specialty === "Aromatherapy" ? "アロマセラピー" : 
-              specialty === "Relaxation" ? "リラクゼーション" : 
-              specialty}
-            </span>
-          ))
-        ) : (
-          <span className="text-sm text-muted-foreground">-</span>
-        )}
-      </div>
-      
-      {/* Basic profile information */}
-      <div className="grid sm:grid-cols-2 gap-4 mt-6 bg-muted/30 p-4 rounded-lg">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">対応可能時間:</span>
-          <span className="text-sm">{workingHours}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">対応エリア:</span>
-          <span className="text-sm">{serviceArea}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Award className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">年齢:</span>
-          <span className="text-sm">{ageInfo}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Award className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">体格:</span>
-          <span className="text-sm">{physicalInfo}</span>
-        </div>
-      </div>
-      
-      <div className="mt-6">
-        <h2 className="font-semibold text-lg mb-2">自己紹介</h2>
-        <p className="text-muted-foreground">
-          {therapist.description || "-"}
-        </p>
-      </div>
+      <Tabs defaultValue="profile">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="profile">プロフィール</TabsTrigger>
+          <TabsTrigger value="info">詳細情報</TabsTrigger>
+        </TabsList>
+        <TabsContent value="profile" className="space-y-4 mt-4">
+          <div>
+            <h3 className="text-lg font-medium">自己紹介</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatValue(therapist.description)}
+            </p>
+          </div>
+          <Separator />
+          <div>
+            <h3 className="text-lg font-medium">専門分野</h3>
+            <div className="mt-1 space-y-1">
+              {therapist.specialties && therapist.specialties.length > 0 ? (
+                therapist.specialties.map((specialty, index) => (
+                  <p key={index} className="text-sm text-muted-foreground">
+                    • {specialty}
+                  </p>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">-</p>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="info" className="space-y-4 mt-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div>
+              <h4 className="text-sm font-medium">エリア</h4>
+              <p className="text-sm text-muted-foreground">
+                {formatValue(therapist.area || therapist.location)}
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium">詳細エリア</h4>
+              <p className="text-sm text-muted-foreground">
+                {formatValue(therapist.detailedArea)}
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium">身長</h4>
+              <p className="text-sm text-muted-foreground">
+                {formatHeight(therapist.height)}
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium">体重</h4>
+              <p className="text-sm text-muted-foreground">
+                {formatWeight(therapist.weight)}
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium">年齢</h4>
+              <p className="text-sm text-muted-foreground">
+                {formatValue(therapist.age)}
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium">趣味</h4>
+              <p className="text-sm text-muted-foreground">
+                {therapist.hobbies && Array.isArray(therapist.hobbies) && therapist.hobbies.length > 0
+                  ? therapist.hobbies.join(', ')
+                  : formatValue(therapist.hobbies)}
+              </p>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-};
-
-export default TherapistProfile;
+}

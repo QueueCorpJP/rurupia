@@ -64,9 +64,7 @@ function App() {
           <Route path="/therapists" element={<Therapists />} />
           <Route path="/therapists/:id" element={<TherapistDetail />} />
           <Route path="/booking" element={<Booking />} />
-          <Route path="/messages" element={<Messages />}>
-            <Route index element={<MessagesIndex />} />
-          </Route>
+          <Route path="/messages" element={<MessagesIndex />} />
           <Route path="/messages/:id" element={<Messages />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<FAQ />} />

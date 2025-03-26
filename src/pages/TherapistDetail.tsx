@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import MessageInterface from '../components/MessageInterface';
 import TherapistGallery from '../components/TherapistGallery';
 import AvailabilityCalendar from '../components/AvailabilityCalendar';
-import TherapistProfile from '../components/TherapistProfile';
+import { TherapistProfile } from '../components/TherapistProfile';
 import TherapistQualifications from '../components/TherapistQualifications';
 import TherapistServices from '../components/TherapistServices';
 import TherapistReviews from '../components/TherapistReviews';
@@ -16,15 +16,41 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 
+// Extend the Therapist interface to include gallery_images
+interface ExtendedTherapist extends Therapist {
+  galleryImages?: string[];
+}
+
+// Interface for posts from Supabase
+interface SupabasePost {
+  id: string;
+  therapist_id: string;
+  title?: string;
+  content: string;
+  image_url?: string;
+  visibility?: 'public' | 'followers';
+  created_at: string;
+}
+
+// Interface for the TherapistPosts component
+interface Post {
+  id: number;
+  content: string;
+  image?: string;
+  date: string;
+  isPrivate?: boolean;
+}
+
 const TherapistDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [therapist, setTherapist] = useState<Therapist | null>(null);
+  const [therapist, setTherapist] = useState<ExtendedTherapist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<'availability' | 'message'>('availability');
   const [isMounted, setIsMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [therapistPosts, setTherapistPosts] = useState<Post[]>([]);
 
   // Use useCallback to memoize the fetchTherapist function
   const fetchTherapist = useCallback(async () => {
@@ -52,6 +78,8 @@ const TherapistDetail = () => {
         return;
       }
       
+      console.log("Raw therapist data from Supabase:", data);
+      
       // Fetch services for this therapist
       let therapistServices: Service[] = [];
       
@@ -77,8 +105,37 @@ const TherapistDetail = () => {
         console.error("Error processing services:", servicesErr);
       }
       
-      // Map Supabase data to the expected format
-      const mappedTherapist: Therapist = {
+      // Fetch posts for this therapist
+      let posts: Post[] = [];
+      
+      try {
+        const { data: postsData, error: postsError } = await supabase
+          .from('therapist_posts')
+          .select('*')
+          .eq('therapist_id', id)
+          .order('created_at', { ascending: false });
+          
+        if (postsError) {
+          console.error("Error fetching therapist posts:", postsError);
+        } else if (postsData && postsData.length > 0) {
+          // Map the posts data to match the Post type expected by TherapistPosts
+          posts = postsData.map((post: SupabasePost) => ({
+            id: parseInt(post.id) || Math.floor(Math.random() * 10000), // Fallback if id can't be parsed
+            content: post.content || post.title || "",
+            image: post.image_url,
+            date: new Date(post.created_at).toLocaleDateString('ja-JP'), // Format date for Japanese locale
+            isPrivate: post.visibility === 'followers'
+          }));
+        }
+        
+        setTherapistPosts(posts);
+        
+      } catch (postsErr) {
+        console.error("Error processing posts:", postsErr);
+      }
+      
+      // Map Supabase data to the extended Therapist format
+      const mappedTherapist: ExtendedTherapist = {
         id: data.id,
         name: data.name || "",
         imageUrl: data.image_url || "",
@@ -90,8 +147,21 @@ const TherapistDetail = () => {
         availability: data.availability || [],
         qualifications: data.qualifications || [],
         specialties: data.specialties || [],
-        services: therapistServices
+        services: therapistServices,
+        // Add the gallery images from Supabase
+        galleryImages: (data as any).gallery_images || [],
+        // Add other fields that might be useful for display
+        height: (data as any).height,
+        weight: (data as any).weight,
+        workingHours: (data as any).working_hours,
+        workingDays: (data as any).working_days,
+        hobbies: (data as any).hobbies,
+        age: (data as any).age_group,
+        area: (data as any).service_areas?.prefecture,
+        detailedArea: (data as any).service_areas?.cities?.join(', ')
       };
+      
+      console.log("Mapped therapist data:", mappedTherapist);
       
       setTherapist(mappedTherapist);
     } catch (err) {
@@ -187,7 +257,11 @@ const TherapistDetail = () => {
               
               <TherapistReviews reviews={[]} />
               
-              <TherapistPosts posts={[]} therapistName={therapist.name} />
+              <TherapistPosts 
+                posts={therapistPosts} 
+                therapistName={therapist.name} 
+                isFollowing={isFollowing}
+              />
             </div>
           </div>
         </div>

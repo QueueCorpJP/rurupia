@@ -4,9 +4,10 @@ import TherapistCard from "../components/TherapistCard";
 import TherapistFilters from "../components/TherapistFilters";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Therapist } from "../utils/types";
 
 const Therapists = () => {
-  const [therapists, setTherapists] = useState([]);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     location: "",
@@ -51,7 +52,23 @@ const Therapists = () => {
           return;
         }
         
-        setTherapists(data || []);
+        // Map the Supabase data to the format expected by TherapistCard
+        const mappedTherapists = (data || []).map((therapist: any) => ({
+          id: therapist.id,
+          name: therapist.name || "名前なし",
+          imageUrl: therapist.image_url || "https://via.placeholder.com/300",
+          description: therapist.description || "詳細情報はありません",
+          location: therapist.location || "場所未設定",
+          price: therapist.price || 0,
+          rating: therapist.rating || 4.0,
+          reviews: therapist.reviews || 0,
+          availability: therapist.availability || ["月", "水", "金"],
+          qualifications: therapist.qualifications || [],
+          specialties: therapist.specialties || [],
+          services: [] // Services will be loaded in the detail view
+        }));
+        
+        setTherapists(mappedTherapists);
       } catch (error) {
         console.error("Error in fetchTherapists:", error);
         toast.error("エラーが発生しました");
@@ -84,7 +101,7 @@ const Therapists = () => {
               </div>
             ) : therapists.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {therapists.map((therapist: any) => (
+                {therapists.map((therapist: Therapist) => (
                   <TherapistCard key={therapist.id.toString()} therapist={therapist} />
                 ))}
               </div>

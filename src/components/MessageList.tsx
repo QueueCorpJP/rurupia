@@ -10,9 +10,9 @@ interface MessageListProps {
 }
 
 interface Conversation {
-  therapistId: string;
-  therapistName: string;
-  therapistImageUrl: string;
+  partnerId: string;
+  partnerName: string;
+  partnerImageUrl: string;
   lastMessage: string;
   timestamp: string;
   unreadCount: number;
@@ -24,127 +24,231 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userType, setUserType] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        console.log("MessageList: Fetching conversations");
+        console.log("[MessageList] Fetching conversations, activeConversationId:", activeConversationId);
         setIsLoading(true);
         
         // Get current user
         const { data } = await supabase.auth.getSession();
         const user = data.session?.user;
         
-        console.log("MessageList: Current user:", user);
+        console.log("[MessageList] Current user:", user);
         
         if (!user) {
-          console.log("MessageList: No user found");
+          console.log("[MessageList] No user found");
           return;
         }
         
         setUserId(user.id);
         
-        // First, get unique therapist IDs with whom the user has conversed
-        const { data: senderData, error: senderError } = await supabase
-          .from('messages')
-          .select('sender_id')
-          .eq('receiver_id', user.id)
-          .order('timestamp', { ascending: false });
+        // Get user type (therapist or customer)
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .single();
           
-        if (senderError) {
-          console.error("MessageList: Error fetching senders:", senderError);
+        if (profileError) {
+          console.error("[MessageList] Error fetching profile:", profileError);
           return;
         }
         
-        console.log("MessageList: Messages where user is receiver:", senderData);
+        console.log("[MessageList] User profile data:", profileData);
+        setUserType(profileData?.user_type || null);
         
-        const { data: receiverData, error: receiverError } = await supabase
+        // First, get raw messages to identify all conversation partners
+        const { data: messagesData, error: messagesError } = await supabase
           .from('messages')
-          .select('receiver_id')
-          .eq('sender_id', user.id)
-          .order('timestamp', { ascending: false });
+          .select('sender_id, receiver_id, timestamp')
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .order('timestamp', { ascending: false })
+          .limit(100);
           
-        if (receiverError) {
-          console.error("MessageList: Error fetching receivers:", receiverError);
+        if (messagesError) {
+          console.error("[MessageList] Error fetching messages:", messagesError);
           return;
         }
         
-        console.log("MessageList: Messages where user is sender:", receiverData);
+        console.log("[MessageList] All messages involving this user:", messagesData);
         
-        // Combine unique therapist IDs (where user is either sender or receiver)
-        const therapistIds = Array.from(new Set([
-          ...senderData.map(msg => msg.sender_id),
-          ...receiverData.map(msg => msg.receiver_id)
-        ])).filter(id => id !== user.id); // Filter out the user's own ID
-        
-        console.log("MessageList: Unique therapist IDs:", therapistIds);
-        
-        if (therapistIds.length === 0) {
-          console.log("MessageList: No conversations found");
+        if (!messagesData || messagesData.length === 0) {
+          console.log("[MessageList] No messages found for user");
           setConversations([]);
           setIsLoading(false);
           return;
         }
         
-        // Fetch therapist details
-        const { data: therapists, error: therapistsError } = await supabase
-          .from('therapists')
-          .select('id, name, image_url')
-          .in('id', therapistIds);
-          
-        if (therapistsError) {
-          console.error("MessageList: Error fetching therapists:", therapistsError);
+        // Extract unique partner IDs
+        const partnerIds = new Set<string>();
+        
+        messagesData.forEach(msg => {
+          if (msg.sender_id !== user.id) {
+            partnerIds.add(msg.sender_id);
+          }
+          if (msg.receiver_id !== user.id) {
+            partnerIds.add(msg.receiver_id);
+          }
+        });
+        
+        const uniquePartnerIds = Array.from(partnerIds);
+        console.log("[MessageList] Unique partner IDs:", uniquePartnerIds);
+        
+        if (uniquePartnerIds.length === 0) {
+          console.log("[MessageList] No conversation partners found");
+          setConversations([]);
+          setIsLoading(false);
           return;
         }
         
-        console.log("MessageList: Therapists data:", therapists);
+        // Build partner data from appropriate tables based on user type
+        let partners = [];
         
-        // For each therapist, get the most recent message and unread count
+        if (profileData?.user_type === 'therapist') {
+          // For therapists, fetch customer profiles from profiles table
+          console.log("[MessageList] Fetching customer profiles for IDs:", uniquePartnerIds);
+          
+          // Make sure we're working with a non-empty array of valid IDs
+          if (uniquePartnerIds.length > 0) {
+            // Try fetching each partner profile individually to ensure we get data
+            const customerProfiles = [];
+            
+            for (const partnerId of uniquePartnerIds) {
+              console.log(`[MessageList] Fetching profile data for partner: ${partnerId}`);
+              
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('id, nickname, name, avatar_url, user_type')
+                .eq('id', partnerId)
+                .single();
+                
+              if (profileError) {
+                console.error(`[MessageList] Error fetching profile for ${partnerId}:`, profileError);
+              } else if (profileData) {
+                console.log(`[MessageList] Found profile for ${partnerId}:`, profileData);
+                customerProfiles.push(profileData);
+              } else {
+                console.log(`[MessageList] No profile found for ${partnerId}`);
+              }
+            }
+            
+            console.log("[MessageList] All customer profiles collected:", customerProfiles);
+            
+            if (customerProfiles.length > 0) {
+              partners = customerProfiles.map(customer => {
+                const displayName = customer.nickname || customer.name || 'Customer';
+                console.log(`[MessageList] Setting partner name to: ${displayName} for user ${customer.id}`);
+                
+                return {
+                  id: customer.id,
+                  name: displayName,
+                  image_url: customer.avatar_url || '/placeholder.svg'
+                };
+              });
+            } else {
+              console.log("[MessageList] No customer profiles found after individual queries");
+            }
+          } else {
+            console.log("[MessageList] No partner IDs to fetch profiles for");
+          }
+          
+          // If no partners found in profiles, create placeholder partners
+          if (partners.length === 0) {
+            console.log("[MessageList] Creating placeholder partners for missing profiles. This means no matching profiles were found.");
+            
+            partners = uniquePartnerIds.map(partnerId => {
+              console.log(`[MessageList] Creating placeholder for partner ID: ${partnerId}`);
+              return {
+                id: partnerId,
+                name: `Customer`,
+                image_url: '/placeholder.svg'
+              };
+            });
+          }
+        } else {
+          // For customers, fetch therapist profiles
+          const { data: therapists, error: therapistsError } = await supabase
+            .from('therapists')
+            .select('id, name, image_url')
+            .in('id', uniquePartnerIds);
+            
+          if (therapistsError) {
+            console.error("[MessageList] Error fetching therapists:", therapistsError);
+          } else if (therapists && therapists.length > 0) {
+            console.log("[MessageList] Therapist partners data:", therapists);
+            partners = therapists.map(therapist => ({
+              id: therapist.id,
+              name: therapist.name || 'Therapist',
+              image_url: therapist.image_url || '/placeholder.svg'
+            }));
+          } else {
+            // Create placeholder partners for each unique ID if no therapists found
+            partners = uniquePartnerIds.map(partnerId => ({
+              id: partnerId,
+              name: 'Therapist',
+              image_url: '/placeholder.svg'
+            }));
+          }
+        }
+        
+        console.log("[MessageList] Final partners list:", partners);
+        
+        // For each partner, get the most recent message and unread count
         const conversationsData: Conversation[] = await Promise.all(
-          therapists.map(async (therapist) => {
+          partners.map(async (partner) => {
+            console.log("[MessageList] Processing conversation with partner:", partner);
+            
             // Get most recent message
             const { data: recentMessages, error: recentError } = await supabase
               .from('messages')
               .select('*')
-              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${therapist.id}),and(sender_id.eq.${therapist.id},receiver_id.eq.${user.id})`)
+              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partner.id}),and(sender_id.eq.${partner.id},receiver_id.eq.${user.id})`)
               .order('timestamp', { ascending: false })
               .limit(1);
               
             if (recentError) {
-              console.error(`MessageList: Error fetching recent message for therapist ${therapist.id}:`, recentError);
+              console.error(`[MessageList] Error fetching recent message for partner ${partner.id}:`, recentError);
               return null;
             }
+            
+            if (!recentMessages || recentMessages.length === 0) {
+              console.log(`[MessageList] No recent messages found for partner ${partner.id}`);
+              return null;
+            }
+            
+            console.log(`[MessageList] Recent messages with partner ${partner.id}:`, recentMessages);
             
             // Get unread count
             const { count: unreadCount, error: unreadError } = await supabase
               .from('messages')
               .select('id', { count: 'exact' })
-              .eq('sender_id', therapist.id)
+              .eq('sender_id', partner.id)
               .eq('receiver_id', user.id)
               .eq('is_read', false);
               
             if (unreadError) {
-              console.error(`MessageList: Error fetching unread count for therapist ${therapist.id}:`, unreadError);
+              console.error(`[MessageList] Error fetching unread count for partner ${partner.id}:`, unreadError);
               return null;
             }
             
-            if (recentMessages && recentMessages.length > 0) {
-              return {
-                therapistId: therapist.id,
-                therapistName: therapist.name || 'Unknown Therapist',
-                therapistImageUrl: therapist.image_url || '/placeholder.svg',
-                lastMessage: recentMessages[0].content || '画像が送信されました',
-                timestamp: recentMessages[0].timestamp,
-                unreadCount: unreadCount || 0
-              };
-            }
+            console.log(`[MessageList] Unread count for partner ${partner.id}:`, unreadCount);
             
-            return null;
+            return {
+              partnerId: partner.id,
+              partnerName: partner.name || 'Unknown Partner',
+              partnerImageUrl: partner.image_url || '/placeholder.svg',
+              lastMessage: recentMessages[0].content || '画像が送信されました',
+              timestamp: recentMessages[0].timestamp,
+              unreadCount: unreadCount || 0
+            };
           })
         );
         
         const validConversations = conversationsData.filter(c => c !== null) as Conversation[];
-        console.log("MessageList: Processed conversations:", validConversations);
+        console.log("[MessageList] Processed conversations:", validConversations);
         
         // Sort by timestamp (most recent first)
         validConversations.sort((a, b) => 
@@ -153,7 +257,7 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
         
         setConversations(validConversations);
       } catch (error) {
-        console.error("MessageList: Error in fetchConversations:", error);
+        console.error("[MessageList] Error in fetchConversations:", error);
       } finally {
         setIsLoading(false);
       }
@@ -162,8 +266,13 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
     fetchConversations();
   }, [activeConversationId]);
 
-  const handleConversationClick = (therapistId: string) => {
-    navigate(`/messages/${therapistId}`);
+  const handleConversationClick = (partnerId: string) => {
+    console.log(`[MessageList] Clicking conversation with ${partnerId}`);
+    if (userType === 'therapist') {
+      navigate(`/therapist-messages/${partnerId}`);
+    } else {
+      navigate(`/messages/${partnerId}`);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -189,7 +298,7 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
 
   // Filter conversations based on search query
   const filteredConversations = conversations.filter(convo =>
-    convo.therapistName.toLowerCase().includes(searchQuery.toLowerCase())
+    convo.partnerName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (isLoading) {
@@ -230,40 +339,48 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
       
       <div className="flex-1 overflow-y-auto">
         {filteredConversations.length > 0 ? (
-          filteredConversations.map((conversation) => (
-            <div
-              key={conversation.therapistId}
-              className={`p-3 border-b flex items-start gap-3 cursor-pointer hover:bg-muted/30 transition-colors ${
-                activeConversationId === conversation.therapistId ? 'bg-muted/40' : ''
-              }`}
-              onClick={() => handleConversationClick(conversation.therapistId)}
-            >
-              <div className="relative">
-                <img
-                  src={conversation.therapistImageUrl}
-                  alt={conversation.therapistName}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                {conversation.unreadCount > 0 && (
-                  <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px]">
-                    {conversation.unreadCount}
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="flex-1 overflow-hidden">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium truncate">{conversation.therapistName}</h4>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(conversation.timestamp)}
-                  </span>
+          filteredConversations.map((conversation) => {
+            // Debug log for rendered conversation
+            console.log(`[MessageList] Rendering conversation with partner: ${conversation.partnerId}, name: ${conversation.partnerName}`);
+            
+            return (
+              <div
+                key={conversation.partnerId}
+                className={`p-3 border-b flex items-start gap-3 cursor-pointer hover:bg-muted/30 transition-colors ${
+                  activeConversationId === conversation.partnerId ? 'bg-muted/40' : ''
+                }`}
+                onClick={() => handleConversationClick(conversation.partnerId)}
+              >
+                <div className="relative">
+                  <img
+                    src={conversation.partnerImageUrl}
+                    alt={conversation.partnerName}
+                    className="w-12 h-12 rounded-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
+                  />
+                  {conversation.unreadCount > 0 && (
+                    <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px]">
+                      {conversation.unreadCount}
+                    </Badge>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground truncate">
-                  {conversation.lastMessage}
-                </p>
+                
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium truncate">{conversation.partnerName}</h4>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(conversation.timestamp)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {conversation.lastMessage}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="p-6 text-center text-muted-foreground">
             <p>会話が見つかりません</p>

@@ -22,6 +22,7 @@ interface UserInfo {
   id: string;
   name: string;
   imageUrl: string;
+  nickname?: string;
 }
 
 const TherapistMessagesFix = () => {
@@ -36,6 +37,7 @@ const TherapistMessagesFix = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Set up real-time subscription for new messages
   useEffect(() => {
@@ -44,6 +46,8 @@ const TherapistMessagesFix = () => {
       const { data } = await supabase.auth.getSession();
       const currentUser = data.session?.user;
       
+      console.log("[TherapistMessagesFix] Auth session current user:", currentUser);
+      
       if (!currentUser) {
         toast.error("ログインが必要です");
         navigate('/therapist-login');
@@ -51,6 +55,7 @@ const TherapistMessagesFix = () => {
       }
       
       setTherapistId(currentUser.id);
+      console.log("[TherapistMessagesFix] Set therapist ID:", currentUser.id);
       
       // Subscribe to new messages
       const subscription = supabase
@@ -64,20 +69,33 @@ const TherapistMessagesFix = () => {
             filter: `receiver_id=eq.${currentUser.id}`
           },
           (payload) => {
+            console.log("[TherapistMessagesFix] Real-time message received:", payload);
             // If the message is for the current conversation, add it to the messages
             if (id && payload.new.sender_id === id) {
               setMessages(prev => [...prev, payload.new as IMessage]);
               // Play notification sound or show toast
               toast.success('新しいメッセージが届きました');
+              
+              // Mark message as read immediately
+              supabase
+                .from('messages')
+                .update({ is_read: true })
+                .eq('id', payload.new.id)
+                .then(() => console.log("[TherapistMessagesFix] Marked new message as read"));
             } else {
               // If it's from another conversation, just show a notification
               toast.success('新しいメッセージが届きました');
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log("[TherapistMessagesFix] Subscription status:", status);
+        });
+        
+      console.log("[TherapistMessagesFix] Supabase channel subscription initialized");
         
       return () => {
+        console.log("[TherapistMessagesFix] Unsubscribing from supabase channel");
         subscription.unsubscribe();
       };
     };
@@ -90,13 +108,18 @@ const TherapistMessagesFix = () => {
       setIsLoading(true);
       
       try {
-        if (!id) return;
+        if (!id) {
+          console.log("[TherapistMessagesFix] No conversation ID provided - this is the index page");
+        }
         
         // Get the current therapist
         const { data } = await supabase.auth.getSession();
         const currentUser = data.session?.user;
         
+        console.log("[TherapistMessagesFix] Auth session for fetchData:", currentUser);
+        
         if (!currentUser) {
+          console.error("[TherapistMessagesFix] No user session found");
           toast.error("ログインが必要です");
           navigate('/therapist-login');
           return;
@@ -104,27 +127,124 @@ const TherapistMessagesFix = () => {
         
         setTherapistId(currentUser.id);
         
-        // Fetch user info
-        const { data: userData, error: userError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', id)
-          .single();
+        // If no specific conversation is selected (on the index page)
+        if (!id) {
+          console.log("[TherapistMessagesFix] No conversation selected, checking for available conversations");
           
-        if (userError) {
-          console.error('Error fetching user:', userError);
-          toast.error('ユーザー情報の取得に失敗しました');
+          // Check if therapist has any conversations
+          const { data: conversationsCheck, error: conversationsError, count } = await supabase
+            .from('messages')
+            .select('sender_id, receiver_id', { count: 'exact' })
+            .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+            .limit(10);
+            
+          if (conversationsError) {
+            console.error('[TherapistMessagesFix] Error checking conversations:', conversationsError);
+          } else {
+            console.log(`[TherapistMessagesFix] Found ${count} conversations for therapist ${currentUser.id}`);
+            
+            if (conversationsCheck && conversationsCheck.length > 0) {
+              console.log("[TherapistMessagesFix] Conversation data sample:", conversationsCheck);
+              
+              // Get unique sender/receiver IDs excluding the current user
+              const uniquePartnerIds = new Set<string>();
+              
+              conversationsCheck.forEach(msg => {
+                if (msg.sender_id !== currentUser.id) {
+                  uniquePartnerIds.add(msg.sender_id);
+                }
+                if (msg.receiver_id !== currentUser.id) {
+                  uniquePartnerIds.add(msg.receiver_id);
+                }
+              });
+              
+              console.log("[TherapistMessagesFix] Unique conversation partners:", Array.from(uniquePartnerIds));
+              
+              if (uniquePartnerIds.size > 0) {
+                // Fetch partner details from profiles table directly without using single()
+                const { data: profilesCheck, error: profilesError } = await supabase
+                  .from('profiles')
+                  .select('id, nickname, name, avatar_url')
+                  .in('id', Array.from(uniquePartnerIds));
+                  
+                if (profilesError) {
+                  console.error('[TherapistMessagesFix] Error checking partner profiles:', profilesError);
+                } else {
+                  console.log('[TherapistMessagesFix] Partner profiles found:', profilesCheck);
+                }
+              }
+            }
+          }
+          
+          setIsLoading(false);
           return;
         }
         
-        if (userData) {
-          // Create a UserInfo object from userData
-          setUser({
-            id: userData.id,
-            name: userData.name || 'User',
-            imageUrl: userData.avatar_url || '/placeholder.svg',
-          });
+        // Fetch user info - try profiles first
+        let userData = null;
+        
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, name, nickname, avatar_url')
+          .eq('id', id);
+          
+        if (profileError) {
+          console.error('[TherapistMessagesFix] Error fetching user profile:', profileError);
+        } else if (profileData && profileData.length > 0) {
+          console.log("[TherapistMessagesFix] User profile data fetched:", profileData[0]);
+          userData = profileData[0];
+          
+          // Log nickname explicitly for debugging
+          console.log(`[TherapistMessagesFix] User nickname: ${userData.nickname}, name: ${userData.name}`);
+        } else {
+          console.log("[TherapistMessagesFix] No profile found, checking therapists table");
+          
+          // Try therapists table as fallback
+          const { data: therapistData, error: therapistError } = await supabase
+            .from('therapists')
+            .select('id, name, image_url')
+            .eq('id', id);
+            
+          if (therapistError) {
+            console.error('[TherapistMessagesFix] Error fetching therapist:', therapistError);
+          } else if (therapistData && therapistData.length > 0) {
+            console.log("[TherapistMessagesFix] Therapist data fetched:", therapistData[0]);
+            userData = {
+              id: therapistData[0].id,
+              name: therapistData[0].name,
+              avatar_url: therapistData[0].image_url
+            };
+          }
         }
+          
+        if (!userData) {
+          // As a last resort, create a placeholder
+          console.log("[TherapistMessagesFix] Creating placeholder for user:", id);
+          userData = {
+            id: id,
+            name: `User ${id.substring(0, 6)}...`,
+            avatar_url: null
+          };
+        }
+        
+        // Set display name prioritizing nickname over name
+        let displayName = 'User';
+        
+        if (userData.nickname) {
+          displayName = userData.nickname;
+          console.log(`[TherapistMessagesFix] Using nickname: ${displayName}`);
+        } else if (userData.name) {
+          displayName = userData.name;
+          console.log(`[TherapistMessagesFix] Using name: ${displayName}`);
+        }
+        
+        console.log("[TherapistMessagesFix] Final display name:", displayName);
+        
+        setUser({
+          id: userData.id,
+          name: displayName,
+          imageUrl: userData.avatar_url || '/placeholder.svg',
+        });
         
         // Fetch messages between current therapist and user
         const { data: messagesData, error: messagesError } = await supabase
@@ -134,10 +254,12 @@ const TherapistMessagesFix = () => {
           .order('timestamp', { ascending: true });
           
         if (messagesError) {
-          console.error('Error fetching messages:', messagesError);
+          console.error('[TherapistMessagesFix] Error fetching messages:', messagesError);
           toast.error('メッセージの取得に失敗しました');
           return;
         }
+        
+        console.log(`[TherapistMessagesFix] Messages fetched between ${currentUser.id} and ${id}:`, messagesData);
         
         if (messagesData) {
           setMessages(messagesData);
@@ -148,6 +270,8 @@ const TherapistMessagesFix = () => {
             msg.receiver_id === currentUser.id && 
             !msg.is_read
           );
+          
+          console.log("[TherapistMessagesFix] Unread messages to mark as read:", unreadMessages.length);
           
           if (unreadMessages.length > 0) {
             const messageIds = unreadMessages.map(msg => msg.id);
@@ -167,7 +291,7 @@ const TherapistMessagesFix = () => {
           }
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('[TherapistMessagesFix] Error fetching data:', error);
         toast.error('データの取得に失敗しました');
       } finally {
         setIsLoading(false);
@@ -298,89 +422,104 @@ const TherapistMessagesFix = () => {
               
               {id ? (
                 <div className="flex-1 flex flex-col border-l">
-                  {user && (
-                    <div className="p-4 border-b flex items-center">
-                      <button
-                        className="mr-2 md:hidden"
-                        onClick={() => navigate('/therapist-messages')}
-                      >
-                        <ArrowLeft className="h-5 w-5" />
-                      </button>
-                      
-                      <div className="flex-shrink-0">
+                  <div className="flex items-center gap-3 p-4 border-b">
+                    <button
+                      onClick={() => navigate('/therapist-messages')}
+                      className="text-muted-foreground hover:text-foreground md:hidden"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </button>
+                    
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-10 w-10">
                         <img
-                          src={user.imageUrl}
-                          alt={user.name}
-                          className="w-10 h-10 rounded-full object-cover"
+                          src={user?.imageUrl || '/placeholder.svg'}
+                          alt={user?.name || 'User'}
+                          className="rounded-full object-cover h-full w-full"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder.svg';
+                          }}
                         />
                       </div>
-                      
-                      <div className="ml-3">
-                        <h3 className="font-semibold">{user.name}</h3>
+                      <div>
+                        <h2 className="font-semibold">{user?.name || 'User'}</h2>
                       </div>
                     </div>
-                  )}
+                  </div>
                   
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/20" ref={messagesContainerRef}>
                     {messages.map((message) => (
-                      <div 
+                      <div
                         key={message.id}
-                        className={`flex ${message.sender_id === therapistId ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${
+                          message.sender_id === therapistId ? 'justify-end' : 'justify-start'
+                        }`}
                       >
-                        <div 
-                          className={`max-w-[75%] rounded-lg p-3 ${
-                            message.sender_id === therapistId 
-                              ? 'bg-primary text-primary-foreground' 
+                        <div
+                          className={`max-w-[70%] rounded-lg p-3 ${
+                            message.sender_id === therapistId
+                              ? 'bg-primary text-primary-foreground'
                               : 'bg-muted'
                           }`}
                         >
-                          {message.content && (
-                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                          )}
-                          
+                          {message.content}
                           {message.image_url && (
-                            <div className="mt-2">
-                              <img 
-                                src={message.image_url} 
-                                alt="Attached" 
-                                className="max-h-60 rounded object-contain cursor-pointer" 
-                                onClick={() => window.open(message.image_url || '', '_blank')}
-                              />
-                            </div>
+                            <img
+                              src={message.image_url}
+                              alt="Message attachment"
+                              className="mt-2 rounded-md max-w-full"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
                           )}
-                          
-                          <div className="text-xs mt-1 flex justify-end items-center gap-1 opacity-70">
+                          <div
+                            className={`text-xs mt-1 flex items-center gap-1 ${
+                              message.sender_id === therapistId
+                                ? 'text-primary-foreground/70 justify-end'
+                                : 'text-muted-foreground'
+                            }`}
+                          >
                             {formatMessageDate(message.timestamp)}
-                            {getMessageStatus(message)}
+                            {message.sender_id === therapistId && (
+                              <span>{getMessageStatus(message)}</span>
+                            )}
                           </div>
                         </div>
                       </div>
                     ))}
                     <div ref={messagesEndRef} />
                   </div>
-                  
-                  <form onSubmit={handleSendMessage} className="p-4 border-t">
-                    {imagePreview && (
-                      <div className="relative inline-block mb-2">
-                        <img src={imagePreview} alt="Preview" className="h-20 w-auto rounded" />
-                        <button
-                          type="button"
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                          onClick={() => {
-                            setSelectedImage(null);
-                            setImagePreview(null);
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+
+                  <form onSubmit={handleSendMessage} className="p-3 border-t flex gap-2">
+                    {selectedImage && (
+                      <div className="flex-1 relative my-2">
+                        <div className="relative inline-block">
+                          <img 
+                            src={imagePreview || ''} 
+                            alt="Preview" 
+                            className="h-20 rounded border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedImage(null);
+                              setImagePreview(null);
+                            }}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
                     )}
                     
-                    <div className="flex gap-2">
+                    <div className="flex-1 flex items-center gap-2">
                       <Input
+                        type="text"
                         placeholder="メッセージを入力..."
                         value={newMessage}
-                        onChange={e => setNewMessage(e.target.value)}
+                        onChange={(e) => setNewMessage(e.target.value)}
                         className="flex-1"
                       />
                       
@@ -388,22 +527,22 @@ const TherapistMessagesFix = () => {
                         type="file"
                         accept="image/*"
                         onChange={handleImageUpload}
-                        ref={fileInputRef}
                         className="hidden"
+                        ref={fileInputRef}
                       />
                       
                       <button
                         type="button"
-                        className="p-2 rounded-full hover:bg-muted transition-colors"
                         onClick={() => fileInputRef.current?.click()}
+                        className="p-2 rounded-full hover:bg-muted transition-colors"
                       >
-                        <Paperclip className="h-5 w-5" />
+                        <Paperclip className="h-5 w-5 text-muted-foreground" />
                       </button>
                       
                       <button
                         type="submit"
-                        className="p-2 bg-primary text-primary-foreground rounded-full disabled:opacity-50"
                         disabled={!newMessage.trim() && !selectedImage}
+                        className="p-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                       >
                         <Send className="h-5 w-5" />
                       </button>
@@ -412,8 +551,9 @@ const TherapistMessagesFix = () => {
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center border-l p-4">
-                  <div className="text-center text-muted-foreground">
-                    <p>会話を選択してください</p>
+                  <div className="text-center max-w-md mx-auto">
+                    <h3 className="text-lg font-medium mb-2">会話を選択してください</h3>
+                    <p className="text-muted-foreground">メッセージの送信を開始するには左側の会話リストから選択してください。</p>
                   </div>
                 </div>
               )}

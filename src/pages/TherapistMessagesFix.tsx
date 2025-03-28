@@ -161,16 +161,58 @@ const TherapistMessagesFix = () => {
               console.log("[TherapistMessagesFix] Unique conversation partners:", Array.from(uniquePartnerIds));
               
               if (uniquePartnerIds.size > 0) {
-                // Fetch partner details from profiles table directly without using single()
+                // Log the exact IDs we're searching for
+                console.log('[TherapistMessagesFix] Searching for profiles with exact IDs:', Array.from(uniquePartnerIds));
+                
+                // Ensure IDs are properly formatted as strings
+                const stringIds = Array.from(uniquePartnerIds).map(id => String(id));
+                console.log('[TherapistMessagesFix] Formatted IDs as strings:', stringIds);
+                
+                // Fetch partner details from profiles table
                 const { data: profilesCheck, error: profilesError } = await supabase
                   .from('profiles')
                   .select('id, nickname, name, avatar_url')
-                  .in('id', Array.from(uniquePartnerIds));
+                  .in('id', stringIds);
                   
                 if (profilesError) {
                   console.error('[TherapistMessagesFix] Error checking partner profiles:', profilesError);
-                } else {
+                  
+                  // Try fetching profiles individually as a fallback
+                  console.log('[TherapistMessagesFix] Trying to fetch profiles individually');
+                  
+                  const individualProfiles = [];
+                  for (const partnerId of uniquePartnerIds) {
+                    const { data: profileData, error: profileError } = await supabase
+                      .from('profiles')
+                      .select('id, nickname, name, avatar_url')
+                      .eq('id', partnerId)
+                      .maybeSingle();
+                      
+                    if (profileError) {
+                      console.error(`[TherapistMessagesFix] Error fetching profile for ${partnerId}:`, profileError);
+                    } else if (profileData) {
+                      console.log(`[TherapistMessagesFix] Found profile for ${partnerId}:`, profileData);
+                      individualProfiles.push(profileData);
+                    }
+                  }
+                  
+                  if (individualProfiles.length > 0) {
+                    console.log('[TherapistMessagesFix] Partner profiles found via individual queries:', individualProfiles);
+                    
+                    // Log found nicknames for debugging
+                    individualProfiles.forEach(profile => {
+                      console.log(`[TherapistMessagesFix] Partner ${profile.id} has nickname: ${profile.nickname}`);
+                    });
+                  }
+                } else if (profilesCheck && profilesCheck.length > 0) {
                   console.log('[TherapistMessagesFix] Partner profiles found:', profilesCheck);
+                  
+                  // Log found nicknames for debugging
+                  profilesCheck.forEach(profile => {
+                    console.log(`[TherapistMessagesFix] Partner ${profile.id} has nickname: ${profile.nickname}`);
+                  });
+                } else {
+                  console.log('[TherapistMessagesFix] No partner profiles found in the query');
                 }
               }
             }
@@ -222,7 +264,7 @@ const TherapistMessagesFix = () => {
           console.log("[TherapistMessagesFix] Creating placeholder for user:", id);
           userData = {
             id: id,
-            name: `User ${id.substring(0, 6)}...`,
+            name: `Customer ${id.substring(0, 6)}...`,
             avatar_url: null
           };
         }

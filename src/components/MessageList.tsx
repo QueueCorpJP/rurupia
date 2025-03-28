@@ -113,43 +113,130 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
           
           // Make sure we're working with a non-empty array of valid IDs
           if (uniquePartnerIds.length > 0) {
-            // Try fetching each partner profile individually to ensure we get data
-            const customerProfiles = [];
+            // Get all profiles in a single query instead of individually
+            console.log('[MessageList] Profile query parameters:', { 
+              table: 'profiles',
+              queryType: 'in',
+              column: 'id',
+              values: uniquePartnerIds
+            });
             
-            for (const partnerId of uniquePartnerIds) {
-              console.log(`[MessageList] Fetching profile data for partner: ${partnerId}`);
+            // Ensure IDs are properly formatted as strings
+            const stringIds = uniquePartnerIds.map(id => String(id));
+            console.log('[MessageList] Formatted IDs as strings:', stringIds);
+            
+            const { data: profilesData, error: profilesError } = await supabase
+              .from('profiles')
+              .select('id, nickname, name, avatar_url, user_type')
+              .in('id', stringIds);
+            
+            if (profilesError) {
+              console.error(`[MessageList] Error fetching profiles:`, profilesError);
               
-              const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('id, nickname, name, avatar_url, user_type')
-                .eq('id', partnerId)
-                .single();
-                
-              if (profileError) {
-                console.error(`[MessageList] Error fetching profile for ${partnerId}:`, profileError);
-              } else if (profileData) {
-                console.log(`[MessageList] Found profile for ${partnerId}:`, profileData);
-                customerProfiles.push(profileData);
-              } else {
-                console.log(`[MessageList] No profile found for ${partnerId}`);
+              // Try fetching profiles individually as a fallback
+              console.log('[MessageList] Trying to fetch profiles individually as fallback');
+              
+              const individualProfiles = [];
+              
+              for (const partnerId of uniquePartnerIds) {
+                try {
+                  console.log(`[MessageList] Fetching individual profile for: ${partnerId}`);
+                  
+                  const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('id, nickname, name, avatar_url, user_type')
+                    .eq('id', partnerId)
+                    .maybeSingle();
+                    
+                  if (profileError) {
+                    console.error(`[MessageList] Error fetching individual profile for ${partnerId}:`, profileError);
+                  } else if (profileData) {
+                    console.log(`[MessageList] Found individual profile for ${partnerId}:`, profileData);
+                    individualProfiles.push(profileData);
+                  } else {
+                    console.log(`[MessageList] No individual profile found for ${partnerId}`);
+                  }
+                } catch (err) {
+                  console.error(`[MessageList] Exception fetching profile for ${partnerId}:`, err);
+                }
               }
-            }
-            
-            console.log("[MessageList] All customer profiles collected:", customerProfiles);
-            
-            if (customerProfiles.length > 0) {
-              partners = customerProfiles.map(customer => {
-                const displayName = customer.nickname || customer.name || 'Customer';
-                console.log(`[MessageList] Setting partner name to: ${displayName} for user ${customer.id}`);
+              
+              if (individualProfiles.length > 0) {
+                console.log(`[MessageList] Found ${individualProfiles.length} profiles through individual queries`);
+                
+                // Use these profiles instead
+                partners = individualProfiles.map(profile => {
+                  const displayName = profile.nickname || profile.name || 'Customer';
+                  console.log(`[MessageList] Setting partner name to: ${displayName} for user ${profile.id}`);
+                  
+                  return {
+                    id: profile.id,
+                    name: displayName,
+                    image_url: profile.avatar_url || '/placeholder.svg'
+                  };
+                });
+                
+                // Create placeholders for partners without profiles
+                const foundIds = individualProfiles.map(p => p.id);
+                const missingPartnerIds = uniquePartnerIds.filter(id => !foundIds.includes(id));
+                
+                if (missingPartnerIds.length > 0) {
+                  const placeholderPartners = missingPartnerIds.map(partnerId => ({
+                    id: partnerId,
+                    name: `Customer ${partnerId.substring(0, 6)}...`,
+                    image_url: '/placeholder.svg'
+                  }));
+                  
+                  partners = [...partners, ...placeholderPartners];
+                }
+              } else {
+                // If all individual queries also failed, fall back to placeholders
+                console.log('[MessageList] All individual queries failed, using placeholders');
+                partners = uniquePartnerIds.map(partnerId => ({
+                  id: partnerId,
+                  name: `Customer ${partnerId.substring(0, 6)}...`,
+                  image_url: '/placeholder.svg'
+                }));
+              }
+            } else if (profilesData && profilesData.length > 0) {
+              console.log(`[MessageList] Found ${profilesData.length} profiles:`, profilesData);
+              
+              // Process the profiles into partner data
+              partners = profilesData.map(profile => {
+                const displayName = profile.nickname || profile.name || 'Customer';
+                console.log(`[MessageList] Setting partner name to: ${displayName} for user ${profile.id}`);
                 
                 return {
-                  id: customer.id,
+                  id: profile.id,
                   name: displayName,
-                  image_url: customer.avatar_url || '/placeholder.svg'
+                  image_url: profile.avatar_url || '/placeholder.svg'
                 };
               });
+              
+              // Create placeholders for partners without profiles
+              const foundIds = profilesData.map(p => p.id);
+              const missingPartnerIds = uniquePartnerIds.filter(id => !foundIds.includes(id));
+              
+              if (missingPartnerIds.length > 0) {
+                console.log(`[MessageList] Creating placeholders for ${missingPartnerIds.length} missing profiles:`, missingPartnerIds);
+                
+                const placeholderPartners = missingPartnerIds.map(partnerId => ({
+                  id: partnerId,
+                  name: `Customer ${partnerId.substring(0, 6)}...`,
+                  image_url: '/placeholder.svg'
+                }));
+                
+                partners = [...partners, ...placeholderPartners];
+              }
             } else {
-              console.log("[MessageList] No customer profiles found after individual queries");
+              console.log("[MessageList] No customer profiles found in the query");
+              
+              // If no profiles found at all, create placeholders for all
+              partners = uniquePartnerIds.map(partnerId => ({
+                id: partnerId,
+                name: `Customer ${partnerId.substring(0, 6)}...`,
+                image_url: '/placeholder.svg'
+              }));
             }
           } else {
             console.log("[MessageList] No partner IDs to fetch profiles for");
@@ -163,7 +250,7 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
               console.log(`[MessageList] Creating placeholder for partner ID: ${partnerId}`);
               return {
                 id: partnerId,
-                name: `Customer`,
+                name: `Customer ${partnerId.substring(0, 6)}...`,
                 image_url: '/placeholder.svg'
               };
             });

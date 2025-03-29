@@ -1,59 +1,82 @@
-
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
-export interface StatusBadgeProps {
-  status: string;
+type StatusType = 'active' | 'inactive' | 'pending' | 'rejected' | 'approved' | 'success' | 'warning' | 'error' | 'info' | string;
+
+interface StatusBadgeProps {
+  status: StatusType;
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
-  label?: string; // Added label property
 }
 
-export function StatusBadge({ status, className, label }: StatusBadgeProps) {
-  let badgeStyles = '';
-  const statusValue = status || '未定義'; // Add default value if status is undefined
-  const displayText = label || statusValue; // Use label if provided, otherwise use status
-  
-  switch (statusValue) {
-    case '確定':
-    case '在籍中':
-    case '公開中':
-    case '公開':
-    case 'active':
-      badgeStyles = 'bg-green-100 text-green-800 border-green-200';
-      break;
-    case '承諾待ち':
-    case '承認待ち':
-    case '対応中':
-    case '公開予定':
-    case 'pending':
-      badgeStyles = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      break;
-    case 'キャンセル':
-    case '不在':
-    case '非公開':
-    case 'inactive':
-    case 'deleted':
-      badgeStyles = 'bg-red-100 text-red-800 border-red-200';
-      break;
-    case '保留中':
-    case '下書き':
-    case 'draft':
-      badgeStyles = 'bg-blue-100 text-blue-800 border-blue-200';
-      break;
-    case '完了':
-    case 'completed':
-      badgeStyles = 'bg-gray-100 text-gray-800 border-gray-200';
-      break;
-    default:
-      badgeStyles = 'bg-gray-100 text-gray-800 border-gray-200';
+const statusConfig: Record<
+  StatusType, 
+  { 
+    color: string;
+    label: string;
   }
+> = {
+  active: {
+    color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900',
+    label: 'アクティブ'
+  },
+  inactive: {
+    color: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700/30 dark:text-gray-400 dark:border-gray-800',
+    label: '無効'
+  },
+  pending: {
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-900',
+    label: '保留中'
+  },
+  rejected: {
+    color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900',
+    label: '拒否'
+  },
+  approved: {
+    color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900',
+    label: '承認済み'
+  },
+  success: {
+    color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900',
+    label: '成功'
+  },
+  warning: {
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-900',
+    label: '警告'
+  },
+  error: {
+    color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900',
+    label: 'エラー'
+  },
+  info: {
+    color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900',
+    label: '情報'
+  }
+};
+
+const sizeClasses = {
+  sm: 'text-xs px-2 py-0.5',
+  md: 'text-sm px-2.5 py-0.5',
+  lg: 'px-3 py-1'
+};
+
+export function StatusBadge({ status, size = 'md', className }: StatusBadgeProps) {
+  const config = statusConfig[status] || {
+    color: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700/30 dark:text-gray-400 dark:border-gray-800',
+    label: status
+  };
   
   return (
-    <span className={cn(
-      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
-      badgeStyles,
-      className
-    )}>
-      {displayText}
-    </span>
+    <Badge 
+      variant="outline"
+      className={cn(
+        'font-medium border rounded-full',
+        config.color,
+        sizeClasses[size],
+        className
+      )}
+    >
+      {config.label}
+    </Badge>
   );
 }

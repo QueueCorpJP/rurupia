@@ -9,6 +9,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { PlusCircle, Users } from 'lucide-react';
+
+// User account type mapping in Japanese
+const USER_TYPE_MAP = {
+  therapist: "セラピスト",
+  client: "クライアント",
+  store: "店舗",
+  admin: "管理者",
+  user: "一般ユーザー",
+  customer: "お客様"
+};
 
 interface FormattedAccount {
   id: string;
@@ -64,7 +75,7 @@ export default function AdminAccounts() {
       setLoading(false);
     } catch (error) {
       console.error('Error fetching accounts:', error);
-      toast.error('Failed to fetch accounts');
+      toast.error('アカウントの取得に失敗しました');
       setLoading(false);
     }
   };
@@ -98,15 +109,19 @@ export default function AdminAccounts() {
 
       if (error) throw error;
 
-      toast.success(`User status updated to ${newStatus}`);
+      toast.success(`ステータスを${newStatus === 'active' ? 'アクティブ' : '無効'}に更新しました`);
       fetchAccounts();
     } catch (error) {
       console.error('Error updating user status:', error);
-      toast.error('Failed to update user status');
+      toast.error('ステータスの更新に失敗しました');
     }
   };
 
   const handleDeleteAccount = async (userId: string) => {
+    if (!window.confirm('このアカウントを削除してもよろしいですか？')) {
+      return;
+    }
+    
     try {
       const { error } = await supabaseAdmin
         .from('profiles')
@@ -115,11 +130,11 @@ export default function AdminAccounts() {
 
       if (error) throw error;
 
-      toast.success('Account deleted successfully');
+      toast.success('アカウントを削除しました');
       fetchAccounts();
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
+      toast.error('アカウントの削除に失敗しました');
     }
   };
 
@@ -144,22 +159,31 @@ export default function AdminAccounts() {
     },
     {
       key: 'name',
-      label: 'Name',
+      label: '名前',
       accessorKey: 'name',
     },
     {
       key: 'email',
-      label: 'Email',
+      label: 'メールアドレス',
       accessorKey: 'email',
     },
     {
+      key: 'user_type',
+      label: 'ユーザータイプ',
+      accessorKey: 'user_type',
+      render: (data: any) => {
+        if (!data || !data.row) return null;
+        return USER_TYPE_MAP[data.row.user_type] || data.row.user_type;
+      },
+    },
+    {
       key: 'created_at',
-      label: 'Registered',
+      label: '登録日',
       accessorKey: 'created_at',
     },
     {
       key: 'status',
-      label: 'Status',
+      label: 'ステータス',
       accessorKey: 'status',
       render: (data: any) => {
         if (!data || !data.row) return null;
@@ -169,35 +193,52 @@ export default function AdminAccounts() {
   ];
 
   const sortOptions = [
-    { label: 'Name (A-Z)', value: 'name:asc' },
-    { label: 'Name (Z-A)', value: 'name:desc' },
-    { label: 'Email (A-Z)', value: 'email:asc' },
-    { label: 'Email (Z-A)', value: 'email:desc' },
-    { label: 'Newest First', value: 'created_at:desc' },
-    { label: 'Oldest First', value: 'created_at:asc' },
+    { label: '名前（昇順）', value: 'name:asc' },
+    { label: '名前（降順）', value: 'name:desc' },
+    { label: 'メールアドレス（昇順）', value: 'email:asc' },
+    { label: 'メールアドレス（降順）', value: 'email:desc' },
+    { label: '登録日（新しい順）', value: 'created_at:desc' },
+    { label: '登録日（古い順）', value: 'created_at:asc' },
+    { label: 'ユーザータイプ', value: 'user_type:asc' },
   ];
 
   const actionMenuItems = [
     {
-      label: 'View',
+      label: '詳細',
       onClick: (row: FormattedAccount) => openUserProfile(row),
     },
     {
-      label: 'Change Status',
+      label: 'ステータス変更',
       onClick: (row: FormattedAccount) => handleStatusChange(row.id, row.status === 'active' ? 'inactive' : 'active'),
     },
     {
-      label: 'Delete',
+      label: '削除',
       onClick: (row: FormattedAccount) => handleDeleteAccount(row.id),
     },
   ];
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">アカウント管理</h1>
+        <p className="text-muted-foreground mt-2">ユーザーアカウントの管理と詳細情報の確認</p>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          <span className="text-muted-foreground">全ユーザー: {filteredAccounts.length}</span>
+        </div>
+        <Button variant="default">
+          <PlusCircle className="w-4 h-4 mr-2" />
+          新規アカウント
+        </Button>
+      </div>
+
       <DataTable
         columns={columns}
         data={filteredAccounts}
-        searchPlaceholder="Search by name, email, or ID..."
+        searchPlaceholder="ユーザーを検索..."
         onSearchChange={handleSearch}
         onSortChange={handleSortChange}
         sortOptions={sortOptions}
@@ -208,47 +249,47 @@ export default function AdminAccounts() {
       <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>User Profile</DialogTitle>
+            <DialogTitle>ユーザープロフィール</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <div className="grid gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Name</Label>
+                  <Label>名前</Label>
                   <Input value={selectedUser.name} readOnly />
                 </div>
                 <div>
-                  <Label>Email</Label>
+                  <Label>メールアドレス</Label>
                   <Input value={selectedUser.email} readOnly />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Phone</Label>
+                  <Label>電話番号</Label>
                   <Input value={selectedUser.phone} readOnly />
                 </div>
                 <div>
-                  <Label>Address</Label>
+                  <Label>住所</Label>
                   <Input value={selectedUser.address} readOnly />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>User Type</Label>
-                  <Input value={selectedUser.user_type} readOnly />
+                  <Label>ユーザータイプ</Label>
+                  <Input value={USER_TYPE_MAP[selectedUser.user_type] || selectedUser.user_type} readOnly />
                 </div>
                 <div>
-                  <Label>Status</Label>
+                  <Label>ステータス</Label>
                   <StatusBadge status={selectedUser.status} />
                 </div>
               </div>
               <div>
-                <Label>Verification Status</Label>
+                <Label>本人確認ステータス</Label>
                 <div className="mt-1">
                   {selectedUser.is_verified ? (
-                    <span className="text-green-600">Verified</span>
+                    <span className="text-green-600">確認済み</span>
                   ) : (
-                    <span className="text-yellow-600">Not Verified</span>
+                    <span className="text-yellow-600">未確認</span>
                   )}
                 </div>
               </div>

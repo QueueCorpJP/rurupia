@@ -1,5 +1,4 @@
-
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, 
@@ -12,6 +11,8 @@ import {
   ChevronRight,
   ListChecks
 } from 'lucide-react';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { toast } from 'sonner';
 
 interface SidebarNavProps {
   isOpen: boolean;
@@ -19,6 +20,9 @@ interface SidebarNavProps {
 }
 
 export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
+  const { adminLogout } = useAdminAuth();
+  const navigate = useNavigate();
+  
   const navItems = [
     { title: 'ダッシュボード', href: '/admin', icon: LayoutDashboard },
     { title: 'アカウント管理', href: '/admin/accounts', icon: Users },
@@ -27,6 +31,17 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
     { title: 'ブログ管理', href: '/admin/blog', icon: Newspaper },
     { title: '設定', href: '/admin/settings', icon: Settings },
   ];
+
+  const handleLogout = () => {
+    try {
+      adminLogout();
+      navigate('/');
+      toast.success('ログアウトしました');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('ログアウトに失敗しました');
+    }
+  };
 
   return (
     <aside
@@ -80,6 +95,7 @@ export function SidebarNav({ isOpen, toggleSidebar }: SidebarNavProps) {
         <div className="mt-auto">
           <div className="border-t border-sidebar-border px-2 py-4">
             <button
+              onClick={handleLogout}
               className={cn(
                 "flex w-full items-center gap-3 rounded-md px-3 py-2 text-destructive hover:bg-destructive/10",
                 !isOpen && "justify-center"

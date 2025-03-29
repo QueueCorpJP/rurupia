@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 
 // Constants
 const AUTH_TIMEOUT = 1000; // Reduced from 3000ms to 1000ms for better UX
@@ -21,6 +22,7 @@ const SUPABASE_INIT_DELAY = 50; // Small delay to ensure Supabase is initialized
 
 export function UserNav() {
   const navigate = useNavigate();
+  const { adminLogout } = useAdminAuth();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userType, setUserType] = useState<string | null>(() => {
     // Initialize userType from localStorage if available
@@ -264,7 +266,17 @@ export function UserNav() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      // Check if the current path is in the admin section
+      const isAdminPath = window.location.pathname.startsWith('/admin');
+      
+      if (isAdminPath) {
+        // Use admin logout for admin section
+        adminLogout();
+      } else {
+        // Use regular logout for other sections
+        await supabase.auth.signOut();
+      }
+      
       localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
       navigate('/');
       toast.success('ログアウトしました');

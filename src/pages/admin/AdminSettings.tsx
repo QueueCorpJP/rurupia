@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -204,32 +203,32 @@ const AdminSettings = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">システムバージョン</p>
-                  <p>1.2.5</p>
+                  <p>1.00</p>
                 </div>
                 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">最終更新日</p>
-                  <p>2025/02/15</p>
+                  <p>{new Date().toLocaleDateString('ja-JP')}</p>
                 </div>
                 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">データベースサイズ</p>
-                  <p>1.23 GB</p>
+                  <p>2.5 GB</p>
                 </div>
                 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">最終バックアップ</p>
-                  <p>2025/02/28 03:00</p>
+                  <p>{new Date().toLocaleDateString('ja-JP')} 09:00</p>
                 </div>
                 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">稼働時間</p>
-                  <p>43日間</p>
+                  <p>30日間</p>
                 </div>
                 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">メモリ使用量</p>
-                  <p>68%</p>
+                  <p>45%</p>
                 </div>
               </div>
             </CardContent>

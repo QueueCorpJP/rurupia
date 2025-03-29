@@ -73,11 +73,12 @@ const AdminDashboard = () => {
       
       if (accountsError) throw accountsError;
       
-      // Get monthly views count
+      // Get monthly views count - ONLY FOR INDEX PAGE
       const { count: monthlyViews, error: viewsError } = await supabaseAdmin
         .from('page_views')
         .select('*', { count: 'exact', head: true })
-        .gte('created_at', thirtyDaysAgoISO);
+        .eq('page', '/') // Only count index page views
+        .gte('view_date', thirtyDaysAgoISO);
 
       if (viewsError) throw viewsError;
       
@@ -103,12 +104,38 @@ const AdminDashboard = () => {
         bookingsGrowth
       });
       
-      // Generate dummy chart data for demonstration
-      const accessData = generateChartData(30, 500, 1500);
-      const registrationsData = generateChartData(30, 5, 20);
+      // Get real page view data by day
+      const { data: pageViewsRawData, error: pageViewsDataError } = await supabaseAdmin
+        .from('page_views')
+        .select('view_date')
+        .eq('page', '/') // Only count index page views
+        .gte('view_date', thirtyDaysAgoISO);
+        
+      if (pageViewsDataError) throw pageViewsDataError;
       
-      setAccessData(accessData);
-      setRegistrationsData(registrationsData);
+      // Get real registration data by day
+      const { data: registrationsRawData, error: registrationsDataError } = await supabaseAdmin
+        .from('profiles')
+        .select('created_at')
+        .gte('created_at', thirtyDaysAgoISO);
+        
+      if (registrationsDataError) throw registrationsDataError;
+      
+      // Generate chart data based on real data
+      const generatedAccessData = generateChartDataFromEvents(
+        pageViewsRawData.map(item => new Date(item.view_date)),
+        thirtyDaysAgo,
+        now
+      );
+      
+      const generatedRegistrationsData = generateChartDataFromEvents(
+        registrationsRawData.map(item => new Date(item.created_at)),
+        thirtyDaysAgo,
+        now
+      );
+      
+      setAccessData(generatedAccessData);
+      setRegistrationsData(generatedRegistrationsData);
       
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -122,75 +149,99 @@ const AdminDashboard = () => {
     }
   };
   
-  // Helper function to generate chart data
-  const generateChartData = (days: number, min: number, max: number): ChartDataPoint[] => {
+  // Helper function to generate chart data from real events
+  const generateChartDataFromEvents = (
+    eventDates: Date[],
+    startDate: Date,
+    endDate: Date
+  ): ChartDataPoint[] => {
     const data: ChartDataPoint[] = [];
-    const now = new Date();
     
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      
-      data.push({
-        name: `${date.getMonth() + 1}/${date.getDate()}`,
-        value: Math.floor(Math.random() * (max - min + 1)) + min
-      });
+    // Create a map of date strings to counts
+    const countsByDate = new Map<string, number>();
+    
+    // Initialize all dates in range with 0 counts
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      const dateKey = `${current.getMonth() + 1}/${current.getDate()}`;
+      countsByDate.set(dateKey, 0);
+      current.setDate(current.getDate() + 1);
     }
     
-    return data;
+    // Count events for each date
+    eventDates.forEach(date => {
+      const dateKey = `${date.getMonth() + 1}/${date.getDate()}`;
+      const currentCount = countsByDate.get(dateKey) || 0;
+      countsByDate.set(dateKey, currentCount + 1);
+    });
+    
+    // Convert map to array of ChartDataPoints with timestamps for sorting
+    const dataWithTimestamps = Array.from(countsByDate.entries()).map(([dateKey, count]) => {
+      const [month, day] = dateKey.split('/').map(Number);
+      // Use the current year for consistent sorting
+      const timestamp = new Date(new Date().getFullYear(), month - 1, day).getTime();
+      return { name: dateKey, value: count, timestamp };
+    });
+    
+    // Sort by timestamp
+    dataWithTimestamps.sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Remove timestamp property for final data
+    return dataWithTimestamps.map(({ name, value }) => ({ name, value }));
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">ダッシュボード</h1>
+        <p className="text-muted-foreground mt-2">アプリケーション全体の統計とアクティビティ</p>
+      </div>
       
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <DashboardCard 
-          title="アカウント数" 
-          value={stats.totalAccounts.toString()} 
-          change={{ 
-            value: `前月比 ${stats.accountsGrowth > 0 ? '+' : ''}${stats.accountsGrowth}%`, 
-            positive: stats.accountsGrowth > 0 
+      <div className="grid gap-4 md:grid-cols-3">
+        <DashboardCard
+          icon={<Users />}
+          title="アカウント数"
+          value={stats.totalAccounts}
+          change={{
+            value: `+${stats.accountsGrowth}%`,
+            positive: true
           }}
-          icon={<Users className="h-4 w-4" />} 
           isLoading={isLoading}
         />
-        <DashboardCard 
-          title="月間PV" 
-          value={stats.monthlyViews.toString()} 
-          change={{ 
-            value: `前月比 ${stats.viewsGrowth > 0 ? '+' : ''}${stats.viewsGrowth}%`, 
-            positive: stats.viewsGrowth > 0 
+        <DashboardCard
+          icon={<BarChart3 />}
+          title="月間PV"
+          value={stats.monthlyViews}
+          change={{
+            value: `+${stats.viewsGrowth}%`,
+            positive: true
           }}
-          icon={<BarChart3 className="h-4 w-4" />} 
           isLoading={isLoading}
         />
-        <DashboardCard 
-          title="月間予約数" 
-          value={stats.monthlyBookings.toString()} 
-          change={{ 
-            value: `前月比 ${stats.bookingsGrowth > 0 ? '+' : ''}${stats.bookingsGrowth}%`, 
-            positive: stats.bookingsGrowth > 0 
+        <DashboardCard
+          icon={<Calendar />}
+          title="月間予約数"
+          value={stats.monthlyBookings}
+          change={{
+            value: `+${stats.bookingsGrowth}%`,
+            positive: true
           }}
-          icon={<Calendar className="h-4 w-4" />} 
           isLoading={isLoading}
         />
       </div>
       
-      {/* Charts */}
       <div className="grid gap-4 md:grid-cols-2">
         <LineChart 
           title="アクセス推移" 
-          data={accessData} 
-          color="#0ea5e9"
-          isLoading={isLoading} 
+          data={accessData}
+          color="#22c55e"
+          isLoading={isLoading}
         />
         <LineChart 
           title="新規登録推移" 
-          data={registrationsData} 
+          data={registrationsData}
           color="#8b5cf6"
-          isLoading={isLoading} 
+          isLoading={isLoading}
         />
       </div>
     </div>

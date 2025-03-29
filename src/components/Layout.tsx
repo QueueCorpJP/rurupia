@@ -11,6 +11,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import { usePageViewTracking } from '@/hooks/usePageViewTracking';
 
 // Constants
 const AUTH_TIMEOUT = 1000; // Reduced from 3000ms to 1000ms for better UX
@@ -34,6 +35,9 @@ const Layout = ({ children }: LayoutProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const authTimeoutRef = useRef<number | null>(null);
   const authCheckRunningRef = useRef(false);
+
+  // Add page view tracking
+  usePageViewTracking();
 
   useEffect(() => {
     // Initialize session from existing data first

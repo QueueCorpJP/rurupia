@@ -613,6 +613,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      increment_blog_view: {
+        Args: {
+          slug_param: string
+        }
+        Returns: undefined
+      }
       log_page_view: {
         Args: {
           page_path: string

@@ -345,7 +345,7 @@ const StoreAdminDashboard = () => {
         <DashboardCard
           icon={<Store className="h-5 w-5" />}
           title="今月の売上"
-          value={`¥${monthlySales.toLocaleString()}`}
+          value={`${monthlySales.toLocaleString()}円`}
           change={{ value: `${salesChange > 0 ? '+' : ''}${salesChange}%`, positive: salesChange >= 0 }}
         />
         <DashboardCard
@@ -390,7 +390,7 @@ const StoreAdminDashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip formatter={(value) => `¥${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value) => `${value.toLocaleString()}円`} />
                   <Line 
                     type="monotone" 
                     dataKey="revenue" 

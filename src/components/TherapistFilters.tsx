@@ -30,7 +30,7 @@ const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
   const availabilityOptions = ["平日", "週末", "夜間"];
 
   const formatPrice = (price: number) => {
-    return `¥${price.toLocaleString()}`;
+    return `${price.toLocaleString()}円`;
   };
 
   const handleSpecialtyClick = (specialty: string) => {

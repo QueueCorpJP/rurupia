@@ -204,7 +204,7 @@ const AdminStoreManagement = () => {
                 <div className="relative w-72">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="商品名���カテゴリで検索"
+                    placeholder="商品名またはカテゴリで検索"
                     className="pl-8"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -241,7 +241,7 @@ const AdminStoreManagement = () => {
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{product.category}</TableCell>
-                        <TableCell className="text-right">¥{product.price.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{product.price.toLocaleString()}円</TableCell>
                         <TableCell className="text-right">{product.stock}</TableCell>
                         <TableCell>
                           <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -342,7 +342,7 @@ const AdminStoreManagement = () => {
                       <TableCell className="font-medium">#ORD-2024-0123</TableCell>
                       <TableCell>田中 太郎</TableCell>
                       <TableCell>2024/02/15</TableCell>
-                      <TableCell className="text-right">¥12,800</TableCell>
+                      <TableCell className="text-right">12,800円</TableCell>
                       <TableCell>
                         <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800">
                           発送済み
@@ -359,7 +359,7 @@ const AdminStoreManagement = () => {
                       <TableCell className="font-medium">#ORD-2024-0122</TableCell>
                       <TableCell>佐藤 花子</TableCell>
                       <TableCell>2024/02/14</TableCell>
-                      <TableCell className="text-right">¥8,500</TableCell>
+                      <TableCell className="text-right">8,500円</TableCell>
                       <TableCell>
                         <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800">
                           配達済み
@@ -376,7 +376,7 @@ const AdminStoreManagement = () => {
                       <TableCell className="font-medium">#ORD-2024-0121</TableCell>
                       <TableCell>鈴木 一郎</TableCell>
                       <TableCell>2024/02/13</TableCell>
-                      <TableCell className="text-right">¥15,000</TableCell>
+                      <TableCell className="text-right">15,000円</TableCell>
                       <TableCell>
                         <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800">
                           処理中

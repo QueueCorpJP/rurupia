@@ -222,7 +222,7 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
         
         <div className="flex items-center justify-between pt-4 border-t border-pink-100">
           <div className="text-sm font-medium">
-            <span className="text-lg font-bold text-foreground">¥{therapist.price}</span>
+            <span className="text-lg font-bold text-foreground">{therapist.price}円</span>
             <span className="text-muted-foreground"> / 時間</span>
           </div>
           <Link to={`/therapists/${therapist.id}`}>

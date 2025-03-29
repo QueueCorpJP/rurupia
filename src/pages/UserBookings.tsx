@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -93,7 +92,7 @@ const UserBookings = () => {
               </div>
               <div className="flex items-center">
                 <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>¥{booking.servicePrice.toLocaleString()}</span>
+                <span>{booking.servicePrice.toLocaleString()}円</span>
               </div>
               <div className="flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Therapist } from '@/utils/types';
 import { Calendar, Clock, MapPin, Users, DollarSign, MessageSquare } from 'lucide-react';
@@ -194,10 +193,10 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
                 placeholder="例: 15000"
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
-                className="pl-8"
+                className="pr-8"
                 min="0"
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">¥</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">円</span>
             </div>
           </div>
 

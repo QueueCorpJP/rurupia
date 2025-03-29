@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { BookingRequest } from '@/utils/types';
 import { toast } from 'sonner';
@@ -109,7 +108,7 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
             </div>
             <div className="flex items-center">
               <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>予算: ¥{request.servicePrice.toLocaleString()}</span>
+              <span>予算: {request.servicePrice.toLocaleString()}円</span>
             </div>
             <div className="flex items-center">
               <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />

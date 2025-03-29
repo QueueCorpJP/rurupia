@@ -1,4 +1,3 @@
-
 import { Therapist, Service } from '../utils/types';
 
 interface TherapistServicesProps {
@@ -31,7 +30,7 @@ const TherapistServices = ({ therapist }: TherapistServicesProps) => {
                   {service.duration}分
                 </span>
                 <span className="font-medium">
-                  ¥{(service.price * 150).toLocaleString()}
+                  {(service.price * 150).toLocaleString()}円
                 </span>
               </div>
             </div>

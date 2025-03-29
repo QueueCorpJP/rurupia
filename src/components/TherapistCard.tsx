@@ -1,8 +1,13 @@
 import { Link } from 'react-router-dom';
-import { Star, MapPin, Heart, Clock, Zap } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Star, MapPin, Heart, Clock, Zap, User } from 'lucide-react';
 import { Therapist } from '../utils/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface TherapistCardProps {
   therapist: Therapist;
@@ -10,6 +15,10 @@ interface TherapistCardProps {
 }
 
 const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
+  const navigate = useNavigate();
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
   // Format availability days into a readable string
   const formatAvailability = (days: string[]) => {
     // Create mapping from Japanese days to their proper order in a week
@@ -24,11 +33,118 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
     return sortedDays.join('・');
   };
 
+  // Get initials for avatar fallback
+  const getInitials = (name: string): string => {
+    if (!name) return "?";
+    return name.charAt(0).toUpperCase();
+  };
+  
+  // Check if user is authenticated
+  const checkUserAuth = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.user) {
+      setCurrentUser(data.session.user);
+      return data.session.user;
+    }
+    return null;
+  }, []);
+
+  // Check if the user is following the therapist
+  const checkIsFollowing = useCallback(async (userId: string, therapistId: string | number) => {
+    if (!userId || !therapistId) return false;
+    
+    const { data, error } = await supabase
+      .from('followed_therapists')
+      .select('id')
+      .eq('user_id', String(userId))
+      .eq('therapist_id', String(therapistId))
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error checking follow status:', error);
+      return false;
+    }
+    
+    return !!data;
+  }, []);
+
+  // Toggle follow status
+  const handleToggleFollow = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation when clicking the heart button
+    
+    // Check if user is authenticated
+    const user = currentUser || await checkUserAuth();
+    
+    if (!user) {
+      toast.error('フォローするにはログインが必要です');
+      navigate('/login'); // Redirect to login
+      return;
+    }
+    
+    if (!therapist) return;
+    
+    try {
+      if (isFollowing) {
+        // Unfollow: Delete the record
+        const { error } = await supabase
+          .from('followed_therapists')
+          .delete()
+          .eq('user_id', String(user.id))
+          .eq('therapist_id', String(therapist.id));
+          
+        if (error) throw error;
+        
+        toast.success(`${therapist.name}のフォローを解除しました`);
+      } else {
+        // Follow: Insert a new record
+        const { error } = await supabase
+          .from('followed_therapists')
+          .insert({
+            user_id: String(user.id),
+            therapist_id: String(therapist.id),
+            created_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+        
+        toast.success(`${therapist.name}をフォローしました`);
+      }
+      
+      // Update local state
+      setIsFollowing(prev => !prev);
+      
+    } catch (error) {
+      console.error('Error updating follow status:', error);
+      toast.error('エラーが発生しました。もう一度お試しください');
+    }
+  };
+
+  // Check follow status on mount
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      const user = await checkUserAuth();
+      if (user && therapist.id) {
+        const following = await checkIsFollowing(user.id, therapist.id);
+        setIsFollowing(following);
+      }
+    };
+    
+    checkFollowStatus();
+  }, [therapist.id, checkUserAuth, checkIsFollowing]);
+
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border border-pink-100 bg-white shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 group", className)}>
       <div className="absolute right-4 top-4 z-10">
-        <button className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm hover:bg-white hover:text-pink-500 transition-colors">
-          <Heart className="h-5 w-5" />
+        <button 
+          onClick={handleToggleFollow}
+          className={cn(
+            "h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm transition-colors",
+            isFollowing 
+              ? "bg-pink-50 text-pink-500" 
+              : "hover:bg-white hover:text-pink-500"
+          )}
+        >
+          <Heart className={cn("h-5 w-5", isFollowing && "fill-pink-500")} />
         </button>
       </div>
       
@@ -42,12 +158,22 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
       
       <Link to={`/therapists/${therapist.id}`}>
         <div className="aspect-[4/3] w-full overflow-hidden">
-          <img 
-            src={therapist.imageUrl} 
-            alt={therapist.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
+          {therapist.imageUrl ? (
+            <img 
+              src={therapist.imageUrl} 
+              alt={therapist.name}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="h-full w-full bg-gray-100 flex items-center justify-center">
+              <Avatar className="h-24 w-24">
+                <AvatarFallback className="text-lg bg-gray-200">
+                  {getInitials(therapist.name)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          )}
         </div>
       </Link>
       

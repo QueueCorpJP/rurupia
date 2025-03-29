@@ -1,12 +1,12 @@
-
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import TherapistCard from '@/components/TherapistCard';
 import { Loader2 } from 'lucide-react';
+import { Therapist } from '@/utils/types';
 
 const FollowedTherapists = () => {
-  const [followedTherapists, setFollowedTherapists] = useState<any[]>([]);
+  const [followedTherapists, setFollowedTherapists] = useState<Therapist[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,7 +54,38 @@ const FollowedTherapists = () => {
           return;
         }
         
-        setFollowedTherapists(therapists || []);
+        // Map database fields to Therapist interface
+        const mappedTherapists: Therapist[] = (therapists || []).map(dbTherapist => {
+          // Use type assertion for database object
+          const therapist = dbTherapist as any;
+          
+          return {
+            id: therapist.id,
+            name: therapist.name || "",
+            imageUrl: therapist.image_url || "", // Map image_url to imageUrl
+            description: therapist.description || "",
+            location: therapist.location || "",
+            price: therapist.price || 0,
+            rating: therapist.rating || 0,
+            reviews: therapist.reviews || 0,
+            availability: therapist.availability || [],
+            qualifications: therapist.qualifications || [],
+            specialties: therapist.specialties || [],
+            services: [], // Initialize with empty array
+            // Additional fields
+            galleryImages: therapist.gallery_images,
+            height: therapist.height,
+            weight: therapist.weight,
+            workingDays: therapist.working_days,
+            workingHours: therapist.working_hours,
+            hobbies: therapist.hobbies,
+            age: therapist.age_group,
+            area: therapist.service_areas?.prefecture,
+            detailedArea: therapist.service_areas?.cities?.join(', ')
+          };
+        });
+        
+        setFollowedTherapists(mappedTherapists);
       } catch (error) {
         console.error('Error in followed therapists:', error);
       } finally {

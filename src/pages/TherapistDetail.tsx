@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Extend the Therapist interface to include gallery_images
 interface ExtendedTherapist extends Therapist {
@@ -51,6 +52,36 @@ const TherapistDetail = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [therapistPosts, setTherapistPosts] = useState<Post[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Check if user is authenticated
+  const checkUserAuth = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.user) {
+      setCurrentUser(data.session.user);
+      return data.session.user;
+    }
+    return null;
+  }, []);
+
+  // Check if the user is following the therapist
+  const checkIsFollowing = useCallback(async (userId: string, therapistId: string) => {
+    if (!userId || !therapistId) return false;
+    
+    const { data, error } = await supabase
+      .from('followed_therapists')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('therapist_id', therapistId)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error checking follow status:', error);
+      return false;
+    }
+    
+    return !!data;
+  }, []);
 
   // Use useCallback to memoize the fetchTherapist function
   const fetchTherapist = useCallback(async () => {
@@ -176,9 +207,19 @@ const TherapistDetail = () => {
     // Set mounted flag
     setIsMounted(true);
     
+    // Check if user is authenticated and following status
+    const checkFollowStatus = async () => {
+      const user = await checkUserAuth();
+      if (user && id) {
+        const following = await checkIsFollowing(user.id, id);
+        setIsFollowing(following);
+      }
+    };
+    
     // Load data with a small delay to ensure smooth transitions
     const timer = setTimeout(() => {
       fetchTherapist();
+      checkFollowStatus();
     }, 300);
     
     // Cleanup function
@@ -186,7 +227,7 @@ const TherapistDetail = () => {
       clearTimeout(timer);
       setIsMounted(false);
     };
-  }, [fetchTherapist]);
+  }, [fetchTherapist, checkUserAuth, checkIsFollowing, id]);
 
   if (isLoading) {
     return (
@@ -216,9 +257,53 @@ const TherapistDetail = () => {
     );
   }
 
-  // Handler functions to avoid async issues
-  const handleToggleFollow = () => {
-    setIsFollowing(prev => !prev);
+  // Update handleToggleFollow to actually update the database
+  const handleToggleFollow = async () => {
+    // Check if user is authenticated
+    const user = currentUser || await checkUserAuth();
+    
+    if (!user) {
+      toast.error('フォローするにはログインが必要です');
+      navigate('/login'); // Redirect to login
+      return;
+    }
+    
+    if (!therapist) return;
+    
+    try {
+      if (isFollowing) {
+        // Unfollow: Delete the record
+        const { error } = await supabase
+          .from('followed_therapists')
+          .delete()
+          .eq('user_id', String(user.id))
+          .eq('therapist_id', String(therapist.id));
+          
+        if (error) throw error;
+        
+        toast.success(`${therapist.name}のフォローを解除しました`);
+      } else {
+        // Follow: Insert a new record
+        const { error } = await supabase
+          .from('followed_therapists')
+          .insert({
+            user_id: String(user.id),
+            therapist_id: String(therapist.id), // Ensure string type
+            created_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+        
+        toast.success(`${therapist.name}をフォローしました`);
+      }
+      
+      // Update local state
+      setIsFollowing(prev => !prev);
+      
+    } catch (error) {
+      console.error('Error updating follow status:', error);
+      toast.error('エラーが発生しました。もう一度お試しください');
+    }
   };
   
   const handleTabChange = (value: string) => {

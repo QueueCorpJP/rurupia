@@ -40,7 +40,7 @@ export const therapists: Therapist[] = [
   {
     id: 3,
     name: "田中 美咲",
-    imageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=688&q=80",
+    imageUrl: "",
     description: "経験豊富な指圧セラピスト。体のバランスを整え、自然治癒力を高めます。",
     location: "神奈川県横浜市",
     price: 75,

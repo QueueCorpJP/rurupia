@@ -13,9 +13,9 @@ import {
   ArrowLeft,
   HelpCircle,
   CalendarIcon,
+  Loader2
 } from 'lucide-react';
 import TherapistCard from '../components/TherapistCard';
-import { therapists } from '../utils/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,9 +29,59 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DateTimePicker } from '@/components/DateTimePicker';
+import { supabase } from '@/integrations/supabase/client';
+import { Therapist } from '@/utils/types';
+import { toast } from 'sonner';
 
 const Index = () => {
   const navigate = useNavigate();
+  const [featuredTherapists, setFeaturedTherapists] = useState<Therapist[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch real therapists from Supabase
+  useEffect(() => {
+    const fetchTherapists = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('therapists')
+          .select('*')
+          .order('rating', { ascending: false })
+          .limit(3);
+        
+        if (error) {
+          console.error("Error fetching therapists:", error);
+          toast.error("セラピスト情報の取得に失敗しました");
+          return;
+        }
+        
+        // Map the Supabase data to the format expected by TherapistCard
+        const mappedTherapists = (data || []).map((therapist: any) => ({
+          id: therapist.id,
+          name: therapist.name || "名前なし",
+          imageUrl: therapist.image_url || "", // Empty string will trigger the avatar fallback
+          description: therapist.description || "詳細情報はありません",
+          location: therapist.location || "場所未設定",
+          price: therapist.price || 0,
+          rating: therapist.rating || 4.0,
+          reviews: therapist.reviews || 0,
+          availability: therapist.availability || ["月", "水", "金"],
+          qualifications: therapist.qualifications || [],
+          specialties: therapist.specialties || [],
+          services: [] // Services will be loaded in the detail view
+        }));
+        
+        setFeaturedTherapists(mappedTherapists);
+      } catch (error) {
+        console.error("Error in fetchTherapists:", error);
+        toast.error("エラーが発生しました");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTherapists();
+  }, []);
 
   // Handle 404 redirects from sessionStorage
   useEffect(() => {
@@ -60,11 +110,6 @@ const Index = () => {
       }
     }
   }, [navigate]);
-
-  // Show only featured therapists on the landing page
-  const featuredTherapists = therapists
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 3);
 
   // Keyword search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -115,13 +160,56 @@ const Index = () => {
 
   // Handle keyword search
   const handleKeywordSearch = () => {
-    console.log('Searching for:', {
-      keyword: searchTerm,
-      ...keywordFilters,
-      date: selectedDate ? selectedDate.toISOString() : undefined,
-      timeSlot: selectedTimeSlot
+    // Create a query params object
+    const params = new URLSearchParams();
+    
+    // Add search term if provided
+    if (searchTerm) {
+      params.append('search', searchTerm);
+    }
+    
+    // Add area filter if selected
+    if (keywordFilters.area) {
+      params.append('location', keywordFilters.area);
+    }
+    
+    // Add budget filter if selected
+    if (keywordFilters.budget) {
+      // Map the budget string to a min-max price range
+      switch (keywordFilters.budget) {
+        case 'under5000':
+          params.append('minPrice', '0');
+          params.append('maxPrice', '5000');
+          break;
+        case '5000to10000':
+          params.append('minPrice', '5000');
+          params.append('maxPrice', '10000');
+          break;
+        case '10000to20000':
+          params.append('minPrice', '10000');
+          params.append('maxPrice', '20000');
+          break;
+        case 'over20000':
+          params.append('minPrice', '20000');
+          params.append('maxPrice', '50000');
+          break;
+      }
+    }
+    
+    // Add date/time if selected
+    if (selectedDate) {
+      params.append('date', selectedDate.toISOString().split('T')[0]); // Just the date part
+      
+      if (selectedTimeSlot !== "指定なし") {
+        params.append('timeSlot', selectedTimeSlot);
+      }
+    }
+    
+    // Navigate to the therapists page with the filters
+    navigate({
+      pathname: '/therapists',
+      search: params.toString()
     });
-    // Navigate to search results with params
   };
 
   // Handle keyword filter change
@@ -614,9 +702,19 @@ const Index = () => {
           </div>
           
           <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredTherapists.map((therapist) => (
-              <TherapistCard key={therapist.id} therapist={therapist} />
-            ))}
+            {isLoading ? (
+              <div className="col-span-full flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : featuredTherapists.length > 0 ? (
+              featuredTherapists.map((therapist) => (
+                <TherapistCard key={therapist.id.toString()} therapist={therapist} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-muted-foreground">セラピスト情報がありません</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -32,6 +32,26 @@ const Login = () => {
       }
 
       if (data) {
+        // Check if the user is banned
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+        }
+        
+        if (profileData?.status === 'rejected') {
+          // User is banned, sign them out and show error
+          await supabase.auth.signOut();
+          toast.error("このアカウントはバンされています。管理者にお問い合わせください。", {
+            duration: 5000,
+          });
+          return;
+        }
+        
         toast.success("ログインしました", {
           duration: 3000,
           dismissible: true,
@@ -77,10 +97,10 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/google-auth-callback`,
         },
       });
 
@@ -106,7 +126,7 @@ const Login = () => {
       // Use environment variable for the LINE client ID
       const LINE_CLIENT_ID = process.env.REACT_APP_LINE_CLIENT_ID || "2007106410";
       // Use a fixed redirect URI that matches your LINE developer console configuration
-      const REDIRECT_URI = "http://localhost:8080/line-callback";
+      const REDIRECT_URI = "https://therapist-connectivity.vercel.app/callback";
       
       // Store the intent in sessionStorage for the callback handling
       sessionStorage.setItem("line_auth_intent", "login");

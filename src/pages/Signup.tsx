@@ -135,6 +135,7 @@ const Signup = () => {
             nickname: name,
             email: email,
             verification_document: filePath,
+            status: 'pending',
             updated_at: new Date().toISOString()
           }, { 
             onConflict: 'id',

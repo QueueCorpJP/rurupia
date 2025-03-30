@@ -18,35 +18,6 @@ import { format, startOfMonth, endOfMonth, parseISO, getDay } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { toast } from 'sonner';
 
-// Mock data as fallback
-const mockRevenueData = [
-  { date: '2025/01', revenue: 450000 },
-  { date: '2025/02', revenue: 520000 },
-  { date: '2025/03', revenue: 480000 },
-  { date: '2025/04', revenue: 600000 },
-  { date: '2025/05', revenue: 580000 },
-  { date: '2025/06', revenue: 650000 },
-];
-
-const mockBookingData = [
-  { day: '月', bookings: 8 },
-  { day: '火', bookings: 5 },
-  { day: '水', bookings: 7 },
-  { day: '木', bookings: 10 },
-  { day: '金', bookings: 12 },
-  { day: '土', bookings: 18 },
-  { day: '日', bookings: 15 },
-];
-
-const mockAgeDistribution = [
-  { age: '10代', count: 5 },
-  { age: '20代', count: 25 },
-  { age: '30代', count: 35 },
-  { age: '40代', count: 20 },
-  { age: '50代', count: 10 },
-  { age: '60代以上', count: 5 },
-];
-
 // Map day of week number to Japanese day name
 const dayOfWeekMap = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -56,26 +27,26 @@ const StoreAdminDashboard = () => {
   const [storeId, setStoreId] = useState<string | null>(null);
   
   // Summary metrics
-  const [monthlySales, setMonthlySales] = useState(650000); // Default to mock value
-  const [salesChange, setSalesChange] = useState(12);
-  const [monthlyBookings, setMonthlyBookings] = useState(128); // Default to mock value
-  const [bookingsChange, setBookingsChange] = useState(8);
-  const [therapistCount, setTherapistCount] = useState(12); // Default to mock value
-  const [therapistChange, setTherapistChange] = useState(2);
-  const [courseCount, setCourseCount] = useState(8); // Default to mock value
+  const [monthlySales, setMonthlySales] = useState(0);
+  const [salesChange, setSalesChange] = useState(0);
+  const [monthlyBookings, setMonthlyBookings] = useState(0);
+  const [bookingsChange, setBookingsChange] = useState(0);
+  const [therapistCount, setTherapistCount] = useState(0);
+  const [therapistChange, setTherapistChange] = useState(0);
+  const [courseCount, setCourseCount] = useState(0);
   
   // Chart data
-  const [revenueData, setRevenueData] = useState(mockRevenueData);
-  const [bookingData, setBookingData] = useState(mockBookingData);
-  const [ageDistribution, setAgeDistribution] = useState(mockAgeDistribution);
+  const [revenueData, setRevenueData] = useState<Array<{date: string; revenue: number}>>([]);
+  const [bookingData, setBookingData] = useState<Array<{day: string; bookings: number}>>([]);
+  const [ageDistribution, setAgeDistribution] = useState<Array<{age: string; count: number}>>([]);
   const [repeatCustomerData, setRepeatCustomerData] = useState({
-    repeatRate: 65,
-    averageVisits: 3.2,
+    repeatRate: 0,
+    averageVisits: 0,
     distribution: [
-      { label: '1回のみ', value: 35 },
-      { label: '2〜3回', value: 40 },
-      { label: '4〜5回', value: 15 },
-      { label: '6回以上', value: 10 }
+      { label: '1回のみ', value: 0 },
+      { label: '2〜3回', value: 0 },
+      { label: '4〜5回', value: 0 },
+      { label: '6回以上', value: 0 }
     ]
   });
 
@@ -101,6 +72,17 @@ const StoreAdminDashboard = () => {
       const prevMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
       const prevMonthEnd = endOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
 
+      // Get store info
+      const { data: storeData, error: storeError } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (storeError) {
+        console.error("Error fetching store data:", storeError);
+      }
+
       // Get therapists for this store
       const { data: therapists, error: therapistsError } = await supabase
         .from('store_therapists')
@@ -110,13 +92,32 @@ const StoreAdminDashboard = () => {
         
       if (therapistsError) {
         console.error("Error fetching therapists:", therapistsError);
-        // Keep using default (mock) data instead of failing
-      } else if (therapists) {
+        return;
+      }
+      
+      if (therapists) {
         const therapistIds = therapists.map(t => t.therapist_id) || [];
-        setTherapistCount(therapistIds.length || 12); // Fallback to mock value if no therapists
+        setTherapistCount(therapistIds.length || 0);
         
-        // Get therapist count change (simplistic approach - just a +/- indicator for demo)
-        setTherapistChange(therapistIds.length > 10 ? therapistIds.length - 10 : 2);
+        // Get therapist count change by comparing with previous month
+        try {
+          const { data: prevMonthTherapists, error: prevTherapistsError } = await supabase
+            .from('store_therapists')
+            .select('therapist_id')
+            .eq('store_id', user.id)
+            .eq('status', 'active')
+            .lt('created_at', monthStart.toISOString());
+            
+          if (!prevTherapistsError && prevMonthTherapists) {
+            const prevCount = prevMonthTherapists.length;
+            setTherapistChange(therapistIds.length - prevCount);
+          } else {
+            setTherapistChange(0);
+          }
+        } catch (error) {
+          console.error("Error calculating therapist change:", error);
+          setTherapistChange(0);
+        }
         
         // Get services/courses for this store
         try {
@@ -126,7 +127,7 @@ const StoreAdminDashboard = () => {
             .eq('store_id', user.id);
             
           if (!servicesError && services) {
-            setCourseCount(services.length || 8); // Fallback to mock value if no services
+            setCourseCount(services.length || 0);
           } else {
             // Fall back to getting services via therapist_services
             const { data: therapistServices, error: tsError } = await supabase
@@ -137,43 +138,49 @@ const StoreAdminDashboard = () => {
             if (!tsError && therapistServices) {
               // Get unique service IDs
               const uniqueServiceIds = [...new Set(therapistServices.map(ts => ts.service_id))];
-              setCourseCount(uniqueServiceIds.length || 8); // Fallback to mock value if no services
+              setCourseCount(uniqueServiceIds.length || 0);
+            } else {
+              setCourseCount(0);
             }
           }
         } catch (error) {
           console.error("Error fetching services:", error);
-          // Keep using default (mock) course count
+          setCourseCount(0);
         }
         
         if (therapistIds.length > 0) {
           // Get bookings for current month
           const { data: currentMonthBookings, error: bookingsError } = await supabase
             .from('bookings')
-            .select('id, price, date')
+            .select('id, price, date, user_id')
             .in('therapist_id', therapistIds)
             .gte('date', monthStart.toISOString())
             .lte('date', monthEnd.toISOString());
             
           if (bookingsError) {
             console.error("Error fetching current month bookings:", bookingsError);
-            // Keep using default (mock) data for monthly bookings and sales
+            setMonthlyBookings(0);
+            setMonthlySales(0);
+            setSalesChange(0);
+            setBookingsChange(0);
           } else if (currentMonthBookings && currentMonthBookings.length > 0) {
             // Calculate monthly sales and bookings
             setMonthlyBookings(currentMonthBookings.length);
             const calculatedMonthlySales = currentMonthBookings.reduce((sum, booking) => sum + (booking.price || 0), 0);
-            setMonthlySales(calculatedMonthlySales || 650000); // Fallback to mock value if calculation fails
+            setMonthlySales(calculatedMonthlySales);
             
             // Get bookings for previous month for comparison
             const { data: prevMonthBookings, error: prevBookingsError } = await supabase
               .from('bookings')
-              .select('id, price')
+              .select('id, price, user_id')
               .in('therapist_id', therapistIds)
               .gte('date', prevMonthStart.toISOString())
               .lte('date', prevMonthEnd.toISOString());
               
             if (prevBookingsError) {
               console.error("Error fetching previous month bookings:", prevBookingsError);
-              // Keep using default (mock) values for sales change and bookings change
+              setSalesChange(0);
+              setBookingsChange(0);
             } else if (prevMonthBookings) {
               // Calculate percentage changes
               const prevMonthSales = prevMonthBookings.reduce((sum, booking) => sum + (booking.price || 0), 0) || 0;
@@ -181,12 +188,16 @@ const StoreAdminDashboard = () => {
               
               if (prevMonthSales > 0) {
                 const percentChange = ((calculatedMonthlySales - prevMonthSales) / prevMonthSales) * 100;
-                setSalesChange(Math.round(percentChange) || 12); // Fallback to mock value if calculation fails
+                setSalesChange(Math.round(percentChange));
+              } else {
+                setSalesChange(0);
               }
               
               if (prevMonthBookingCount > 0) {
                 const percentChange = ((monthlyBookings - prevMonthBookingCount) / prevMonthBookingCount) * 100;
-                setBookingsChange(Math.round(percentChange) || 8); // Fallback to mock value if calculation fails
+                setBookingsChange(Math.round(percentChange));
+              } else {
+                setBookingsChange(0);
               }
             }
             
@@ -211,9 +222,7 @@ const StoreAdminDashboard = () => {
               bookings: count || 0 // Ensure no undefined values
             }));
             
-            if (formattedBookingData.some(item => item.bookings > 0)) {
-              setBookingData(formattedBookingData);
-            }
+            setBookingData(formattedBookingData);
             
             // Get last 6 months revenue data
             const sixMonthsAgo = new Date();
@@ -227,7 +236,7 @@ const StoreAdminDashboard = () => {
               
             if (revenueError) {
               console.error("Error fetching revenue history:", revenueError);
-              // Keep using default (mock) revenue data
+              setRevenueData([]);
             } else if (revenueHistoryData && revenueHistoryData.length > 0) {
               // Group by month and sum
               const revenueByMonth: Record<string, number> = {};
@@ -257,10 +266,130 @@ const StoreAdminDashboard = () => {
                   revenue: revenueByMonth[monthKey] || 0 // Ensure no undefined values
                 }));
               
-              if (formattedRevenueData.length > 0) {
-                setRevenueData(formattedRevenueData);
-              }
+              setRevenueData(formattedRevenueData);
+            } else {
+              setRevenueData([]);
             }
+            
+            // Calculate repeat customer data based on real bookings
+            try {
+              const uniqueUserIds = [...new Set(currentMonthBookings.map(b => b.user_id))];
+              
+              // Get all bookings for these users to analyze repeat patterns
+              const { data: allUserBookings, error: allBookingsError } = await supabase
+                .from('bookings')
+                .select('user_id')
+                .in('therapist_id', therapistIds)
+                .in('user_id', uniqueUserIds);
+                
+              if (!allBookingsError && allUserBookings && allUserBookings.length > 0) {
+                // Count bookings per user
+                const bookingsPerUser: Record<string, number> = {};
+                
+                allUserBookings.forEach(booking => {
+                  if (booking.user_id) {
+                    if (!bookingsPerUser[booking.user_id]) {
+                      bookingsPerUser[booking.user_id] = 0;
+                    }
+                    bookingsPerUser[booking.user_id] += 1;
+                  }
+                });
+                
+                // Calculate statistics
+                const userIds = Object.keys(bookingsPerUser);
+                const totalUsers = userIds.length;
+                
+                if (totalUsers > 0) {
+                  const bookingCounts = Object.values(bookingsPerUser);
+                  
+                  // Users with more than 1 booking are repeat customers
+                  const repeatUsers = userIds.filter(id => bookingsPerUser[id] > 1).length;
+                  const repeatRate = Math.round((repeatUsers / totalUsers) * 100);
+                  
+                  // Average visits
+                  const totalBookings = bookingCounts.reduce((sum, count) => sum + count, 0);
+                  const averageVisits = totalBookings / totalUsers;
+                  
+                  // Distribution
+                  const singleVisits = userIds.filter(id => bookingsPerUser[id] === 1).length;
+                  const twoToThreeVisits = userIds.filter(id => bookingsPerUser[id] >= 2 && bookingsPerUser[id] <= 3).length;
+                  const fourToFiveVisits = userIds.filter(id => bookingsPerUser[id] >= 4 && bookingsPerUser[id] <= 5).length;
+                  const sixPlusVisits = userIds.filter(id => bookingsPerUser[id] >= 6).length;
+                  
+                  // Calculate percentages
+                  const singlePercent = Math.round((singleVisits / totalUsers) * 100);
+                  const twoToThreePercent = Math.round((twoToThreeVisits / totalUsers) * 100);
+                  const fourToFivePercent = Math.round((fourToFiveVisits / totalUsers) * 100);
+                  const sixPlusPercent = Math.round((sixPlusVisits / totalUsers) * 100);
+                  
+                  // Set real repeat customer data
+                  setRepeatCustomerData({
+                    repeatRate: repeatRate,
+                    averageVisits: Number(averageVisits.toFixed(1)),
+                    distribution: [
+                      { label: '1回のみ', value: singlePercent },
+                      { label: '2〜3回', value: twoToThreePercent },
+                      { label: '4〜5回', value: fourToFivePercent },
+                      { label: '6回以上', value: sixPlusPercent }
+                    ]
+                  });
+                } else {
+                  // No users with bookings
+                  setRepeatCustomerData({
+                    repeatRate: 0,
+                    averageVisits: 0,
+                    distribution: [
+                      { label: '1回のみ', value: 0 },
+                      { label: '2〜3回', value: 0 },
+                      { label: '4〜5回', value: 0 },
+                      { label: '6回以上', value: 0 }
+                    ]
+                  });
+                }
+              } else {
+                // No bookings found
+                setRepeatCustomerData({
+                  repeatRate: 0,
+                  averageVisits: 0,
+                  distribution: [
+                    { label: '1回のみ', value: 0 },
+                    { label: '2〜3回', value: 0 },
+                    { label: '4〜5回', value: 0 },
+                    { label: '6回以上', value: 0 }
+                  ]
+                });
+              }
+            } catch (error) {
+              console.error("Error calculating repeat customer data:", error);
+              setRepeatCustomerData({
+                repeatRate: 0,
+                averageVisits: 0,
+                distribution: [
+                  { label: '1回のみ', value: 0 },
+                  { label: '2〜3回', value: 0 },
+                  { label: '4〜5回', value: 0 },
+                  { label: '6回以上', value: 0 }
+                ]
+              });
+            }
+          } else {
+            // No bookings for current month
+            setMonthlyBookings(0);
+            setMonthlySales(0);
+            setSalesChange(0);
+            setBookingsChange(0);
+            setBookingData([]);
+            setRevenueData([]);
+            setRepeatCustomerData({
+              repeatRate: 0,
+              averageVisits: 0,
+              distribution: [
+                { label: '1回のみ', value: 0 },
+                { label: '2〜3回', value: 0 },
+                { label: '4〜5回', value: 0 },
+                { label: '6回以上', value: 0 }
+              ]
+            });
           }
         }
       }
@@ -268,32 +397,28 @@ const StoreAdminDashboard = () => {
       // Try to fetch age distribution from customer_age_distribution
       try {
         const { data: ageData, error: ageError } = await supabase
-          .from('customer_age_distribution')
+          .from('customer_age_distribution' as any)
           .select('*')
           .eq('store_id', user.id);
           
         if (ageError) {
           console.error("Error fetching age distribution:", ageError);
-          // Keep using default (mock) age distribution data
+          setAgeDistribution([]);
         } else if (ageData && ageData.length > 0) {
           // Format for chart
-          const formattedAgeData = ageData.map(item => ({
-            age: item.age_group,
-            count: item.count || 0 // Ensure no undefined values
+          const formattedAgeData = ageData.map((item: any) => ({
+            age: item.age_group || 'Unknown',
+            count: item.count || 0
           }));
           
-          if (formattedAgeData.some(item => item.count > 0)) {
-            setAgeDistribution(formattedAgeData);
-          }
+          setAgeDistribution(formattedAgeData);
+        } else {
+          setAgeDistribution([]);
         }
       } catch (error) {
         console.error("Error fetching age distribution:", error);
-        // Keep using default (mock) age distribution data
+        setAgeDistribution([]);
       }
-      
-      // Future enhancement: Fetch real repeat customer data from bookings table by analyzing
-      // distinct user_id counts and frequency
-      
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast.error("データの取得中にエラーが発生しました", {
@@ -331,6 +456,8 @@ const StoreAdminDashboard = () => {
     );
   }
 
+  const hasData = monthlySales > 0 || monthlyBookings > 0 || therapistCount > 0 || courseCount > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -340,19 +467,26 @@ const StoreAdminDashboard = () => {
         </div>
       </div>
 
+      {!hasData && (
+        <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 text-yellow-800">
+          <h3 className="font-bold mb-2">データがありません</h3>
+          <p>現在表示できるデータがありません。新しい予約や顧客データが追加されると、ここに統計情報が表示されます。</p>
+        </div>
+      )}
+
       {/* サマリーカード */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
           icon={<Store className="h-5 w-5" />}
           title="今月の売上"
           value={`${monthlySales.toLocaleString()}円`}
-          change={{ value: `${salesChange > 0 ? '+' : ''}${salesChange}%`, positive: salesChange >= 0 }}
+          change={salesChange !== 0 ? { value: `${salesChange > 0 ? '+' : ''}${salesChange}%`, positive: salesChange >= 0 } : undefined}
         />
         <DashboardCard
           icon={<Calendar className="h-5 w-5" />}
           title="今月の予約数"
           value={monthlyBookings.toString()}
-          change={{ value: `${bookingsChange > 0 ? '+' : ''}${bookingsChange}%`, positive: bookingsChange >= 0 }}
+          change={bookingsChange !== 0 ? { value: `${bookingsChange > 0 ? '+' : ''}${bookingsChange}%`, positive: bookingsChange >= 0 } : undefined}
         />
         <DashboardCard
           icon={<Users className="h-5 w-5" />}
@@ -381,25 +515,31 @@ const StoreAdminDashboard = () => {
             <LineChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ReLineChart
-                  data={revenueData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `${value.toLocaleString()}円`} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#8884d8" 
-                    activeDot={{ r: 8 }} 
-                  />
-                </ReLineChart>
-              </ResponsiveContainer>
-            </div>
+            {revenueData.length > 0 ? (
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ReLineChart
+                    data={revenueData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => `${value.toLocaleString()}円`} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#8884d8" 
+                      activeDot={{ r: 8 }} 
+                    />
+                  </ReLineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-[300px] text-muted-foreground">
+                <p>データがありません</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -415,20 +555,26 @@ const StoreAdminDashboard = () => {
             <BarChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ReBarChart
-                  data={bookingData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `${value}件`} />
-                  <Bar dataKey="bookings" fill="#82ca9d" />
-                </ReBarChart>
-              </ResponsiveContainer>
-            </div>
+            {bookingData.some(item => item.bookings > 0) ? (
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ReBarChart
+                    data={bookingData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => `${value}件`} />
+                    <Bar dataKey="bookings" fill="#82ca9d" />
+                  </ReBarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-[300px] text-muted-foreground">
+                <p>データがありません</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -446,20 +592,26 @@ const StoreAdminDashboard = () => {
             <AreaChartIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ReBarChart
-                  data={ageDistribution}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="age" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `${value}%`} />
-                  <Bar dataKey="count" fill="#ffc658" />
-                </ReBarChart>
-              </ResponsiveContainer>
-            </div>
+            {ageDistribution.length > 0 && ageDistribution.some(item => item.count > 0) ? (
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ReBarChart
+                    data={ageDistribution}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="age" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => `${value}`} />
+                    <Bar dataKey="count" fill="#ffc658" />
+                  </ReBarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-[300px] text-muted-foreground">
+                <p>データがありません</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -472,33 +624,39 @@ const StoreAdminDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm font-medium">リピート率</p>
-                  <p className="text-2xl font-bold">{repeatCustomerData.repeatRate}%</p>
+            {repeatCustomerData.repeatRate > 0 ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-medium">リピート率</p>
+                    <p className="text-2xl font-bold">{repeatCustomerData.repeatRate}%</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">平均利用回数</p>
+                    <p className="text-2xl font-bold">{repeatCustomerData.averageVisits}回</p>
+                  </div>
                 </div>
+                
                 <div>
-                  <p className="text-sm font-medium">平均利用回数</p>
-                  <p className="text-2xl font-bold">{repeatCustomerData.averageVisits}回</p>
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-sm font-medium mb-2">リピート回数分布</p>
-                <div className="space-y-2">
-                  {repeatCustomerData.distribution.map((item, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="text-sm min-w-[80px]">{item.label}</div>
-                      <div className="flex-1 bg-gray-100 rounded-full h-4">
-                        <div className="bg-blue-500 h-4 rounded-full" style={{ width: `${item.value}%` }}></div>
+                  <p className="text-sm font-medium mb-2">リピート回数分布</p>
+                  <div className="space-y-2">
+                    {repeatCustomerData.distribution.map((item, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="text-sm min-w-[80px]">{item.label}</div>
+                        <div className="flex-1 bg-gray-100 rounded-full h-4">
+                          <div className="bg-blue-500 h-4 rounded-full" style={{ width: `${item.value}%` }}></div>
+                        </div>
+                        <div className="text-sm min-w-[40px] text-right">{item.value}%</div>
                       </div>
-                      <div className="text-sm min-w-[40px] text-right">{item.value}%</div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex justify-center items-center h-[300px] text-muted-foreground">
+                <p>データがありません</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

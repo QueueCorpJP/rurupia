@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { SidebarNav } from './SidebarNav';
 import { UserNav } from './UserNav';
 import { cn } from '@/lib/utils';
@@ -11,11 +11,17 @@ const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [initializingSession, setInitializingSession] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { isAdminAuthenticated, initializeAdminSession, adminUserId } = useAdminAuth();
 
   useEffect(() => {
-    if (!isAdminAuthenticated) {
+    // Only check authentication for the main admin layout component
+    // Skip check for children routes that handle their own authentication
+    // like verification which uses AdminProtectedRoute
+    const isVerificationRoute = location.pathname.includes('/admin/verification/');
+    
+    if (!isAdminAuthenticated && !isVerificationRoute) {
       console.log('Not authenticated, redirecting to login');
       navigate('/admin/login');
       return;
@@ -41,9 +47,11 @@ const AdminLayout = () => {
     };
     
     setupAdmin();
-  }, [isAdminAuthenticated]);
+  }, [isAdminAuthenticated, location.pathname]);
 
-  if (!isAdminAuthenticated) {
+  // Allow rendering content when on verification routes even if not authenticated
+  const isVerificationRoute = location.pathname.includes('/admin/verification/');
+  if (!isAdminAuthenticated && !isVerificationRoute) {
     return null;
   }
 

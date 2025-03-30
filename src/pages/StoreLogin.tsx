@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -27,6 +26,26 @@ const StoreLogin = () => {
 
       if (error) {
         toast.error(error.message);
+        return;
+      }
+      
+      // Check if the user is banned
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', data.user?.id)
+        .single();
+        
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      }
+      
+      if (profileData?.status === 'rejected') {
+        // User is banned, sign them out and show error
+        await supabase.auth.signOut();
+        toast.error("このアカウントはバンされています。管理者にお問い合わせください。", {
+          duration: 5000,
+        });
         return;
       }
 

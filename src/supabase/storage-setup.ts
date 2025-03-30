@@ -6,7 +6,7 @@ export async function ensureBlogStorageBucket() {
     // First check if the user is an admin
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      console.log('No active session, skipping bucket creation');
+      // Normal case when not authenticated, don't log an error
       return;
     }
 
@@ -18,15 +18,19 @@ export async function ensureBlogStorageBucket() {
       .single();
 
     if (profileError) {
-      console.error('Error checking user permissions:', profileError);
+      // Only log error if it's not a "not found" error
+      if (!profileError.message.includes('not found')) {
+        console.error('Error checking user permissions:', profileError);
+      }
       return;
     }
 
     if (profile?.user_type !== 'admin') {
-      console.log('User is not an admin, skipping bucket creation');
+      // Normal case, don't display this as an error
       return;
     }
 
+    // Admin checks passed, proceed with bucket checks
     // Check if the bucket already exists
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     

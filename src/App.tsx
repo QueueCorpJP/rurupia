@@ -51,6 +51,8 @@ import NotFound from './pages/NotFound';
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminSetup from './pages/admin/AdminSetup';
+import VerificationDocument from './pages/admin/VerificationDocument';
+import GoogleAuthCallback from './pages/GoogleAuthCallback';
 
 function App() {
   return (
@@ -110,11 +112,14 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="accounts" element={<AdminAccounts />} />
+            <Route path="verification/:userId" element={<AdminProtectedRoute><VerificationDocument /></AdminProtectedRoute>} />
             <Route path="blog" element={<AdminBlog />} />
             <Route path="inquiries" element={<AdminInquiries />} />
             <Route path="requests" element={<AdminRequests />} />
             <Route path="auth" element={<AdminAuth />} />
           </Route>
+          
+          <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>

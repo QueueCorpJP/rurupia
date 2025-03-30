@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { PlusCircle, Users } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 // User account type mapping in Japanese
 const USER_TYPE_MAP = {
@@ -17,7 +18,6 @@ const USER_TYPE_MAP = {
   client: "クライアント",
   store: "店舗",
   admin: "管理者",
-  user: "一般ユーザー",
   customer: "お客様"
 };
 
@@ -41,6 +41,11 @@ export default function AdminAccounts() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const { isAdminAuthenticated, initializeAdminSession } = useAdminAuth();
+  
+  // New state variables for status change dialog
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [userToChangeStatus, setUserToChangeStatus] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>('active');
 
   useEffect(() => {
     if (isAdminAuthenticated) {
@@ -91,6 +96,40 @@ export default function AdminAccounts() {
 
   const handleSortChange = (value: string) => {
     const [column, direction] = value.split(':');
+    
+    // Special handling for verification status filter
+    if (column === 'verification_status') {
+      let filtered;
+      switch (direction) {
+        case 'pending':
+          filtered = accounts.filter(account => 
+            !account.is_verified && account.verification_document && account.status === 'pending'
+          );
+          break;
+        case 'verified':
+          filtered = accounts.filter(account => account.is_verified);
+          break;
+        case 'rejected':
+          filtered = accounts.filter(account => account.status === 'rejected');
+          break;
+        case 'all':
+          filtered = accounts;
+          break;
+        default:
+          filtered = accounts;
+      }
+      setFilteredAccounts(filtered);
+      return;
+    }
+    
+    // Special handling for user type filter
+    if (column === 'user_type_filter') {
+      const filtered = accounts.filter(account => account.user_type === direction);
+      setFilteredAccounts(filtered);
+      return;
+    }
+    
+    // Regular column sorting
     const sorted = [...filteredAccounts].sort((a: any, b: any) => {
       if (direction === 'asc') {
         return a[column] > b[column] ? 1 : -1;
@@ -109,11 +148,44 @@ export default function AdminAccounts() {
 
       if (error) throw error;
 
-      toast.success(`ステータスを${newStatus === 'active' ? 'アクティブ' : '無効'}に更新しました`);
+      let statusMessage = '';
+      switch(newStatus) {
+        case 'active':
+          statusMessage = 'アクティブ';
+          break;
+        case 'inactive':
+          statusMessage = '無効';
+          break;
+        case 'pending':
+          statusMessage = '認証待ち';
+          break;
+        case 'rejected':
+          statusMessage = 'バン';
+          break;
+        default:
+          statusMessage = newStatus;
+      }
+
+      toast.success(`ステータスを${statusMessage}に更新しました`);
       fetchAccounts();
     } catch (error) {
       console.error('Error updating user status:', error);
       toast.error('ステータスの更新に失敗しました');
+    }
+  };
+
+  // New function to open the status change dialog
+  const openStatusDialog = (userId: string, currentStatus: string) => {
+    setUserToChangeStatus(userId);
+    setSelectedStatus(currentStatus);
+    setShowStatusDialog(true);
+  };
+
+  // New function to confirm status change
+  const confirmStatusChange = () => {
+    if (userToChangeStatus && selectedStatus) {
+      handleStatusChange(userToChangeStatus, selectedStatus);
+      setShowStatusDialog(false);
     }
   };
 
@@ -190,16 +262,39 @@ export default function AdminAccounts() {
         return <StatusBadge status={data.row.status} />;
       },
     },
+    {
+      key: 'verification',
+      label: '本人確認',
+      accessorKey: 'is_verified',
+      render: (data: any) => {
+        if (!data || !data.row) return null;
+        return data.row.is_verified ? 
+          <span className="text-green-600 font-medium">確認済み</span> : 
+          data.row.verification_document ? 
+            <span className="text-yellow-600 font-medium">未確認（書類あり）</span> : 
+            <span className="text-gray-400">未提出</span>;
+      },
+    },
   ];
 
   const sortOptions = [
+    // Verification status filters
+    { label: '全てのユーザー', value: 'verification_status:all' },
+    { label: '保留中の書類確認', value: 'verification_status:pending' },
+    { label: '承認済みユーザー', value: 'verification_status:verified' },
+    { label: '拒否されたユーザー', value: 'verification_status:rejected' },
+    // User type filters
+    { label: 'セラピストのみ', value: 'user_type_filter:therapist' },
+    { label: '店舗のみ', value: 'user_type_filter:store' },
+    { label: '管理者のみ', value: 'user_type_filter:admin' },
+    { label: 'お客様のみ', value: 'user_type_filter:customer' },
+    // Regular sorting options
     { label: '名前（昇順）', value: 'name:asc' },
     { label: '名前（降順）', value: 'name:desc' },
     { label: 'メールアドレス（昇順）', value: 'email:asc' },
     { label: 'メールアドレス（降順）', value: 'email:desc' },
     { label: '登録日（新しい順）', value: 'created_at:desc' },
     { label: '登録日（古い順）', value: 'created_at:asc' },
-    { label: 'ユーザータイプ', value: 'user_type:asc' },
   ];
 
   const actionMenuItems = [
@@ -208,8 +303,10 @@ export default function AdminAccounts() {
       onClick: (row: FormattedAccount) => openUserProfile(row),
     },
     {
-      label: 'ステータス変更',
-      onClick: (row: FormattedAccount) => handleStatusChange(row.id, row.status === 'active' ? 'inactive' : 'active'),
+      label: 'ステータスを変更',
+      onClick: (row: FormattedAccount) => {
+        openStatusDialog(row.id, row.status);
+      },
     },
     {
       label: '削除',
@@ -284,32 +381,68 @@ export default function AdminAccounts() {
                 </div>
               </div>
               <div>
-                <Label>本人確認ステータス</Label>
+                <Label>本人確認</Label>
                 <div className="mt-1">
                   {selectedUser.is_verified ? (
                     <span className="text-green-600">確認済み</span>
                   ) : (
-                    <span className="text-yellow-600">未確認</span>
+                    selectedUser.verification_document ? (
+                      <span className="text-yellow-600">未確認（書類あり）</span>
+                    ) : (
+                      <span className="text-gray-400">未提出</span>
+                    )
                   )}
                 </div>
               </div>
               {selectedUser.verification_document && (
                 <div>
-                  <Label>Verification Document</Label>
+                  <Label>本人確認書類</Label>
                   <div className="mt-1">
                     <a
-                      href={selectedUser.verification_document}
+                      href={`/admin/verification/${selectedUser.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
                     >
-                      View Document
+                      書類を確認
                     </a>
                   </div>
                 </div>
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New Dialog for Status Change */}
+      <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ステータス変更</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <RadioGroup value={selectedStatus} onValueChange={setSelectedStatus}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="active" id="active" />
+                <Label htmlFor="active">アクティブ</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="inactive" id="inactive" />
+                <Label htmlFor="inactive">無効</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="pending" id="pending" />
+                <Label htmlFor="pending">認証待ち</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="rejected" id="rejected" />
+                <Label htmlFor="rejected">バン</Label>
+              </div>
+            </RadioGroup>
+            <div className="flex justify-end">
+              <Button onClick={confirmStatusChange}>変更する</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

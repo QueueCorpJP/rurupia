@@ -1,87 +1,171 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { BookingRequest } from '@/utils/types';
-import { Calendar, Clock, MapPin, DollarSign, User } from 'lucide-react';
+import { Calendar, Clock, MapPin, DollarSign, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
-// Mock data for demonstration
-const mockBookingRequests: BookingRequest[] = [
-  {
-    id: "br1",
-    clientName: "鈴木太郎",
-    requestTime: "2023-11-15 14:00",
-    servicePrice: 8000,
-    serviceLocation: "東京都渋谷区",
-    meetingMethod: "ホテル",
-    status: "承認待ち",
-    notes: "初めての予約です。よろしくお願いします。",
-    therapistId: "t1"
-  },
-  {
-    id: "br2",
-    clientName: "田中花子",
-    requestTime: "2023-11-16 18:30",
-    servicePrice: 12000,
-    serviceLocation: "東京都新宿区",
-    meetingMethod: "訪問",
-    status: "確定",
-    notes: "肩こりがひどいです。",
-    therapistId: "t2"
-  },
-  {
-    id: "br3",
-    clientName: "佐藤雅子",
-    requestTime: "2023-11-10 10:00",
-    servicePrice: 10000,
-    serviceLocation: "東京都目黒区",
-    meetingMethod: "ホテル",
-    status: "完了",
-    notes: "リラックスできました。ありがとうございました。",
-    therapistId: "t3"
-  },
-  {
-    id: "br4",
-    clientName: "山本健太",
-    requestTime: "2023-11-08 19:00",
-    servicePrice: 8000,
-    serviceLocation: "東京都港区",
-    meetingMethod: "訪問",
-    status: "キャンセル",
-    notes: "急用ができたためキャンセルします。申し訳ありません。",
-    therapistId: "t1"
-  }
-];
+// Define a new interface that matches our Supabase booking structure
+interface SupabaseBooking {
+  id: string;
+  therapist_id: string;
+  user_id: string;
+  date: string;
+  status: string;
+  notes: string;
+  location: string;
+  price: number;
+  created_at: string;
+  therapist_name: string;
+  meeting_method?: string;
+}
 
 const UserBookings = () => {
-  const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>(mockBookingRequests);
+  const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Map status from English to Japanese
+  const mapStatus = (status: string): "承認待ち" | "確定" | "キャンセル" | "完了" => {
+    switch (status.toLowerCase()) {
+      case 'pending': return "承認待ち";
+      case 'confirmed': return "確定";
+      case 'completed': return "完了";
+      case 'cancelled': return "キャンセル";
+      default: return "承認待ち";
+    }
+  };
+  
+  // Function to format date
+  const formatDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'yyyy年MM月dd日 HH:mm', { locale: ja });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return dateString;
+    }
+  };
+  
+  // Extract meeting method from location or notes
+  const extractMeetingMethod = (booking: SupabaseBooking): string => {
+    const location = booking.location?.toLowerCase() || '';
+    const notes = booking.notes?.toLowerCase() || '';
+    
+    if (booking.meeting_method) {
+      return booking.meeting_method;
+    } else if (location.includes('ホテル') || notes.includes('ホテル')) {
+      return 'hotel';
+    } else if (location.includes('自宅') || notes.includes('自宅')) {
+      return 'home';
+    } else if (location.includes('待ち合わせ') || notes.includes('待ち合わせ')) {
+      return 'meetup';
+    } else {
+      return 'meetup'; // Default to meetup
+    }
+  };
+  
+  // Fetch bookings from Supabase
+  useEffect(() => {
+    const fetchBookings = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setError('ログインしていません。ログインしてください。');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Fetch bookings for current user
+        const { data, error } = await supabase
+          .from('bookings')
+          .select(`
+            *,
+            therapists:therapist_id (name)
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching bookings:', error);
+          setError('予約データの取得に失敗しました');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Transform database bookings to match BookingRequest interface
+        const transformedBookings: BookingRequest[] = data.map((booking: any) => ({
+          id: booking.id,
+          clientName: user.email || 'User',
+          requestTime: formatDate(booking.date),
+          servicePrice: booking.price,
+          serviceLocation: booking.location,
+          meetingMethod: extractMeetingMethod(booking),
+          status: mapStatus(booking.status),
+          notes: booking.notes || '',
+          therapistId: booking.therapist_id,
+          therapistName: booking.therapists?.name || 'セラピスト'
+        }));
+        
+        setBookingRequests(transformedBookings);
+      } catch (error) {
+        console.error('Error in fetchBookings:', error);
+        setError('予約データの取得中にエラーが発生しました');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchBookings();
+  }, []);
   
   const pendingBookings = bookingRequests.filter(req => req.status === "承認待ち");
   const confirmedBookings = bookingRequests.filter(req => req.status === "確定");
   const completedBookings = bookingRequests.filter(req => req.status === "完了");
   const cancelledBookings = bookingRequests.filter(req => req.status === "キャンセル");
   
-  const handleCancelRequest = (id: string) => {
-    // In a real app, this would call an API to cancel the request
-    setBookingRequests(bookingRequests.map(req => 
-      req.id === id ? { ...req, status: "キャンセル" } : req
-    ));
-    
-    toast.success('予約リクエストをキャンセルしました');
+  const handleCancelRequest = async (id: string) => {
+    try {
+      // Update booking status in Supabase
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('id', id);
+        
+      if (error) {
+        console.error('Error cancelling booking:', error);
+        toast.error('予約のキャンセルに失敗しました');
+        return;
+      }
+      
+      // Update local state
+      setBookingRequests(bookingRequests.map(req => 
+        req.id === id ? { ...req, status: "キャンセル" } : req
+      ));
+      
+      toast.success('予約リクエストをキャンセルしました');
+    } catch (error) {
+      console.error('Error handling cancel request:', error);
+      toast.error('エラーが発生しました。後でもう一度お試しください。');
+    }
   };
   
   const renderBookingCard = (booking: BookingRequest) => {
-    const therapistName = booking.id.includes('br1') ? "鈴木太郎" : 
-                          booking.id.includes('br2') ? "田中花子" : 
-                          booking.id.includes('br3') ? "佐藤雅子" : "山本健太";
-                          
     return (
       <div key={booking.id} className="border rounded-lg p-4 mb-4">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-medium">{therapistName}へのリクエスト</h3>
+              <h3 className="font-medium">{booking.therapistName || 'セラピスト'}へのリクエスト</h3>
               <StatusBadge status={booking.status || '未定義'} />
             </div>
             
@@ -108,6 +192,13 @@ const UserBookings = () => {
                 }</span>
               </div>
             </div>
+            
+            {booking.notes && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                <p className="font-medium">備考:</p>
+                <p>{booking.notes}</p>
+              </div>
+            )}
           </div>
         </div>
         
@@ -125,6 +216,38 @@ const UserBookings = () => {
       </div>
     );
   };
+  
+  // Loading state
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container max-w-4xl py-8">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="mt-4 text-muted-foreground">データを読み込み中...</p>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Error state
+  if (error) {
+    return (
+      <Layout>
+        <div className="container max-w-4xl py-8">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Button onClick={() => window.location.reload()}>再読み込み</Button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
   
   return (
     <Layout>

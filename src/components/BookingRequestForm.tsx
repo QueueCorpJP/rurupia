@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Therapist } from '@/utils/types';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, getDay, subMonths, addMonths, startOfMonth, endOfMonth, isSameDay, isSameMonth, isBefore, eachDayOfInterval, addDays, isAfter } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -84,9 +85,9 @@ interface BookingRequestFormProps {
 }
 
 const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [prefecture, setPrefecture] = useState<string>("");
   const [locationDetails, setLocationDetails] = useState<string>("");
   const [meetingMethod, setMeetingMethod] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -363,25 +364,54 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
     setIsSubmitting(true);
 
     // Validate form
-    if (!selectedDate || !selectedTime || !prefecture || !meetingMethod) {
+    if (!selectedDate || !selectedTime || !meetingMethod) {
       toast.error("すべての必須項目を入力してください");
       setIsSubmitting(false);
       return;
     }
 
     try {
-      // Combine date and time
-      const dateTimeString = `${format(selectedDate, 'yyyy-MM-dd')}T${selectedTime}:00`;
-      const dateTime = new Date(dateTimeString);
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("ログインしていません");
+        setIsSubmitting(false);
+        return;
+      }
 
+      // Extract start time from the time slot (format: "10:00 - 11:00")
+      const startTime = selectedTime.split(' - ')[0];
+      
+      // Combine date and time
+      const dateTimeString = `${format(selectedDate, 'yyyy-MM-dd')}T${startTime}:00`;
+      console.log("Creating date with string:", dateTimeString);
+      const dateTime = new Date(dateTimeString);
+      
+      // Validate the date object is valid
+      if (isNaN(dateTime.getTime())) {
+        throw new Error(`Invalid date created from: ${dateTimeString}`);
+      }
+
+      // Extract therapist location (prefecture)
+      const therapistLocation = therapist.location || "不明";
+
+      // Format full location
+      const fullLocation = locationDetails 
+        ? `${therapistLocation} ${locationDetails}` 
+        : therapistLocation;
+
+      console.log("Submitting booking with date:", dateTime.toISOString());
+      
       // Insert booking into Supabase
       const { data, error } = await supabase
         .from('bookings')
         .insert({
-          therapist_id: String(therapist.id), // Convert number to string if needed
+          therapist_id: String(therapist.id), 
+          user_id: user.id,
           date: dateTime.toISOString(),
-          price: therapist.price, // Use therapist's rate instead of user input
-          location: `${prefecture} ${locationDetails}`,
+          price: therapist.price,
+          location: fullLocation,
           notes: notes,
           status: 'pending'
         });
@@ -396,7 +426,11 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
           description: `${therapist.name}へのリクエストが送信されました。確認後に連絡があります。`,
         });
         
+        // Close the form if onClose provided
         if (onClose) onClose();
+        
+        // Redirect to user bookings page
+        navigate('/user-bookings');
       }
     } catch (error) {
       console.error("Error in form submission:", error);
@@ -554,24 +588,15 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
             )}
           </div>
 
-          {/* Prefecture */}
+          {/* Prefecture - Now static display */}
           <div className="space-y-2">
-            <Label htmlFor="prefecture" className="flex items-center gap-2">
+            <Label htmlFor="location" className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              エリア（都道府県） <span className="text-red-500">*</span>
+              エリア（都道府県）
             </Label>
-            <Select value={prefecture} onValueChange={setPrefecture}>
-              <SelectTrigger>
-                <SelectValue placeholder="都道府県を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {prefectures.map((pref) => (
-                  <SelectItem key={pref} value={pref}>
-                    {pref}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="p-2 border rounded-md bg-muted/30">
+              {therapist.location || "不明"}
+            </div>
           </div>
 
           {/* Location Details */}

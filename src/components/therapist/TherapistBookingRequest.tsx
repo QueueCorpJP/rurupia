@@ -12,15 +12,26 @@ import {
   DialogClose
 } from '@/components/ui/dialog';
 import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import {
   Clock, 
   MapPin, 
   DollarSign, 
   User, 
   CheckCircle2, 
   XCircle,
-  Calendar 
+  Calendar,
+  MoreHorizontal,
+  CheckCheck,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; 
 
 interface TherapistBookingRequestProps {
   request: BookingRequest;
@@ -29,32 +40,25 @@ interface TherapistBookingRequestProps {
 
 const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRequestProps) => {
   const [rescheduleNote, setRescheduleNote] = useState('');
+  const [messageContent, setMessageContent] = useState('');
   const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
 
   const handleApprove = () => {
     setIsSubmittingResponse(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      onStatusChange(request.id, "確定");
-      toast.success('予約リクエストを承認しました', {
-        description: 'お客様に通知が送信されました。',
-      });
-      setIsSubmittingResponse(false);
-    }, 1000);
+    onStatusChange(request.id, "確定");
+    setIsSubmittingResponse(false);
   };
 
   const handleReject = () => {
     setIsSubmittingResponse(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      onStatusChange(request.id, "キャンセル");
-      toast.success('予約リクエストを却下しました', {
-        description: 'お客様に通知が送信されました。',
-      });
-      setIsSubmittingResponse(false);
-    }, 1000);
+    onStatusChange(request.id, "キャンセル");
+    setIsSubmittingResponse(false);
+  };
+  
+  const handleComplete = () => {
+    setIsSubmittingResponse(true);
+    onStatusChange(request.id, "完了");
+    setIsSubmittingResponse(false);
   };
   
   const handleReschedule = (note: string) => {
@@ -73,7 +77,26 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
       });
       setRescheduleNote('');
       setIsSubmittingResponse(false);
-    }, 1000);
+    }, 500);
+  };
+
+  const handleSendMessage = (content: string) => {
+    setIsSubmittingResponse(true);
+    
+    if (!content.trim()) {
+      toast.error('メッセージの内容を入力してください');
+      setIsSubmittingResponse(false);
+      return;
+    }
+    
+    // Simulate API call
+    setTimeout(() => {
+      toast.success('メッセージを送信しました', {
+        description: 'お客様に通知が送信されました。',
+      });
+      setMessageContent('');
+      setIsSubmittingResponse(false);
+    }, 500);
   };
 
   const getStatusBadge = () => {
@@ -92,31 +115,48 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
     }
   };
 
+  // Get client initial
+  const getClientInitial = () => {
+    if (!request.clientName) return '?';
+    return request.clientName.charAt(0).toUpperCase();
+  };
+
   return (
-    <div className="border rounded-lg p-4 mb-4">
+    <div className="border rounded-lg p-4 mb-4 transition-all hover:shadow-md">
       <div className="flex justify-between items-start">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-base">{request.clientName}からのリクエスト</h3>
-            {getStatusBadge()}
+          <div className="flex items-center gap-2 mb-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={request.clientAvatar} alt={request.clientName} />
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {getClientInitial()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="font-medium text-base">{request.clientName}</h3>
+              {request.clientEmail && (
+                <p className="text-xs text-muted-foreground">{request.clientEmail}</p>
+              )}
+            </div>
+            <div className="ml-2">{getStatusBadge()}</div>
           </div>
           
-          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div className="flex items-center">
               <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>リクエスト日時: {request.requestTime}</span>
+              <span>{request.requestTime}</span>
             </div>
             <div className="flex items-center">
               <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>予算: {request.servicePrice.toLocaleString()}円</span>
+              <span>{request.servicePrice.toLocaleString()}円</span>
             </div>
             <div className="flex items-center">
               <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>場所: {request.serviceLocation}</span>
+              <span>{request.serviceLocation}</span>
             </div>
             <div className="flex items-center">
               <User className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>合流方法: {
+              <span>{
                 request.meetingMethod === "meetup" ? "待ち合わせ" :
                 request.meetingMethod === "hotel" ? "ホテル" :
                 request.meetingMethod === "home" ? "自宅" : 
@@ -124,7 +164,82 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
               }</span>
             </div>
           </div>
+          
+          {request.notes && (
+            <div className="mt-3 text-sm text-muted-foreground border-t pt-2">
+              <p className="font-medium">メモ：</p>
+              <p>{request.notes}</p>
+            </div>
+          )}
         </div>
+        
+        {request.status !== "キャンセル" && request.status !== "完了" && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {request.status === "承認待ち" && (
+                <>
+                  <DropdownMenuItem onClick={handleApprove}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    <span>承認する</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleReject}>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    <span>却下する</span>
+                  </DropdownMenuItem>
+                </>
+              )}
+              
+              {request.status === "確定" && (
+                <DropdownMenuItem onClick={handleComplete}>
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                  <span>対応完了にする</span>
+                </DropdownMenuItem>
+              )}
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    <span>メッセージを送る</span>
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>メッセージを送信</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4 space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      {request.clientName}様へのメッセージを入力してください。
+                    </p>
+                    <Textarea 
+                      placeholder="メッセージを入力..."
+                      rows={4}
+                      value={messageContent}
+                      onChange={(e) => setMessageContent(e.target.value)}
+                    />
+                  </div>
+                  <DialogFooter className="mt-4">
+                    <DialogClose asChild>
+                      <Button variant="outline">キャンセル</Button>
+                    </DialogClose>
+                    <Button 
+                      onClick={() => handleSendMessage(messageContent)}
+                      disabled={isSubmittingResponse || !messageContent.trim()}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      送信
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       
       {request.status === "承認待ち" && (
@@ -185,6 +300,19 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </div>
+      )}
+      
+      {request.status === "確定" && (
+        <div className="mt-4">
+          <Button 
+            onClick={handleComplete}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={isSubmittingResponse}
+          >
+            <CheckCheck className="mr-2 h-4 w-4" />
+            対応完了にする
+          </Button>
         </div>
       )}
     </div>

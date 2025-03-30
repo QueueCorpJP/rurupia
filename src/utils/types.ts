@@ -3,13 +3,17 @@
 export interface BookingRequest {
   id: string;
   clientName: string;
+  clientEmail?: string;
+  clientAvatar?: string;
+  userId?: string;
   requestTime: string;
   servicePrice: number;
   serviceLocation: string;
   meetingMethod: string;
   status: "承認待ち" | "確定" | "キャンセル" | "完了";
-  notes: string;
-  therapistId: string;
+  notes?: string;
+  therapistId?: string;
+  therapistName?: string;
 }
 
 export interface TherapistProfile {

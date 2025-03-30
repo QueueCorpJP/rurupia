@@ -16,3 +16,4 @@ BEGIN
     RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+

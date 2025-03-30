@@ -156,28 +156,33 @@ const AdminInquiries = () => {
   };
 
   const columns = [
-    { key: 'date', label: '日時' },
-    { key: 'name', label: '名前' },
-    { key: 'email', label: 'メール' },
-    { key: 'subject', label: '件名' },
+    { key: 'date', label: '日時', accessorKey: 'date' },
+    { key: 'name', label: '名前', accessorKey: 'name' },
+    { key: 'email', label: 'メール', accessorKey: 'email' },
+    { key: 'subject', label: '件名', accessorKey: 'subject' },
     { 
       key: 'status', 
       label: 'ステータス',
-      render: (value: string) => (
-        <StatusBadge 
-          status={value} 
-          label={statusLabels[value] || value}
-        />
-      )
+      accessorKey: 'status',
+      render: (data: any) => {
+        if (!data || !data.row) return null;
+        const value = data.row.status;
+        return <StatusBadge status={value} />;
+      }
     },
     { 
       key: 'message', 
       label: '内容',
-      render: (value: string) => (
-        <div className="max-w-xs truncate" title={value}>
-          {value}
-        </div>
-      )
+      accessorKey: 'message',
+      render: (data: any) => {
+        if (!data || !data.row) return null;
+        const value = data.row.message;
+        return (
+          <div className="max-w-xs truncate" title={value}>
+            {value}
+          </div>
+        );
+      }
     },
   ];
 

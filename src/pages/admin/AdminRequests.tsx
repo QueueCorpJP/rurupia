@@ -166,32 +166,18 @@ const AdminRequests = () => {
   };
 
   const columns = [
-    { key: 'id', label: 'ストアID' },
-    { key: 'name', label: '店舗名' },
-    { key: 'email', label: 'Eメール' },
-    { key: 'date', label: '送信日' },
+    { key: 'id', label: 'ストアID', accessorKey: 'id' },
+    { key: 'name', label: '店舗名', accessorKey: 'name' },
+    { key: 'email', label: 'Eメール', accessorKey: 'email' },
+    { key: 'date', label: '送信日', accessorKey: 'date' },
     { 
       key: 'status', 
       label: 'ステータス',
-      render: (value: string) => {
-        let label = '';
-        switch (value) {
-          case 'active':
-            label = '許可';
-            break;
-          case 'pending':
-            label = '保留中';
-            break;
-          case 'rejected':
-            label = '拒否';
-            break;
-          case 'inactive':
-            label = '停止中';
-            break;
-          default:
-            label = value;
-        }
-        return <StatusBadge status={value} label={label} />;
+      accessorKey: 'status',
+      render: (data: any) => {
+        if (!data || !data.row) return null;
+        const value = data.row.status;
+        return <StatusBadge status={value} />;
       }
     },
   ];

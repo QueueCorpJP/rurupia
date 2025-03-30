@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Therapist } from '@/utils/types';
-import { Calendar, Clock, MapPin, Users, DollarSign, MessageSquare } from 'lucide-react';
-import { format } from 'date-fns';
+import { Calendar, Clock, MapPin, Users, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, getDay, subMonths, addMonths, startOfMonth, endOfMonth, isSameDay, isSameMonth, isBefore, eachDayOfInterval, addDays, isAfter } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -42,11 +42,41 @@ const meetingMethods = [
   { value: "home", label: "自宅" }
 ];
 
-// Time slots
-const timeSlots = [
-  "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", 
-  "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"
-];
+// Day of week mapping (0 = Sunday, 1 = Monday, etc.)
+const dayOfWeekMap: Record<number, string> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday'
+};
+
+// Update TherapistWithAvailability type to match the Supabase database structure
+type DatabaseTherapist = {
+  id: string;
+  name: string;
+  image_url: string;
+  description: string;
+  location: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  experience: number;
+  availability: string[];
+  qualifications: string[];
+  specialties: string[];
+  created_at: string;
+  long_description: string;
+  working_days?: string[];
+  working_hours?: {
+    [key: string]: string[];
+  } | {
+    start: string;
+    end: string;
+  } | string;
+};
 
 interface BookingRequestFormProps {
   therapist: Therapist;
@@ -56,19 +86,284 @@ interface BookingRequestFormProps {
 const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [budget, setBudget] = useState<string>("");
   const [prefecture, setPrefecture] = useState<string>("");
   const [locationDetails, setLocationDetails] = useState<string>("");
   const [meetingMethod, setMeetingMethod] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [availableDaysByMonth, setAvailableDaysByMonth] = useState<Record<string, Date[]>>({});
+  const [usingDefaultSlots, setUsingDefaultSlots] = useState(false);
+
+  // Add default time slots array
+  const defaultTimeSlots = [
+    "10:00 - 11:00",
+    "11:00 - 12:00",
+    "13:00 - 14:00",
+    "14:00 - 15:00",
+    "15:00 - 16:00",
+    "16:00 - 17:00"
+  ];
+
+  // Fetch therapist's working hours when component loads
+  useEffect(() => {
+    const fetchTherapistData = async () => {
+      try {
+        console.log(`Fetching data for therapist ID: ${therapist.id}`);
+        
+        const { data, error } = await supabase
+          .from('therapists')
+          .select('*')
+          .eq('id', String(therapist.id))
+          .single();
+          
+        if (error) {
+          console.error('Error fetching therapist data:', error);
+        }
+        
+        // Generate available days
+        if (data) {
+          // Type cast data to the database structure
+          const therapistData = data as DatabaseTherapist;
+          console.log('Therapist data:', therapistData);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Reset time part
+          
+          // End date (one month from today)
+          const endDate = addDays(new Date(), 60); // 2 months for good coverage
+          
+          // Create an array of available dates
+          let availableDates: Date[] = [];
+          
+          // Process specific working days if they exist
+          if (therapistData.working_days && Array.isArray(therapistData.working_days) && therapistData.working_days.length > 0) {
+            console.log('Processing working_days:', therapistData.working_days);
+            
+            therapistData.working_days.forEach((dateStr: string) => {
+              try {
+                const date = new Date(dateStr);
+                if (!isNaN(date.getTime()) && isAfter(date, today) && isBefore(date, endDate)) {
+                  availableDates.push(date);
+                }
+              } catch (e) {
+                console.error('Error parsing date:', dateStr, e);
+              }
+            });
+          }
+          
+          // Process recurring availability (day of week)
+          if (therapistData.availability && Array.isArray(therapistData.availability) && therapistData.availability.length > 0) {
+            console.log('Processing availability:', therapistData.availability);
+            
+            // For each day in the next 2 months, check if the day of week is in the availability array
+            const checkDays = eachDayOfInterval({ start: today, end: endDate });
+            
+            checkDays.forEach(day => {
+              const dayOfWeek = dayOfWeekMap[getDay(day)];
+              if (therapistData.availability.includes(dayOfWeek)) {
+                // Check if this date isn't already in availableDates from working_days
+                if (!availableDates.some(d => isSameDay(d, day))) {
+                  availableDates.push(day);
+                }
+              }
+            });
+          }
+          
+          // If no data is available, generate mock data for demo purposes
+          if (availableDates.length === 0) {
+            console.log('No availability data found, generating mock data');
+            availableDates = generateMockData();
+          }
+          
+          console.log('Final available dates:', availableDates);
+          
+          // Group by month
+          const byMonth: Record<string, Date[]> = {};
+          
+          availableDates.forEach(date => {
+            const monthKey = format(date, 'yyyy-MM');
+            if (!byMonth[monthKey]) {
+              byMonth[monthKey] = [];
+            }
+            byMonth[monthKey].push(date);
+          });
+          
+          setAvailableDaysByMonth(byMonth);
+        }
+      } catch (error) {
+        console.error('Error in fetchTherapistData:', error);
+      }
+    };
+    
+    // Function to generate mock availability data
+    const generateMockData = (): Date[] => {
+      // Create availability for the next 2 months
+      const today = new Date();
+      const mockDays: Date[] = [];
+      
+      // Add Monday, Wednesday, and Friday for the next 60 days
+      for (let i = 0; i < 60; i++) {
+        const date = addDays(today, i);
+        const day = getDay(date);
+        // 1 = Monday, 3 = Wednesday, 5 = Friday
+        if (day === 1 || day === 3 || day === 5) {
+          mockDays.push(date);
+        }
+      }
+      
+      return mockDays;
+    };
+    
+    fetchTherapistData();
+  }, [therapist.id]);
+  
+  // Add a helper function to generate time slots from start and end times
+  const generateTimeSlotsFromRange = (start: string, end: string, intervalMinutes: number = 60): string[] => {
+    try {
+      // Parse hours and minutes
+      const [startHour, startMinute] = start.split(':').map(Number);
+      const [endHour, endMinute] = end.split(':').map(Number);
+      
+      // Convert to minutes for easier calculation
+      let startTimeInMinutes = startHour * 60 + startMinute;
+      let endTimeInMinutes = endHour * 60 + endMinute;
+      
+      // Handle overnight hours
+      if (endTimeInMinutes <= startTimeInMinutes) {
+        endTimeInMinutes += 24 * 60; // Add 24 hours
+      }
+      
+      const slots: string[] = [];
+      
+      // Generate slots at the specified interval
+      for (let timeInMinutes = startTimeInMinutes; timeInMinutes < endTimeInMinutes - intervalMinutes; timeInMinutes += intervalMinutes) {
+        const slotStartHour = Math.floor((timeInMinutes % (24 * 60)) / 60);
+        const slotStartMinute = timeInMinutes % 60;
+        const slotEndHour = Math.floor(((timeInMinutes + intervalMinutes) % (24 * 60)) / 60);
+        const slotEndMinute = (timeInMinutes + intervalMinutes) % 60;
+        
+        const formattedStart = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMinute.toString().padStart(2, '0')}`;
+        const formattedEnd = `${slotEndHour.toString().padStart(2, '0')}:${slotEndMinute.toString().padStart(2, '0')}`;
+        
+        slots.push(`${formattedStart} - ${formattedEnd}`);
+      }
+      
+      console.log('Generated slots from range:', slots);
+      return slots;
+    } catch (error) {
+      console.error('Error generating time slots from range:', error);
+      return [];
+    }
+  };
+
+  // Update the fetchAvailableTimeSlots function
+  const fetchAvailableTimeSlots = async (selectedDate: Date | undefined) => {
+    if (!selectedDate) return;
+    
+    setIsLoadingTimeSlots(true);
+    try {
+      // Format the date 
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      console.log(`Fetching time slots for date: ${formattedDate} and therapist ID: ${therapist.id}`);
+      
+      // Get therapist data from Supabase
+      const { data, error } = await supabase
+        .from('therapists')
+        .select('*')
+        .eq('id', String(therapist.id))
+        .single();
+        
+      if (error) {
+        console.error('Error fetching therapist data:', error);
+        setAvailableTimeSlots(defaultTimeSlots);
+        setUsingDefaultSlots(true);
+        return;
+      }
+      
+      console.log('Therapist data for time slots:', data);
+      
+      // Type cast data to the proper structure
+      const therapistData = data as DatabaseTherapist;
+      
+      // If no working_hours field, use default time slots
+      if (!therapistData.working_hours) {
+        console.log('No working_hours data found, using default time slots');
+        setAvailableTimeSlots(defaultTimeSlots);
+        setUsingDefaultSlots(true);
+        return;
+      }
+      
+      // Parse working_hours - handle both string and object formats
+      const workingHours = typeof therapistData.working_hours === 'string' 
+        ? JSON.parse(therapistData.working_hours) 
+        : therapistData.working_hours;
+      
+      console.log('Working hours data:', workingHours);
+      
+      // Check if therapist is available on this day (based on working_days)
+      const dayOfWeek = dayOfWeekMap[getDay(selectedDate)];
+      console.log(`Selected day of week: ${dayOfWeek}`);
+      
+      // Check if the therapist has day-specific availability
+      if (workingHours[dayOfWeek] && Array.isArray(workingHours[dayOfWeek]) && workingHours[dayOfWeek].length > 0) {
+        console.log(`Found time slots for ${dayOfWeek}:`, workingHours[dayOfWeek]);
+        setAvailableTimeSlots(workingHours[dayOfWeek]);
+        setUsingDefaultSlots(false);
+      } 
+      // Check if the therapist has start/end time range format
+      else if (workingHours.start && workingHours.end) {
+        console.log(`Found working hours range: ${workingHours.start} - ${workingHours.end}`);
+        
+        // Check if the selected day is in working_days
+        const isWorkingDay = !therapistData.working_days || 
+          therapistData.working_days.includes(dayOfWeek) ||
+          (therapistData.availability && therapistData.availability.includes(dayOfWeek));
+        
+        if (isWorkingDay) {
+          // Generate time slots from the start-end range
+          const generatedSlots = generateTimeSlotsFromRange(workingHours.start, workingHours.end);
+          
+          if (generatedSlots.length > 0) {
+            setAvailableTimeSlots(generatedSlots);
+            setUsingDefaultSlots(false);
+            return;
+          }
+        } else {
+          console.log(`${dayOfWeek} is not a working day for this therapist`);
+        }
+        
+        // Fallback to default if no slots generated or not a working day
+        console.log('Using default time slots');
+        setAvailableTimeSlots(defaultTimeSlots);
+        setUsingDefaultSlots(true);
+      } else {
+        console.log(`No specific time slots for ${dayOfWeek}, using default slots`);
+        setAvailableTimeSlots(defaultTimeSlots);
+        setUsingDefaultSlots(true);
+      }
+    } catch (error) {
+      console.error('Error getting available time slots:', error);
+      // Provide default time slots in case of error
+      setAvailableTimeSlots(defaultTimeSlots);
+      setUsingDefaultSlots(true);
+    } finally {
+      setIsLoadingTimeSlots(false);
+    }
+  };
+
+  // Add back the useEffect hook that was removed
+  useEffect(() => {
+    fetchAvailableTimeSlots(selectedDate);
+  }, [selectedDate, therapist.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     // Validate form
-    if (!selectedDate || !selectedTime || !budget || !prefecture || !meetingMethod) {
+    if (!selectedDate || !selectedTime || !prefecture || !meetingMethod) {
       toast.error("すべての必須項目を入力してください");
       setIsSubmitting(false);
       return;
@@ -83,9 +378,9 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
       const { data, error } = await supabase
         .from('bookings')
         .insert({
-          therapist_id: therapist.id.toString(), // Convert number to string if needed
+          therapist_id: String(therapist.id), // Convert number to string if needed
           date: dateTime.toISOString(),
-          price: parseInt(budget),
+          price: therapist.price, // Use therapist's rate instead of user input
           location: `${prefecture} ${locationDetails}`,
           notes: notes,
           status: 'pending'
@@ -143,15 +438,75 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
-                <CalendarComponent
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  initialFocus
-                  locale={ja}
-                  className="pointer-events-auto"
-                  disabled={(date) => date < new Date()}
-                />
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-medium">
+                      {format(currentDate, 'yyyy年MM月', { locale: ja })}
+                    </h3>
+                    <div className="flex gap-1">
+                      <Button
+                        onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                        variant="outline"
+                        className="h-7 w-7 bg-transparent p-0"
+                        disabled={isBefore(startOfMonth(currentDate), new Date())}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                        variant="outline"
+                        className="h-7 w-7 bg-transparent p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['日', '月', '火', '水', '木', '金', '土'].map((day) => (
+                      <div key={day} className="text-center text-xs font-medium text-muted-foreground">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="grid grid-cols-7 gap-1">
+                    {eachDayOfInterval({ 
+                      start: startOfMonth(currentDate), 
+                      end: endOfMonth(currentDate) 
+                    }).map((day, i) => {
+                      // Check if the day is available based on therapist availability
+                      const isAvailable = availableDaysByMonth[format(currentDate, 'yyyy-MM')]?.some(
+                        date => isSameDay(date, day)
+                      );
+                      const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+                      const isPast = isBefore(day, new Date()) && !isSameDay(day, new Date());
+                      
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            if (isAvailable && !isPast) {
+                              setSelectedDate(day);
+                              setSelectedTime(null); // Reset time selection
+                            }
+                          }}
+                          disabled={!isAvailable || isPast}
+                          className={cn(
+                            "h-9 w-9 p-0 font-normal text-center text-sm rounded-md",
+                            !isSameMonth(day, currentDate) && "text-muted-foreground/30",
+                            isPast && "text-muted-foreground/50 cursor-not-allowed",
+                            isSelected && "bg-primary text-primary-foreground",
+                            isAvailable && !isSelected && !isPast && "bg-primary/10 text-primary hover:bg-primary/20",
+                            !isAvailable && !isPast && "text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          {format(day, 'd')}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </PopoverContent>
             </Popover>
           </div>
@@ -162,42 +517,41 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
               <Clock className="h-4 w-4 text-muted-foreground" />
               希望時間 <span className="text-red-500">*</span>
             </Label>
-            <div className="grid grid-cols-4 gap-2">
-              {timeSlots.map((time) => (
-                <Button
-                  key={time}
-                  type="button"
-                  variant={selectedTime === time ? "default" : "outline"}
-                  className={cn(
-                    "text-center",
-                    selectedTime === time && "bg-primary text-primary-foreground"
-                  )}
-                  onClick={() => setSelectedTime(time)}
-                >
-                  {time}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Budget */}
-          <div className="space-y-2">
-            <Label htmlFor="budget" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              希望予算 <span className="text-red-500">*</span>
-            </Label>
-            <div className="relative">
-              <Input
-                id="budget"
-                type="number"
-                placeholder="例: 15000"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                className="pr-8"
-                min="0"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">円</span>
-            </div>
+            
+            {isLoadingTimeSlots ? (
+              <div className="text-center py-4">
+                <div className="inline-block animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                <span className="ml-2">時間スロットを読み込み中...</span>
+              </div>
+            ) : availableTimeSlots.length > 0 ? (
+              <div className="mt-4">
+                <h3 className="text-lg font-medium mb-2">利用可能な時間帯</h3>
+                {usingDefaultSlots && (
+                  <p className="text-amber-500 text-sm mb-2">注意: セラピストの実際の予定がまだ登録されていないため、仮の時間枠を表示しています。</p>
+                )}
+                <div className="grid grid-cols-3 gap-2">
+                  {availableTimeSlots.map((slot, index) => (
+                    <button
+                      key={index}
+                      className={`p-2 rounded border ${
+                        selectedTime === slot 
+                          ? 'bg-primary text-white' 
+                          : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => setSelectedTime(slot)}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">
+                {selectedDate 
+                  ? "この日に予約可能な時間はありません。他の日を選択してください。" 
+                  : "希望日を先に選択してください"}
+              </div>
+            )}
           </div>
 
           {/* Prefecture */}
@@ -255,27 +609,46 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
             </Select>
           </div>
 
-          {/* Additional Notes */}
+          {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              備考・要望など
+              備考
             </Label>
             <Textarea
               id="notes"
-              placeholder="その他の希望や質問などがあればご記入ください"
+              placeholder="何かリクエストや質問があれば入力してください"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
             />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
+          {/* Fee Information */}
+          <div className="p-4 bg-muted rounded-lg mb-4">
+            <h4 className="font-medium mb-2">料金情報</h4>
+            <p className="text-sm text-muted-foreground mb-1">
+              セラピスト料金: {therapist.price.toLocaleString()}円 / 時間
+            </p>
+            <p className="text-xs text-muted-foreground">
+              ※ 実際の料金は予約確定時に決定します。
+            </p>
+          </div>
+
+          {/* Submit Button */}
+          <Button 
+            type="submit" 
+            className="w-full" 
             disabled={isSubmitting}
           >
-            {isSubmitting ? "送信中..." : "予約リクエストを送信"}
+            {isSubmitting ? (
+              <>
+                <div className="mr-2 animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                送信中...
+              </>
+            ) : (
+              "予約リクエストを送信"
+            )}
           </Button>
         </form>
       </div>

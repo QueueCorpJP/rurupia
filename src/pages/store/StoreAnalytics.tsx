@@ -43,6 +43,7 @@ interface TherapistPerformance {
   therapist_name: string;
   bookings_count: number;
   rating: number;
+  hasRating: boolean;
 }
 
 // Mock data for development until the database tables are created
@@ -80,11 +81,11 @@ const mockPopularTimesData: PopularBookingTime[] = [
 ];
 
 const mockTherapistData: TherapistPerformance[] = [
-  { therapist_id: '1', therapist_name: '山田 花子', bookings_count: 45, rating: 4.8 },
-  { therapist_id: '2', therapist_name: '田中 優子', bookings_count: 38, rating: 4.9 },
-  { therapist_id: '3', therapist_name: '佐藤 美咲', bookings_count: 42, rating: 4.7 },
-  { therapist_id: '4', therapist_name: '鈴木 健太', bookings_count: 25, rating: 4.6 },
-  { therapist_id: '5', therapist_name: '高橋 直人', bookings_count: 33, rating: 4.7 }
+  { therapist_id: '1', therapist_name: '山田 花子', bookings_count: 45, rating: 4.8, hasRating: true },
+  { therapist_id: '2', therapist_name: '田中 優子', bookings_count: 38, rating: 4.9, hasRating: true },
+  { therapist_id: '3', therapist_name: '佐藤 美咲', bookings_count: 42, rating: 4.7, hasRating: true },
+  { therapist_id: '4', therapist_name: '鈴木 健太', bookings_count: 25, rating: 4.6, hasRating: true },
+  { therapist_id: '5', therapist_name: '高橋 直人', bookings_count: 33, rating: 4.7, hasRating: true }
 ];
 
 const StoreAnalytics = () => {
@@ -203,7 +204,8 @@ const StoreAnalytics = () => {
                 therapist_id: perf.therapist_id,
                 therapist_name: profile?.name || '名前なし',
                 bookings_count: perf.bookings_count,
-                rating: perf.rating
+                rating: perf.rating,
+                hasRating: Number(perf.rating) > 0
               };
             });
             
@@ -439,10 +441,16 @@ const StoreAnalytics = () => {
                             <td className="text-center">{therapist.bookings_count}</td>
                             <td className="text-center">
                               <div className="flex items-center justify-center">
-                                <span className="mr-1">{therapist.rating}</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-500">
-                                  <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                                </svg>
+                                {therapist.hasRating ? (
+                                  <>
+                                    <span className="mr-1">{Number(therapist.rating).toFixed(1)}</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-500">
+                                      <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                                    </svg>
+                                  </>
+                                ) : (
+                                  <span className="text-gray-400">未評価</span>
+                                )}
                               </div>
                             </td>
                             <td className="text-right">

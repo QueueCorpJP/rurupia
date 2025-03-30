@@ -64,7 +64,12 @@ export function TherapistProfile({
         </div>
         <div className="flex items-center gap-6 text-center text-sm">
           <div>
-            <div className="font-medium">{formatValue(therapist.rating)}</div>
+            <div className="font-medium">
+              {therapist.rating > 0 ? 
+                formatValue(therapist.rating.toFixed(1)) : 
+                <span className="text-gray-400">未評価</span>
+              }
+            </div>
             <div className="text-xs text-muted-foreground">評価</div>
           </div>
           <div>

@@ -63,7 +63,7 @@ const Index = () => {
           description: therapist.description || "詳細情報はありません",
           location: therapist.location || "場所未設定",
           price: therapist.price || 0,
-          rating: therapist.rating || 4.0,
+          rating: therapist.rating || 0,
           reviews: therapist.reviews || 0,
           availability: therapist.availability || ["月", "水", "金"],
           qualifications: therapist.qualifications || [],

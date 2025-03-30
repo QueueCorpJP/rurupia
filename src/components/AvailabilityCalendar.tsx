@@ -1,26 +1,180 @@
-
-import { useState } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { useState, useEffect } from 'react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, addDays, isAfter, isBefore, getDay } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import { availableSlots } from '../utils/data';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AvailabilityCalendarProps {
   therapistId: string | number;
 }
 
+// Day of week mapping between number and Japanese text
+const dayOfWeekMap: Record<number, string> = {
+  0: '日',
+  1: '月',
+  2: '火',
+  3: '水',
+  4: '木',
+  5: '金',
+  6: '土'
+};
+
+// Update the DatabaseTherapist type definition
+type DatabaseTherapist = {
+  id: string;
+  name: string;
+  image_url: string;
+  description: string;
+  location: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  experience: number;
+  availability: string[];
+  qualifications: string[];
+  specialties: string[];
+  created_at: string;
+  long_description: string;
+  working_days?: string[];
+  working_hours?: {
+    [key: string]: string[];
+  } | {
+    start: string;
+    end: string;
+  } | string;
+};
+
 const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [availableDays, setAvailableDays] = useState<Date[]>([]);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [therapistData, setTherapistData] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<string>("");
   
-  const therapistSlots = availableSlots[therapistId] || [];
-  
-  // Convert string dates to Date objects
-  const availableDates = therapistSlots.map(slot => new Date(slot.date));
+  // For demo purposes - generate mock data if none exists
+  const generateMockData = () => {
+    // Create availability for the next 14 days
+    const today = new Date();
+    const mockDays: Date[] = [];
+    
+    // Add every Monday, Wednesday, and Friday for the next 30 days
+    for (let i = 0; i < 30; i++) {
+      const date = addDays(today, i);
+      const day = getDay(date);
+      // 1 = Monday, 3 = Wednesday, 5 = Friday
+      if (day === 1 || day === 3 || day === 5) {
+        mockDays.push(date);
+      }
+    }
+    
+    return mockDays;
+  };
   
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  // Calculate the end date for availability (one month from today)
+  const endDate = addDays(new Date(), 30);
+  
+  // Fetch therapist availability data from Supabase
+  useEffect(() => {
+    const fetchTherapistAvailability = async () => {
+      setIsLoading(true);
+      try {
+        // Log the query we're about to make
+        console.log(`Fetching availability data for therapist ID: ${therapistId}`);
+        
+        const { data, error } = await supabase
+          .from('therapists')
+          .select('*')  // Select all columns to ensure we get what's available
+          .eq('id', String(therapistId))
+          .single();
+        
+        if (error) {
+          console.error('Error fetching therapist availability:', error);
+          setDebugInfo(`Error: ${error.message}`);
+          return;
+        }
+        
+        // Log the fetched data to debug
+        console.log('Therapist data fetched:', data);
+        setTherapistData(data);
+        
+        // Type cast to our expected database structure
+        const therapistData = data as DatabaseTherapist;
+        
+        setDebugInfo(`Data fetched: ${JSON.stringify({
+          availability: therapistData.availability, 
+          working_days: therapistData.working_days
+        })}`);
+        
+        // Process the available days
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time part
+        
+        // Create an array of available dates
+        let availableDates: Date[] = [];
+        
+        // Process specific working days if they exist
+        if (therapistData && therapistData.working_days && Array.isArray(therapistData.working_days) && therapistData.working_days.length > 0) {
+          console.log('Processing working_days:', therapistData.working_days);
+          
+          therapistData.working_days.forEach((dateStr: string) => {
+            try {
+              const date = new Date(dateStr);
+              if (!isNaN(date.getTime()) && isAfter(date, today) && isBefore(date, endDate)) {
+                availableDates.push(date);
+              }
+            } catch (e) {
+              console.error('Error parsing date:', dateStr, e);
+            }
+          });
+        } else {
+          console.log('No working_days found or it is empty');
+        }
+        
+        // Process recurring availability (day of week)
+        if (therapistData && therapistData.availability && Array.isArray(therapistData.availability) && therapistData.availability.length > 0) {
+          console.log('Processing availability:', therapistData.availability);
+          
+          // For each day in the next month, check if the day of week is in the availability array
+          const checkDays = eachDayOfInterval({ start: today, end: endDate });
+          
+          checkDays.forEach(day => {
+            const dayOfWeek = dayOfWeekMap[getDay(day)];
+            if (therapistData.availability.includes(dayOfWeek)) {
+              // Check if this date isn't already in availableDates from working_days
+              if (!availableDates.some(d => isSameDay(d, day))) {
+                availableDates.push(day);
+              }
+            }
+          });
+        } else {
+          console.log('No availability found or it is empty');
+        }
+        
+        // If no data is available, generate mock data for demo purposes
+        if (availableDates.length === 0) {
+          console.log('No availability data found, generating mock data');
+          availableDates = generateMockData();
+        }
+        
+        console.log('Final available dates:', availableDates);
+        setAvailableDays(availableDates);
+        
+      } catch (error: any) {
+        console.error('Error in fetchTherapistAvailability:', error);
+        setDebugInfo(`Fetch error: ${error.message || 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTherapistAvailability();
+  }, [therapistId]);
   
   const goToPreviousMonth = () => {
     setCurrentDate(subMonths(currentDate, 1));
@@ -31,16 +185,112 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
   };
   
   const handleDateClick = (day: Date) => {
-    const isAvailable = availableDates.some(date => isSameDay(date, day));
+    const isAvailable = availableDays.some(date => isSameDay(date, day));
     if (isAvailable) {
       setSelectedDate(day);
+      
+      // Get available time slots for this day
+      const timeSlots = getAvailableTimesForDate(day);
+      setAvailableTimeSlots(timeSlots);
     }
   };
   
-  const getAvailableTimesForDate = (date: Date) => {
-    const slot = therapistSlots.find(slot => isSameDay(new Date(slot.date), date));
-    return slot ? slot.timeSlots : [];
+  // Add helper function to generate time slots from a time range
+  const generateTimeSlotsFromRange = (start: string, end: string, intervalMinutes: number = 60): string[] => {
+    try {
+      // Parse hours and minutes
+      const [startHour, startMinute] = start.split(':').map(Number);
+      const [endHour, endMinute] = end.split(':').map(Number);
+      
+      // Convert to minutes for easier calculation
+      let startTimeInMinutes = startHour * 60 + startMinute;
+      let endTimeInMinutes = endHour * 60 + endMinute;
+      
+      // Handle overnight hours
+      if (endTimeInMinutes <= startTimeInMinutes) {
+        endTimeInMinutes += 24 * 60; // Add 24 hours
+      }
+      
+      const slots: string[] = [];
+      
+      // Generate slots at the specified interval
+      for (let timeInMinutes = startTimeInMinutes; timeInMinutes < endTimeInMinutes - intervalMinutes; timeInMinutes += intervalMinutes) {
+        const slotStartHour = Math.floor((timeInMinutes % (24 * 60)) / 60);
+        const slotStartMinute = timeInMinutes % 60;
+        
+        const formattedTime = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMinute.toString().padStart(2, '0')}`;
+        slots.push(formattedTime);
+      }
+      
+      return slots;
+    } catch (error) {
+      console.error('Error generating time slots from range:', error);
+      return [];
+    }
   };
+  
+  // Update the getAvailableTimesForDate function
+  const getAvailableTimesForDate = (date: Date): string[] => {
+    if (!therapistData) {
+      // Default time slots if no data is available
+      return ['10:00', '11:00', '14:00', '15:00', '16:00'];
+    }
+    
+    try {
+      // Cast to the correct type
+      const typedData = therapistData as DatabaseTherapist;
+      
+      if (!typedData.working_hours) {
+        return ['10:00', '11:00', '14:00', '15:00', '16:00'];
+      }
+      
+      // Parse working_hours
+      const workingHours = typeof typedData.working_hours === 'string' 
+        ? JSON.parse(typedData.working_hours) 
+        : typedData.working_hours;
+      
+      // First, check day-specific format
+      const dayOfWeek = dayOfWeekMap[getDay(date)].toLowerCase();
+      
+      if (workingHours[dayOfWeek] && Array.isArray(workingHours[dayOfWeek]) && workingHours[dayOfWeek].length > 0) {
+        return workingHours[dayOfWeek];
+      }
+      
+      // Then, check start/end format
+      if (workingHours.start && workingHours.end) {
+        console.log(`Found working hours range: ${workingHours.start} - ${workingHours.end}`);
+        
+        // Check if the selected day is in working_days
+        const isWorkingDay = !typedData.working_days || 
+          typedData.working_days.includes(dayOfWeek) ||
+          (typedData.availability && typedData.availability.includes(dayOfWeek));
+        
+        if (isWorkingDay) {
+          // Generate time slots from the start-end range
+          const generatedSlots = generateTimeSlotsFromRange(workingHours.start, workingHours.end);
+          
+          if (generatedSlots.length > 0) {
+            return generatedSlots;
+          }
+        }
+      }
+      
+      // Default time slots if no specific hours found for this day
+      return ['10:00', '11:00', '14:00', '15:00', '16:00'];
+    } catch (error) {
+      console.error('Error parsing working hours:', error);
+      // Default time slots in case of error
+      return ['10:00', '11:00', '14:00', '15:00', '16:00'];
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-48">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   return (
     <div className="p-1">
@@ -53,12 +303,14 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
           <button
             onClick={goToPreviousMonth}
             className="p-2 rounded-md hover:bg-muted"
+            disabled={isBefore(monthStart, new Date())}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={goToNextMonth}
             className="p-2 rounded-md hover:bg-muted"
+            disabled={isAfter(monthStart, endDate)}
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -75,17 +327,20 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
       
       <div className="grid grid-cols-7 gap-1">
         {daysInMonth.map((day, i) => {
-          const isAvailable = availableDates.some(date => isSameDay(date, day));
+          const isAvailable = availableDays.some(date => isSameDay(date, day));
           const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+          const isPast = isBefore(day, new Date()) && !isSameDay(day, new Date());
           
           return (
             <button
               key={i}
               onClick={() => handleDateClick(day)}
-              disabled={!isAvailable}
+              disabled={!isAvailable || isPast}
               className={`p-2 text-center text-sm rounded-md ${
                 !isSameMonth(day, currentDate)
                   ? 'text-muted-foreground/30'
+                  : isPast
+                  ? 'text-muted-foreground/50 cursor-not-allowed'
                   : isSelected
                   ? 'bg-primary text-primary-foreground'
                   : isAvailable
@@ -105,14 +360,20 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
             {format(selectedDate, 'yyyy年MM月dd日 (EEE)', { locale: ja })}の予約可能時間:
           </h4>
           <div className="grid grid-cols-4 gap-2">
-            {getAvailableTimesForDate(selectedDate).map((time) => (
-              <div
-                key={time}
-                className="text-center p-2 text-sm bg-muted rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
-              >
-                {time}
+            {availableTimeSlots.length > 0 ? (
+              availableTimeSlots.map((time) => (
+                <div
+                  key={time}
+                  className="text-center p-2 text-sm bg-muted rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                >
+                  {time}
+                </div>
+              ))
+            ) : (
+              <div className="col-span-4 text-center p-4 text-sm text-muted-foreground">
+                この日に予約可能な時間はありません
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}

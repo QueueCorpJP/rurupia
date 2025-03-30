@@ -184,8 +184,14 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
           </Link>
           <div className="flex items-center gap-1">
             <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-            <span className="text-sm font-medium">{therapist.rating}</span>
-            <span className="text-sm text-muted-foreground">({therapist.reviews})</span>
+            {therapist.rating > 0 ? (
+              <>
+                <span className="text-sm font-medium">{therapist.rating.toFixed(1)}</span>
+                <span className="text-sm text-muted-foreground">({therapist.reviews})</span>
+              </>
+            ) : (
+              <span className="text-sm text-gray-400">未評価</span>
+            )}
           </div>
         </div>
         

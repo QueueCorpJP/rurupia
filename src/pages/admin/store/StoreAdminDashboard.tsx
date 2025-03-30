@@ -130,6 +130,32 @@ const fetchDashboardData = async (storeId: string): Promise<DashboardData> => {
         }))
       : [];
     
+    // If there's no performance data, fetch basic therapist info with ratings
+    if (therapistPerformance.length === 0 && therapistIds.length > 0) {
+      try {
+        const { data: basicTherapistData, error: basicTherapistError } = await supabase
+          .from('therapists')
+          .select('id, name, rating, reviews')
+          .in('id', therapistIds);
+        
+        if (!basicTherapistError && basicTherapistData && basicTherapistData.length > 0) {
+          return {
+            ageDistribution,
+            monthlyCustomerData,
+            popularBookingTimes,
+            therapistPerformance: basicTherapistData.map((t: any) => ({
+              therapistName: t.name,
+              bookingsCount: 0, // No booking count data available
+              rating: t.rating,
+              reviews: t.reviews
+            }))
+          };
+        }
+      } catch (error) {
+        console.error("Error fetching basic therapist data:", error);
+      }
+    }
+      
     return {
       ageDistribution,
       monthlyCustomerData,
@@ -358,7 +384,9 @@ const StoreAdminDashboard = () => {
                     <div className="flex justify-between items-center">
                       <span className="font-medium">{therapist.therapistName}</span>
                       <span className="text-sm text-muted-foreground">
-                        {therapist.rating.toFixed(1)} ⭐️
+                        {therapist.rating > 0 
+                          ? `${Number(therapist.rating).toFixed(1)} ⭐️`
+                          : <span className="text-gray-400">未評価</span>}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -367,7 +395,9 @@ const StoreAdminDashboard = () => {
                         <div 
                           className="bg-primary h-3 rounded-full" 
                           style={{ 
-                            width: `${(therapist.bookingsCount / Math.max(...dashboardData.therapistPerformance.map(t => t.bookingsCount))) * 100}%` 
+                            width: `${dashboardData.therapistPerformance.length > 0 && Math.max(...dashboardData.therapistPerformance.map(t => t.bookingsCount)) > 0
+                              ? (therapist.bookingsCount / Math.max(...dashboardData.therapistPerformance.map(t => t.bookingsCount))) * 100
+                              : 0}%` 
                           }}
                         ></div>
                       </div>

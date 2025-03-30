@@ -361,7 +361,7 @@ const TherapistDetail = () => {
                     <p className="text-muted-foreground">
                       {therapist?.name}さんの施術を予約しましょう。
                     </p>
-                    <Link to={`/book/${therapist?.id}`}>
+                    <Link to={`/booking/${therapist?.id}`}>
                       <Button className="w-full" size="lg">
                         <Calendar className="mr-2 h-5 w-5" />
                         予約ページへ進む

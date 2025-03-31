@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
@@ -12,6 +13,7 @@ import Contact from './pages/Contact';
 import FAQ from './pages/FAQ';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
+import About from './pages/About';
 import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
 import UserProfile from './pages/UserProfile';
@@ -72,6 +74,7 @@ function App() {
           <Route path="/faq" element={<FAQ />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/about" element={<About />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
           <Route path="/user-profile" element={<UserProfile />} />

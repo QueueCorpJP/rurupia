@@ -137,7 +137,8 @@ export type Database = {
           notes: string | null
           price: number
           service_id: string | null
-          status: string
+          "status store": string | null
+          "status therapist": string
           therapist_id: string
           user_id: string | null
         }
@@ -149,7 +150,8 @@ export type Database = {
           notes?: string | null
           price: number
           service_id?: string | null
-          status?: string
+          "status store"?: string | null
+          "status therapist"?: string
           therapist_id: string
           user_id?: string | null
         }
@@ -161,7 +163,8 @@ export type Database = {
           notes?: string | null
           price?: number
           service_id?: string | null
-          status?: string
+          "status store"?: string | null
+          "status therapist"?: string
           therapist_id?: string
           user_id?: string | null
         }
@@ -178,6 +181,38 @@ export type Database = {
             columns: ["therapist_id"]
             isOneToOne: false
             referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_age_distribution: {
+        Row: {
+          age_group: string
+          count: number
+          id: string
+          store_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          age_group: string
+          count?: number
+          id?: string
+          store_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          age_group?: string
+          count?: number
+          id?: string
+          store_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_age_distribution_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -277,8 +312,47 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_customer_data: {
+        Row: {
+          id: string
+          month: string
+          new_customers: number
+          returning_customers: number
+          store_id: string | null
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          id?: string
+          month: string
+          new_customers?: number
+          returning_customers?: number
+          store_id?: string | null
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          id?: string
+          month?: string
+          new_customers?: number
+          returning_customers?: number
+          store_id?: string | null
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_customer_data_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_views: {
         Row: {
+          created_at: string | null
           id: string
           ip_address: string | null
           page: string
@@ -286,6 +360,7 @@ export type Database = {
           view_date: string
         }
         Insert: {
+          created_at?: string | null
           id?: string
           ip_address?: string | null
           page: string
@@ -293,6 +368,7 @@ export type Database = {
           view_date?: string
         }
         Update: {
+          created_at?: string | null
           id?: string
           ip_address?: string | null
           page?: string
@@ -300,6 +376,41 @@ export type Database = {
           view_date?: string
         }
         Relationships: []
+      }
+      popular_booking_times: {
+        Row: {
+          bookings_count: number
+          id: string
+          recorded_date: string
+          store_id: string | null
+          time_slot: string
+          updated_at: string | null
+        }
+        Insert: {
+          bookings_count?: number
+          id?: string
+          recorded_date?: string
+          store_id?: string | null
+          time_slot: string
+          updated_at?: string | null
+        }
+        Update: {
+          bookings_count?: number
+          id?: string
+          recorded_date?: string
+          store_id?: string | null
+          time_slot?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "popular_booking_times_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -468,30 +579,84 @@ export type Database = {
         }
         Relationships: []
       }
+      therapist_performance: {
+        Row: {
+          bookings_count: number
+          id: string
+          rating: number | null
+          recorded_date: string
+          store_id: string | null
+          therapist_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bookings_count?: number
+          id?: string
+          rating?: number | null
+          recorded_date?: string
+          store_id?: string | null
+          therapist_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bookings_count?: number
+          id?: string
+          rating?: number | null
+          recorded_date?: string
+          store_id?: string | null
+          therapist_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_performance_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapist_performance_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       therapist_posts: {
         Row: {
           content: string
           created_at: string
           id: string
+          image_url: string | null
           likes: number | null
+          scheduled_date: string | null
           therapist_id: string
           title: string
+          visibility: string
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
+          image_url?: string | null
           likes?: number | null
+          scheduled_date?: string | null
           therapist_id: string
           title: string
+          visibility?: string
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           likes?: number | null
+          scheduled_date?: string | null
           therapist_id?: string
           title?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -545,48 +710,72 @@ export type Database = {
           created_at: string
           description: string
           experience: number
+          gallery_images: string[] | null
+          health_document_url: string | null
+          height: number | null
+          hobbies: string[] | null
           id: string
           image_url: string | null
           location: string
           long_description: string | null
           name: string
-          price: number
+          price: number | null
           qualifications: string[]
           rating: number
           reviews: number
+          service_areas: Json | null
           specialties: string[]
+          weight: number | null
+          working_days: string[] | null
+          working_hours: Json | null
         }
         Insert: {
           availability?: string[]
           created_at?: string
           description: string
           experience?: number
+          gallery_images?: string[] | null
+          health_document_url?: string | null
+          height?: number | null
+          hobbies?: string[] | null
           id?: string
           image_url?: string | null
           location: string
           long_description?: string | null
           name: string
-          price: number
+          price?: number | null
           qualifications?: string[]
           rating?: number
           reviews?: number
+          service_areas?: Json | null
           specialties?: string[]
+          weight?: number | null
+          working_days?: string[] | null
+          working_hours?: Json | null
         }
         Update: {
           availability?: string[]
           created_at?: string
           description?: string
           experience?: number
+          gallery_images?: string[] | null
+          health_document_url?: string | null
+          height?: number | null
+          hobbies?: string[] | null
           id?: string
           image_url?: string | null
           location?: string
           long_description?: string | null
           name?: string
-          price?: number
+          price?: number | null
           qualifications?: string[]
           rating?: number
           reviews?: number
+          service_areas?: Json | null
           specialties?: string[]
+          weight?: number | null
+          working_days?: string[] | null
+          working_hours?: Json | null
         }
         Relationships: []
       }
@@ -613,18 +802,43 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_conversations: {
+        Args: {
+          user_id: string
+        }
+        Returns: {
+          conversation_id: string
+          other_user_id: string
+          last_message: string
+          last_message_time: string
+          unread_count: number
+        }[]
+      }
       increment_blog_view: {
         Args: {
           slug_param: string
         }
         Returns: undefined
       }
-      log_page_view: {
-        Args: {
-          page_path: string
-          ip: string
-          user_agent: string
-        }
+      log_page_view:
+        | {
+            Args: {
+              page_path: string
+              ip: string
+              user_agent: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              page_path: string
+              ip: string
+              user_agent: string
+            }
+            Returns: undefined
+          }
+      setup_admin_policies: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       update_analytics_metric: {

@@ -5,15 +5,13 @@ import { Separator } from "@/components/ui/separator";
 
 const About = () => {
   const companyInfo = {
-    name: "株式会社のくとる",
-    established: "2022年4月",
-    capital: "1,000万円",
-    ceo: "山田太郎",
-    employees: "10名",
-    business: "リラクゼーションサービスマッチングプラットフォームの運営",
-    address: "〒150-0002 東京都渋谷区渋谷2-24-12",
-    email: "info@nokutoru.com",
-    phone: "03-1234-5678",
+    name: "株式会社ノクトル",
+    established: "2024年6月17日",
+    ceo: "松下七海",
+    business: "アプリケーションソフトウェア販売業・メディア運営業",
+    address: "〒130-0022 東京都墨田区江東橋4丁目27番14号 楽天地ビル3F",
+    email: "info@noctle.com",
+    phone: "03-1234-5678"
   };
 
   return (
@@ -49,12 +47,9 @@ const About = () => {
                   
                   <Separator />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
-                    <div className="font-medium text-muted-foreground">資本金</div>
-                    <div className="md:col-span-2">{companyInfo.capital}</div>
-                  </div>
+               
                   
-                  <Separator />
+          
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
                     <div className="font-medium text-muted-foreground">代表取締役</div>
@@ -63,13 +58,7 @@ const About = () => {
                   
                   <Separator />
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
-                    <div className="font-medium text-muted-foreground">従業員数</div>
-                    <div className="md:col-span-2">{companyInfo.employees}</div>
-                  </div>
-                  
-                  <Separator />
-                  
+                
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
                     <div className="font-medium text-muted-foreground">事業内容</div>
                     <div className="md:col-span-2">{companyInfo.business}</div>
@@ -134,18 +123,11 @@ const About = () => {
               </div>
             </div>
             
-            <div className="mt-12 mb-8">
-              <iframe 
-                title="Google Maps"
-                className="w-full h-[400px] rounded-lg shadow-md"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3241.6779670422864!2d139.7027956!3d35.6585247!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60188ca94d8927d9%3A0xf08da3ab648fc8a0!2z5riL6LC35Yy65bGL6LC377yS5LiB55uu77yS77yU4oiS77yR77yS!5e0!3m2!1sja!2sjp!4v1654064928010!5m2!1sja!2sjp"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
+        
             </div>
           </div>
         </div>
-      </div>
+     
     </Layout>
   );
 };

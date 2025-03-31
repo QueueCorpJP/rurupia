@@ -6,17 +6,35 @@ import { Slider } from "./ui/slider";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Badge } from "./ui/badge";
 import { X } from "lucide-react";
+import MBTISelect from "./MBTISelect";
 
 interface TherapistFiltersProps {
   onFilterChange: (filters: any) => void;
+  initialFilters?: {
+    location: string;
+    specialties: string[];
+    priceRange: [number, number];
+    rating?: number;
+    availability: string[];
+    mbtiType?: string;
+    mood?: string;
+    therapistType?: string;
+    treatmentType?: string;
+    therapistAge?: string;
+  };
 }
 
-const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
-  const [location, setLocation] = useState("");
-  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState([0, 20000]);
-  const [rating, setRating] = useState(0);
-  const [availability, setAvailability] = useState<string[]>([]);
+const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersProps) => {
+  const [location, setLocation] = useState(initialFilters?.location || "");
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(initialFilters?.specialties || []);
+  const [priceRange, setPriceRange] = useState(initialFilters?.priceRange || [0, 20000]);
+  const [rating, setRating] = useState(initialFilters?.rating || 0);
+  const [availability, setAvailability] = useState<string[]>(initialFilters?.availability || []);
+  const [mbtiType, setMbtiType] = useState(initialFilters?.mbtiType || "unknown");
+  const [mood, setMood] = useState(initialFilters?.mood || "");
+  const [therapistType, setTherapistType] = useState(initialFilters?.therapistType || "");
+  const [treatmentType, setTreatmentType] = useState(initialFilters?.treatmentType || "");
+  const [therapistAge, setTherapistAge] = useState(initialFilters?.therapistAge || "");
 
   const locations = ["東京", "大阪", "名古屋", "福岡", "京都"];
   const specialties = [
@@ -28,6 +46,36 @@ const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
     "カイロプラクティック",
   ];
   const availabilityOptions = ["平日", "週末", "夜間"];
+  
+  // Define mood options that match Index page questionnaire
+  const moodOptions = [
+    { value: "relax", label: "リラックスさせる" },
+    { value: "stress", label: "ストレス発散に効果的" },
+    { value: "heal", label: "癒し効果が高い" },
+    { value: "talk", label: "会話を楽しめる" }
+  ];
+  
+  // Define therapist type options that match Index page questionnaire
+  const therapistTypeOptions = [
+    { value: "mature", label: "落ち着いた・大人っぽい" },
+    { value: "bright", label: "明るくて話しやすい" },
+    { value: "inclusive", label: "包容力がある" },
+    { value: "cool", label: "クールで控えめ" }
+  ];
+  
+  // Define treatment type options that match Index page questionnaire
+  const treatmentTypeOptions = [
+    { value: "gentle", label: "ゆっくり丁寧なプレイ" },
+    { value: "strong", label: "しっかり強めのプレイ" },
+    { value: "technique", label: "ハンドテクニックメイン" }
+  ];
+  
+  // Define age range options that match Index page questionnaire
+  const therapistAgeOptions = [
+    { value: "early20s", label: "20代前半" },
+    { value: "late20s", label: "20代後半" },
+    { value: "30plus", label: "30代以上" }
+  ];
 
   const formatPrice = (price: number) => {
     return `${price.toLocaleString()}円`;
@@ -50,6 +98,18 @@ const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
       setAvailability([...availability, value]);
     }
   };
+  
+  const handleQuestionnaireOptionClick = (
+    setter: React.Dispatch<React.SetStateAction<string>>,
+    currentValue: string,
+    value: string
+  ) => {
+    if (currentValue === value) {
+      setter("");
+    } else {
+      setter(value);
+    }
+  };
 
   const handleReset = () => {
     setLocation("");
@@ -57,6 +117,11 @@ const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
     setPriceRange([0, 20000]);
     setRating(0);
     setAvailability([]);
+    setMbtiType("unknown");
+    setMood("");
+    setTherapistType("");
+    setTreatmentType("");
+    setTherapistAge("");
   };
 
   useEffect(() => {
@@ -66,8 +131,24 @@ const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
       priceRange,
       rating,
       availability,
+      mbtiType,
+      mood,
+      therapistType,
+      treatmentType,
+      therapistAge
     });
-  }, [location, selectedSpecialties, priceRange, rating, availability]);
+  }, [
+    location, 
+    selectedSpecialties, 
+    priceRange, 
+    rating, 
+    availability, 
+    mbtiType, 
+    mood, 
+    therapistType, 
+    treatmentType, 
+    therapistAge
+  ]);
 
   return (
     <div className="bg-card rounded-lg shadow-sm border mb-4 p-3">
@@ -86,6 +167,84 @@ const TherapistFilters = ({ onFilterChange }: TherapistFiltersProps) => {
                 onClick={() => setLocation(location === loc ? "" : loc)}
               >
                 {loc}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* MBTI Type filter */}
+        <div>
+          <Label className="text-sm mb-1 block">MBTIタイプ</Label>
+          <MBTISelect 
+            value={mbtiType}
+            onValueChange={setMbtiType}
+            placeholder="MBTIタイプを選択"
+          />
+        </div>
+
+        {/* Mood filter */}
+        <div>
+          <Label className="text-sm mb-1 block">セラピーの特徴</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {moodOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={mood === option.value ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleQuestionnaireOptionClick(setMood, mood, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* Therapist Type filter */}
+        <div>
+          <Label className="text-sm mb-1 block">性格・雰囲気</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {therapistTypeOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={therapistType === option.value ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleQuestionnaireOptionClick(setTherapistType, therapistType, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* Treatment Type filter */}
+        <div>
+          <Label className="text-sm mb-1 block">施術スタイル</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {treatmentTypeOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={treatmentType === option.value ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleQuestionnaireOptionClick(setTreatmentType, treatmentType, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* Therapist Age filter */}
+        <div>
+          <Label className="text-sm mb-1 block">年齢層</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {therapistAgeOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={therapistAge === option.value ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleQuestionnaireOptionClick(setTherapistAge, therapistAge, option.value)}
+              >
+                {option.label}
               </Badge>
             ))}
           </div>

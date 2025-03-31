@@ -19,6 +19,11 @@ const Therapists = () => {
     experience: 0,
     priceRange: [0, 50000] as [number, number],
     availability: [] as string[],
+    mbtiType: "",
+    mood: "",
+    therapistType: "",
+    treatmentType: "",
+    therapistAge: ""
   });
 
   // Parse query parameters when component mounts or URL changes
@@ -42,6 +47,13 @@ const Therapists = () => {
     const dateParam = params.get('date');
     const timeSlotParam = params.get('timeSlot');
     
+    // Get questionnaire params
+    const mbtiType = params.get('mbtiType');
+    const mood = params.get('mood');
+    const therapistType = params.get('therapistType');
+    const treatmentType = params.get('treatmentType');
+    const therapistAge = params.get('therapistAge');
+    
     // Update filters based on URL parameters
     setFilters(prev => {
       const newFilters = { ...prev };
@@ -59,14 +71,22 @@ const Therapists = () => {
         ];
       }
       
-      // Add date/time handling if needed
-      // For now, we'll just pass these as URL parameters but not use them in the filter
-      // as the current filter system doesn't handle specific dates/times
+      // Update questionnaire filters
+      if (mbtiType) newFilters.mbtiType = mbtiType;
+      if (mood) newFilters.mood = mood;
+      if (therapistType) newFilters.therapistType = therapistType;
+      if (treatmentType) newFilters.treatmentType = treatmentType;
+      if (therapistAge) newFilters.therapistAge = therapistAge;
       
       return newFilters;
     });
     
   }, [location]);
+
+  // Debug log - uncomment to see current filters
+  // useEffect(() => {
+  //   console.log('Current filters:', filters);
+  // }, [filters]);
 
   // Fetch therapists when filters or search term change
   useEffect(() => {
@@ -116,14 +136,54 @@ const Therapists = () => {
         if (filters.availability.length > 0) {
           query = query.overlaps('availability', filters.availability);
         }
+        
+        // Apply MBTI filter if provided
+        if (filters.mbtiType && filters.mbtiType !== 'unknown') {
+          query = query.eq('mbti_type', filters.mbtiType);
+        }
+        
+        // Build questionnaire filter conditions using PostgreSQL JSONB syntax
+        // Apply questionnaire data filters using proper JSONB syntax for PostgreSQL
+        
+        // Creating a single JSONB object for all filters to improve performance
+        const jsonFilters: Record<string, string> = {};
+        
+        if (filters.mood) jsonFilters.mood = filters.mood;
+        if (filters.therapistType) jsonFilters.therapistType = filters.therapistType;
+        if (filters.treatmentType) jsonFilters.treatmentType = filters.treatmentType;
+        if (filters.therapistAge) jsonFilters.therapistAge = filters.therapistAge;
+        
+        // Debug: Print filters being used
+        console.log('Questionnaire filters:', filters);
+        console.log('Filter conditions present:', 
+          { 
+            mbtiFilter: filters.mbtiType && filters.mbtiType !== 'unknown',
+            hasJsonFilters: Object.keys(jsonFilters).length > 0,
+            jsonFilterObj: jsonFilters
+          }
+        );
+        
+        // Only apply JSONB filter if we have any questionnaire filters
+        if (Object.keys(jsonFilters).length > 0) {
+          // Using containment operator @> which is the correct PostgreSQL syntax
+          // Filter therapists whose questionnaire_data contains the filter values
+          console.log('Applying JSONB filter with values:', jsonFilters);
+          query = query.filter('questionnaire_data', '@>', jsonFilters);
+        }
 
+        console.log('Executing Supabase query for therapists with filters:', filters);
         const { data, error } = await query;
+        
+        // Debug: Log the raw SQL query if possible
+        console.log('Query executed, data items returned:', data?.length || 0);
         
         if (error) {
           console.error("Error fetching therapists:", error);
           toast.error("セラピスト情報の取得に失敗しました");
           return;
         }
+        
+        console.log(`Found ${data?.length || 0} matching therapists`);
         
         // Map the Supabase data to the format expected by TherapistCard
         const mappedTherapists = (data || []).map((therapist: any) => ({
@@ -140,6 +200,8 @@ const Therapists = () => {
           workingHours: therapist.working_hours || null,
           qualifications: therapist.qualifications || [],
           specialties: therapist.specialties || [],
+          mbtiType: therapist.mbti_type || 'unknown',
+          questionnaireData: therapist.questionnaire_data || {},
           services: [] // Services will be loaded in the detail view
         }));
         
@@ -172,6 +234,16 @@ const Therapists = () => {
       params.set('minPrice', newFilters.priceRange[0].toString());
       params.set('maxPrice', newFilters.priceRange[1].toString());
     }
+    
+    // Update questionnaire filters
+    const questionnaireParams = ['mbtiType', 'mood', 'therapistType', 'treatmentType', 'therapistAge'];
+    questionnaireParams.forEach(param => {
+      if (newFilters[param] && newFilters[param] !== 'unknown') {
+        params.set(param, newFilters[param]);
+      } else {
+        params.delete(param);
+      }
+    });
     
     // Keep the search parameter if it exists
     const search = params.get('search');
@@ -206,7 +278,10 @@ const Therapists = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1">
             {/* Pass current filters to TherapistFilters */}
-            <TherapistFilters onFilterChange={handleFilterChange} />
+            <TherapistFilters 
+              onFilterChange={handleFilterChange} 
+              initialFilters={filters} 
+            />
           </div>
           
           <div className="lg:col-span-3">

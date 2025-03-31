@@ -32,6 +32,8 @@ import { DateTimePicker } from '@/components/DateTimePicker';
 import { supabase } from '@/integrations/supabase/client';
 import { Therapist } from '@/utils/types';
 import { toast } from 'sonner';
+import MBTISelect, { mbtiTypes } from '@/components/MBTISelect';
+import PrefectureSelect, { japanesePrefectures } from '@/components/PrefectureSelect';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -131,7 +133,8 @@ const Index = () => {
     treatmentType: '',
     therapistAge: '',
     location: '',
-    budget: ''
+    budget: '',
+    mbtiType: 'unknown'  // Add mbtiType with default value of 'unknown'
   });
 
   // Handle answer selection
@@ -154,10 +157,21 @@ const Index = () => {
 
   // Handle search submission
   const handleSearchSubmit = () => {
-    // Here you would typically navigate to the search results page with the filters
-    console.log('Search with:', answers);
-    // For now, we'll just reset the form
-    setStep(1);
+    // Create query parameters
+    const params = new URLSearchParams();
+    
+    // Add all answer data as query parameters
+    Object.entries(answers).forEach(([key, value]) => {
+      if (value && value !== 'unknown') {
+        params.append(key, value);
+      }
+    });
+    
+    // Navigate to the therapists page with the filters
+    navigate({
+      pathname: '/therapists',
+      search: params.toString()
+    });
   };
 
   // Handle keyword search
@@ -444,11 +458,9 @@ const Index = () => {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">5. 希望エリアは？</h2>
             <div className="rounded-lg border p-4">
-              <Input 
-                placeholder="都道府県" 
+              <PrefectureSelect 
                 value={answers.location}
-                onChange={(e) => handleAnswerSelect('location', e.target.value)}
-                className="text-lg p-4 h-14"
+                onValueChange={(value) => handleAnswerSelect('location', value)}
               />
             </div>
             
@@ -506,6 +518,35 @@ const Index = () => {
                 </label>
               </div>
             </RadioGroup>
+            
+            <div className="flex justify-between">
+              <Button onClick={handlePrevious} variant="outline" className="px-8 rounded-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                戻る
+              </Button>
+              <Button onClick={handleNext} disabled={!answers.budget} className="px-8 rounded-full">
+                次へ
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 7:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">7. MBTIタイプの希望は？</h2>
+            <div className="rounded-lg border p-4">
+              <MBTISelect 
+                value={answers.mbtiType}
+                onValueChange={(value) => handleAnswerSelect('mbtiType', value)}
+                placeholder="MBTIタイプを選択してください"
+              />
+              <p className="text-sm text-muted-foreground mt-2">
+                より良いマッチングのためにMBTI性格タイプを選択してください。
+                好みがない場合は「わからない」を選択してください。
+              </p>
+            </div>
             
             <div className="flex justify-between">
               <Button onClick={handlePrevious} variant="outline" className="px-8 rounded-full">

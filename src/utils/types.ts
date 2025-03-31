@@ -16,6 +16,14 @@ export interface BookingRequest {
   therapistName?: string;
 }
 
+// Define the questionnaire data interface for type safety
+export interface QuestionnaireData {
+  mood?: string;
+  therapistType?: string;
+  treatmentType?: string;
+  therapistAge?: string;
+}
+
 export interface TherapistProfile {
   id: string | number;
   name: string;
@@ -50,6 +58,8 @@ export interface TherapistProfile {
   therapistId?: string;
   area?: string;
   detailedArea?: string;
+  mbtiType?: string;
+  questionnaireData?: QuestionnaireData;
 }
 
 export interface StoreProfile {
@@ -106,6 +116,8 @@ export interface Therapist {
   age?: string;
   area?: string;
   detailedArea?: string;
+  mbtiType?: string;
+  questionnaireData?: QuestionnaireData;
 }
 
 export interface Service {
@@ -150,6 +162,11 @@ export interface Filters {
   minRating: number;
   availability: string[];
   location: string[];
+  mbtiType?: string;
+  mood?: string;
+  therapistType?: string;
+  treatmentType?: string;
+  therapistAge?: string;
 }
 
 export interface BookingSlot {

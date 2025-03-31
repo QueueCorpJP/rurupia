@@ -722,11 +722,7 @@ const Layout = ({ children }: LayoutProps) => {
                     会社概要
                   </Link>
                 </li>
-                <li>
-                  <Link to="/partnership" className="text-muted-foreground hover:text-primary transition-colors">
-                    パートナー募集
-                  </Link>
-                </li>
+              
               </ul>
             </div>
             
@@ -762,8 +758,7 @@ const Layout = ({ children }: LayoutProps) => {
                 <li className="flex items-start gap-3">
                   <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <span className="text-muted-foreground">
-                    〒150-0002 東京都渋谷区渋谷2-24-12
-                  </span>
+                  〒130-0022 東京都墨田区江東橋4丁目27番14号 楽天地ビル3F                  </span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Phone className="h-5 w-5 text-primary flex-shrink-0" />
@@ -774,7 +769,7 @@ const Layout = ({ children }: LayoutProps) => {
                 <li className="flex items-center gap-3">
                   <Mail className="h-5 w-5 text-primary flex-shrink-0" />
                   <span className="text-muted-foreground">
-                    info@nokutoru.com
+                  info@noctle.com
                   </span>
                 </li>
               </ul>

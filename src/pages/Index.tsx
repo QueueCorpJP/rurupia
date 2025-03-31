@@ -167,6 +167,24 @@ const Index = () => {
       }
     });
     
+    // If budget is set, convert it to price range or keep as is
+    if (answers.budget) {
+      if (answers.budget === 'under5000') {
+        params.set('minPrice', '0');
+        params.set('maxPrice', '5000');
+      } else if (answers.budget === '5000to10000') {
+        params.set('minPrice', '5000');
+        params.set('maxPrice', '10000');
+      } else if (answers.budget === '10000to20000') {
+        params.set('minPrice', '10000');
+        params.set('maxPrice', '20000');
+      } else if (answers.budget === 'over20000') {
+        params.set('minPrice', '20000');
+        params.set('maxPrice', '50000');
+      }
+      // Keep 'budget' parameter as well for reference
+    }
+    
     // Navigate to the therapists page with the filters
     navigate({
       pathname: '/therapists',

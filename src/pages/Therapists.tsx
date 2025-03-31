@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import TherapistCard from "../components/TherapistCard";
@@ -10,6 +10,13 @@ import { Therapist } from "../utils/types";
 const Therapists = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  // Track whether URL updates came from filter state changes
+  const isUrlUpdateFromState = useRef(false);
+  // Track previous filters to avoid unnecessary fetches
+  const prevFiltersRef = useRef<string>('');
+  // Track whether initialization is complete
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -26,8 +33,99 @@ const Therapists = () => {
     therapistAge: ""
   });
 
-  // Parse query parameters when component mounts or URL changes
+  // Parse URL parameters once when component mounts
   useEffect(() => {
+    const parseUrlParameters = () => {
+      console.log('Therapists: Initial parsing of URL parameters', location.search);
+      
+      const params = new URLSearchParams(location.search);
+      
+      // Get search term
+      const search = params.get('search');
+      if (search) {
+        setSearchTerm(search);
+      }
+      
+      // Get location filter
+      const locationParam = params.get('location');
+      
+      // Get price range
+      const minPrice = params.get('minPrice');
+      const maxPrice = params.get('maxPrice');
+      
+      // Get questionnaire params
+      const mbtiType = params.get('mbtiType');
+      const mood = params.get('mood');
+      const therapistType = params.get('therapistType');
+      const treatmentType = params.get('treatmentType');
+      const therapistAge = params.get('therapistAge');
+      
+      // Get budget parameter and convert to price range if needed
+      const budget = params.get('budget');
+      let priceRange = [0, 50000] as [number, number];
+      
+      if (minPrice || maxPrice) {
+        priceRange = [
+          minPrice ? parseInt(minPrice, 10) : 0,
+          maxPrice ? parseInt(maxPrice, 10) : 50000
+        ];
+      } else if (budget) {
+        // Map budget to price range similar to Index.tsx
+        switch (budget) {
+          case 'under5000':
+            priceRange = [0, 5000];
+            break;
+          case '5000to10000':
+            priceRange = [5000, 10000];
+            break;
+          case '10000to20000':
+            priceRange = [10000, 20000];
+            break;
+          case 'over20000':
+            priceRange = [20000, 50000];
+            break;
+          // If 'noPreference' is selected, keep the full range
+          case 'noPreference':
+            priceRange = [0, 50000];
+            break;
+        }
+      }
+      
+      // Update filters based on URL parameters
+      setFilters(prev => {
+        const newFilters = {
+          ...prev,
+          location: locationParam || '',
+          priceRange: priceRange,
+          mbtiType: mbtiType || '',
+          mood: mood || '',
+          therapistType: therapistType || '',
+          treatmentType: treatmentType || '',
+          therapistAge: therapistAge || ''
+        };
+        
+        console.log('Therapists: Initialized filters from URL params', newFilters);
+        return newFilters;
+      });
+      
+      // Mark initialization as complete
+      setIsInitialized(true);
+    };
+    
+    parseUrlParameters();
+  }, []); // Empty dependency array means this runs once on mount
+  
+  // Handle URL changes after initial mount
+  useEffect(() => {
+    // Skip if initialization is not complete or URL was just updated by handleFilterChange
+    if (!isInitialized || isUrlUpdateFromState.current) {
+      console.log('Therapists: Skipping URL parse because initialization not complete or URL was just updated by state change');
+      isUrlUpdateFromState.current = false;
+      return;
+    }
+    
+    console.log('Therapists: Parsing URL parameters after init', location.search);
+    
     const params = new URLSearchParams(location.search);
     
     // Get search term
@@ -43,10 +141,6 @@ const Therapists = () => {
     const minPrice = params.get('minPrice');
     const maxPrice = params.get('maxPrice');
     
-    // Get date/time filters
-    const dateParam = params.get('date');
-    const timeSlotParam = params.get('timeSlot');
-    
     // Get questionnaire params
     const mbtiType = params.get('mbtiType');
     const mood = params.get('mood');
@@ -54,63 +148,96 @@ const Therapists = () => {
     const treatmentType = params.get('treatmentType');
     const therapistAge = params.get('therapistAge');
     
+    // Get budget parameter and convert to price range if needed
+    const budget = params.get('budget');
+    let priceRange = [0, 50000] as [number, number];
+    
+    if (minPrice || maxPrice) {
+      priceRange = [
+        minPrice ? parseInt(minPrice, 10) : 0,
+        maxPrice ? parseInt(maxPrice, 10) : 50000
+      ];
+    } else if (budget) {
+      // Map budget to price range similar to Index.tsx
+      switch (budget) {
+        case 'under5000':
+          priceRange = [0, 5000];
+          break;
+        case '5000to10000':
+          priceRange = [5000, 10000];
+          break;
+        case '10000to20000':
+          priceRange = [10000, 20000];
+          break;
+        case 'over20000':
+          priceRange = [20000, 50000];
+          break;
+        // If 'noPreference' is selected, keep the full range
+        case 'noPreference':
+          priceRange = [0, 50000];
+          break;
+      }
+    }
+    
     // Update filters based on URL parameters
     setFilters(prev => {
-      const newFilters = { ...prev };
+      const newFilters = {
+        ...prev,
+        location: locationParam || '',
+        priceRange: priceRange,
+        mbtiType: mbtiType || '',
+        mood: mood || '',
+        therapistType: therapistType || '',
+        treatmentType: treatmentType || '',
+        therapistAge: therapistAge || ''
+      };
       
-      // Update location
-      if (locationParam) {
-        newFilters.location = locationParam;
-      }
-      
-      // Update price range
-      if (minPrice || maxPrice) {
-        newFilters.priceRange = [
-          minPrice ? parseInt(minPrice, 10) : prev.priceRange[0],
-          maxPrice ? parseInt(maxPrice, 10) : prev.priceRange[1]
-        ];
-      }
-      
-      // Update questionnaire filters
-      if (mbtiType) newFilters.mbtiType = mbtiType;
-      if (mood) newFilters.mood = mood;
-      if (therapistType) newFilters.therapistType = therapistType;
-      if (treatmentType) newFilters.treatmentType = treatmentType;
-      if (therapistAge) newFilters.therapistAge = therapistAge;
-      
+      console.log('Therapists: Updated filters from URL params after init', newFilters);
       return newFilters;
     });
     
-  }, [location]);
+  }, [location.search, isInitialized]); // Depend on search parameters and initialization state
 
   // Debug log - uncomment to see current filters
-  // useEffect(() => {
-  //   console.log('Current filters:', filters);
-  // }, [filters]);
+  useEffect(() => {
+    console.log('Therapists: Current filters updated:', filters);
+  }, [filters]);
 
   // Fetch therapists when filters or search term change
   useEffect(() => {
+    // Skip if initialization is not complete
+    if (!isInitialized) {
+      return;
+    }
+  
+    // Convert current filters to string for comparison
+    const filtersString = JSON.stringify({ ...filters, searchTerm });
+    
+    // Skip fetch if filters haven't actually changed
+    if (filtersString === prevFiltersRef.current) {
+      return;
+    }
+    
+    // Update previous filters reference
+    prevFiltersRef.current = filtersString;
+    
     const fetchTherapists = async () => {
       try {
+        console.log('Starting therapist fetch with filters:', {
+          ...filters,
+          searchTerm: searchTerm || 'none'
+        });
+        
         setIsLoading(true);
-        let query = supabase.from('therapists').select('*');
+        // Type assertion to simplify the query type and avoid deep instantiation
+        let query = supabase
+          .from('therapists')
+          .select('*') as any;  // Use 'any' type to avoid TypeScript deep instantiation errors
 
-        // Apply text search if provided
+        // Apply search term filter if provided
         if (searchTerm) {
-          // Only apply search for terms that are meaningful (3+ characters)
-          // or exact matches for shorter terms
-          if (searchTerm.length >= 3) {
-            // Proper filter syntax with .or() method for Supabase
-            query = query.or(
-              `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
-            );
-          } else {
-            // For short search terms (1-2 chars), only look for exact matches
-            // or matches at the beginning of words to avoid random matches
-            query = query.or(
-              `name.ilike.${searchTerm}%,name.ilike.% ${searchTerm}%`
-            );
-          }
+          const searchPattern = `%${searchTerm}%`;
+          query = query.or(`name.ilike.${searchPattern},description.ilike.${searchPattern}`);
         }
         
         // Apply location filter if provided
@@ -128,9 +255,18 @@ const Therapists = () => {
           query = query.gte('experience', filters.experience);
         }
         
-        // Apply price range filter
-        query = query.gte('price', filters.priceRange[0]);
-        query = query.lte('price', filters.priceRange[1]);
+        // Apply price range filter only if both values are valid
+        if (typeof filters.priceRange[0] === 'number' && typeof filters.priceRange[1] === 'number') {
+          // Apply min price (if it's greater than 0)
+          if (filters.priceRange[0] > 0) {
+            query = query.gte('price', filters.priceRange[0]);
+          }
+          
+          // Apply max price (if it's less than the max possible value)
+          if (filters.priceRange[1] < 50000) {
+            query = query.lte('price', filters.priceRange[1]);
+          }
+        }
         
         // Apply availability filter if provided
         if (filters.availability.length > 0) {
@@ -141,34 +277,30 @@ const Therapists = () => {
         if (filters.mbtiType && filters.mbtiType !== 'unknown') {
           query = query.eq('mbti_type', filters.mbtiType);
         }
-        
-        // Build questionnaire filter conditions using PostgreSQL JSONB syntax
-        // Apply questionnaire data filters using proper JSONB syntax for PostgreSQL
-        
-        // Creating a single JSONB object for all filters to improve performance
-        const jsonFilters: Record<string, string> = {};
-        
-        if (filters.mood) jsonFilters.mood = filters.mood;
-        if (filters.therapistType) jsonFilters.therapistType = filters.therapistType;
-        if (filters.treatmentType) jsonFilters.treatmentType = filters.treatmentType;
-        if (filters.therapistAge) jsonFilters.therapistAge = filters.therapistAge;
-        
-        // Debug: Print filters being used
+
         console.log('Questionnaire filters:', filters);
-        console.log('Filter conditions present:', 
-          { 
-            mbtiFilter: filters.mbtiType && filters.mbtiType !== 'unknown',
-            hasJsonFilters: Object.keys(jsonFilters).length > 0,
-            jsonFilterObj: jsonFilters
-          }
-        );
-        
-        // Only apply JSONB filter if we have any questionnaire filters
-        if (Object.keys(jsonFilters).length > 0) {
-          // Using containment operator @> which is the correct PostgreSQL syntax
-          // Filter therapists whose questionnaire_data contains the filter values
-          console.log('Applying JSONB filter with values:', jsonFilters);
-          query = query.filter('questionnaire_data', '@>', jsonFilters);
+
+        // Apply questionnaire filters - use simple approach to avoid TypeScript errors
+        // Instead of trying to combine filters, apply them one by one directly
+        if (filters.mood) {
+          // Use the correct PostgreSQL operator for JSONB text value comparison
+          query = query.filter(`questionnaire_data->>'mood'`, 'eq', filters.mood);
+          console.log('Applied mood filter:', filters.mood);
+        }
+
+        if (filters.therapistType) {
+          query = query.filter(`questionnaire_data->>'therapistType'`, 'eq', filters.therapistType);
+          console.log('Applied therapist type filter:', filters.therapistType);
+        }
+
+        if (filters.treatmentType) {
+          query = query.filter(`questionnaire_data->>'treatmentType'`, 'eq', filters.treatmentType);
+          console.log('Applied treatment type filter:', filters.treatmentType);
+        }
+
+        if (filters.therapistAge && filters.therapistAge !== 'noPreference') {
+          query = query.filter(`questionnaire_data->>'therapistAge'`, 'eq', filters.therapistAge);
+          console.log('Applied therapist age filter:', filters.therapistAge);
         }
 
         console.log('Executing Supabase query for therapists with filters:', filters);
@@ -215,10 +347,13 @@ const Therapists = () => {
     };
 
     fetchTherapists();
-  }, [filters, searchTerm]);
+  }, [filters, searchTerm, isInitialized]);
 
   // Function to handle filter changes from TherapistFilters component
   const handleFilterChange = (newFilters: any) => {
+    // Set flag to indicate URL update is coming from state change
+    isUrlUpdateFromState.current = true;
+    
     // Update URL with new filters
     const params = new URLSearchParams(location.search);
     
@@ -277,11 +412,24 @@ const Therapists = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1">
-            {/* Pass current filters to TherapistFilters */}
-            <TherapistFilters 
-              onFilterChange={handleFilterChange} 
-              initialFilters={filters} 
-            />
+            {/* Only render TherapistFilters after initialization is complete */}
+            {isInitialized ? (
+              <TherapistFilters 
+                onFilterChange={handleFilterChange} 
+                initialFilters={filters} 
+              />
+            ) : (
+              <div className="bg-card rounded-lg shadow-sm border mb-4 p-3">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-8 bg-muted rounded"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                  <div className="h-8 bg-muted rounded"></div>
+                  <div className="h-4 bg-muted rounded w-2/3"></div>
+                  <div className="h-8 bg-muted rounded"></div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="lg:col-span-3">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Badge } from "./ui/badge";
 import { X } from "lucide-react";
 import MBTISelect from "./MBTISelect";
+import PrefectureSelect from "./PrefectureSelect";
 
 interface TherapistFiltersProps {
   onFilterChange: (filters: any) => void;
@@ -25,6 +26,9 @@ interface TherapistFiltersProps {
 }
 
 const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersProps) => {
+  // Track whether the update came from inside this component
+  const isInternalUpdate = useRef(false);
+  
   const [location, setLocation] = useState(initialFilters?.location || "");
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(initialFilters?.specialties || []);
   const [priceRange, setPriceRange] = useState(initialFilters?.priceRange || [0, 20000]);
@@ -36,7 +40,6 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
   const [treatmentType, setTreatmentType] = useState(initialFilters?.treatmentType || "");
   const [therapistAge, setTherapistAge] = useState(initialFilters?.therapistAge || "");
 
-  const locations = ["東京", "大阪", "名古屋", "福岡", "京都"];
   const specialties = [
     "マッサージ",
     "鍼灸",
@@ -124,7 +127,37 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
     setTherapistAge("");
   };
 
+  // Add useEffect to sync state with initialFilters prop changes
   useEffect(() => {
+    // Skip if this was triggered by our own state update
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
+    
+    console.log('TherapistFilters: initialFilters changed', initialFilters);
+    
+    if (initialFilters) {
+      // Update all fields from initialFilters
+      setLocation(initialFilters.location || "");
+      setSelectedSpecialties(initialFilters.specialties || []);
+      setPriceRange(initialFilters.priceRange || [0, 20000]);
+      setRating(initialFilters.rating || 0);
+      setAvailability(initialFilters.availability || []);
+      setMbtiType(initialFilters.mbtiType || "unknown");
+      setMood(initialFilters.mood || "");
+      setTherapistType(initialFilters.therapistType || "");
+      setTreatmentType(initialFilters.treatmentType || "");
+      setTherapistAge(initialFilters.therapistAge || "");
+      
+      console.log('TherapistFilters: Updated internal state with initialFilters');
+    }
+  }, [initialFilters]);
+
+  useEffect(() => {
+    // Set flag to indicate this update came from inside the component
+    isInternalUpdate.current = true;
+    
     onFilterChange({
       location,
       specialties: selectedSpecialties,
@@ -155,21 +188,14 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
       <h3 className="font-medium text-base mb-3">フィルター</h3>
 
       <div className="space-y-3">
-        {/* Location filter */}
+        {/* Location filter - replaced badges with PrefectureSelect dropdown */}
         <div>
-          <Label htmlFor="location" className="text-sm mb-1 block">場所</Label>
-          <div className="flex flex-wrap gap-1 mb-2">
-            {locations.map((loc) => (
-              <Badge
-                key={loc}
-                variant={location === loc ? "default" : "outline"}
-                className="cursor-pointer py-0.5 px-2 text-xs"
-                onClick={() => setLocation(location === loc ? "" : loc)}
-              >
-                {loc}
-              </Badge>
-            ))}
-          </div>
+          <Label htmlFor="location" className="text-sm mb-1 block">場所 (都道府県)</Label>
+          <PrefectureSelect
+            value={location}
+            onValueChange={setLocation}
+            placeholder="都道府県を選択"
+          />
         </div>
 
         {/* MBTI Type filter */}

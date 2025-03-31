@@ -97,21 +97,6 @@ export function TherapistProfile({
               {formatValue(therapist.description)}
             </p>
           </div>
-          <Separator />
-          <div>
-            <h3 className="text-lg font-medium">専門分野</h3>
-            <div className="mt-1 space-y-1">
-              {therapist.specialties && therapist.specialties.length > 0 ? (
-                therapist.specialties.map((specialty, index) => (
-                  <p key={index} className="text-sm text-muted-foreground">
-                    • {specialty}
-                  </p>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">-</p>
-              )}
-            </div>
-          </div>
         </TabsContent>
         <TabsContent value="info" className="space-y-4 mt-4">
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">

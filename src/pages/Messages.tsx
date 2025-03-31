@@ -363,7 +363,7 @@ const Messages = () => {
               </div>
               
               <button
-                onClick={() => navigate(`/therapists/${therapist.id}`)}
+                onClick={() => navigate(`/therapist/${therapist.id}`)}
                 className="text-sm text-primary hover:underline"
               >
                 プロフィールを見る

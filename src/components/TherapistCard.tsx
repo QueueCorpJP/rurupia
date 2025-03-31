@@ -222,7 +222,7 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
         </div>
       )}
       
-      <Link to={`/therapists/${therapist.id}`}>
+      <Link to={`/therapist/${therapist.id}`}>
         <div className="aspect-[4/3] w-full overflow-hidden">
           {therapist.imageUrl ? (
             <img 
@@ -245,7 +245,7 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
       
       <div className="p-6">
         <div className="flex items-start justify-between mb-2">
-          <Link to={`/therapists/${therapist.id}`}>
+          <Link to={`/therapist/${therapist.id}`}>
             <h3 className="font-bold text-xl hover:text-primary transition-colors">{therapist.name}</h3>
           </Link>
           <div className="flex items-center gap-1">
@@ -318,7 +318,7 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
             <span className="text-lg font-bold text-foreground">{therapist.price}円</span>
             <span className="text-muted-foreground"> / 時間</span>
           </div>
-          <Link to={`/therapists/${therapist.id}`}>
+          <Link to={`/therapist/${therapist.id}`}>
             <Button variant="outline" size="sm" className="rounded-full px-4 border-pink-200">
               詳細を見る
             </Button>

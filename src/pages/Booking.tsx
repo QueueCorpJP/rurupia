@@ -106,7 +106,7 @@ const Booking = () => {
     <Layout>
       <div className="container max-w-4xl mx-auto py-8">
         <button
-          onClick={() => navigate(`/therapists/${id}`)}
+          onClick={() => navigate(`/therapist/${id}`)}
           className="inline-flex items-center mb-6 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -118,7 +118,7 @@ const Booking = () => {
             <h1 className="text-2xl font-bold mb-6">{therapist.name} へ予約</h1>
             <BookingForm 
               therapist={therapist} 
-              onClose={() => navigate(`/therapists/${id}`)} 
+              onClose={() => navigate(`/therapist/${id}`)} 
             />
           </div>
         </div>

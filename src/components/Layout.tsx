@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings } from 'lucide-react';
+import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings, FileText, Bell, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -482,6 +482,15 @@ const Layout = ({ children }: LayoutProps) => {
               <BookOpen className="h-4 w-4" />
               <span>ブログ</span>
             </Link>
+            <Link
+              to="/all-posts"
+              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 px-3 py-2 rounded-full ${
+                location.pathname === '/all-posts' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>セラピスト投稿</span>
+            </Link>
             
             <div className="h-6 w-px bg-border mx-1"></div>
             
@@ -509,6 +518,10 @@ const Layout = ({ children }: LayoutProps) => {
                             <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
                               <User className="h-4 w-4 inline mr-2" />
                               セラピストダッシュボード
+                            </Link>
+                            <Link to="/therapist-posts" className="block p-2 hover:bg-muted rounded-md">
+                              <FileText className="h-4 w-4 inline mr-2" />
+                              投稿管理
                             </Link>
                           </>
                         ) : (
@@ -623,6 +636,14 @@ const Layout = ({ children }: LayoutProps) => {
                 >
                   <BookOpen className="h-4 w-4 inline mr-2" />
                   ブログ
+                </Link>
+                <Link
+                  to="/all-posts"
+                  className="block py-2 text-sm font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <FileText className="h-4 w-4 inline mr-2" />
+                  セラピスト投稿
                 </Link>
                 
                 <div className="h-px w-full bg-gray-200"></div>

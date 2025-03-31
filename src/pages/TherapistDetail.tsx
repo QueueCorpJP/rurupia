@@ -6,11 +6,10 @@ import TherapistGallery from '../components/TherapistGallery';
 import AvailabilityCalendar from '../components/AvailabilityCalendar';
 import { TherapistProfile } from '../components/TherapistProfile';
 import TherapistQualifications from '../components/TherapistQualifications';
-import TherapistServices from '../components/TherapistServices';
 import TherapistReviews from '../components/TherapistReviews';
 import TherapistPosts from '../components/TherapistPosts';
 import { Therapist, Service } from '../utils/types';
-import { ArrowLeft, Calendar, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Calendar, MessageSquare, ExternalLink } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +28,7 @@ interface SupabasePost {
   title?: string;
   content: string;
   image_url?: string;
-  visibility?: 'public' | 'followers';
+  visibility?: string;
   created_at: string;
 }
 
@@ -338,8 +337,6 @@ const TherapistDetail = () => {
               
               <TherapistQualifications therapist={therapist} />
               
-              <TherapistServices therapist={therapist} />
-              
               <TherapistReviews reviews={[]} />
               
               <TherapistPosts 
@@ -347,6 +344,14 @@ const TherapistDetail = () => {
                 therapistName={therapist.name} 
                 isFollowing={isFollowing}
               />
+              {therapistPosts.length > 0 && (
+                <div className="mt-4 flex justify-end">
+                  <Link to={`/therapist-posts/${therapist.id}`} className="inline-flex items-center text-sm text-primary hover:underline">
+                    <span>すべての投稿を見る</span>
+                    <ExternalLink className="ml-1 h-3 w-3" />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

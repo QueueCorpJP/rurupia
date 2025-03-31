@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
@@ -55,6 +54,8 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminSetup from './pages/admin/AdminSetup';
 import VerificationDocument from './pages/admin/VerificationDocument';
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
+import TherapistPublicPosts from './pages/TherapistPublicPosts';
+import AllTherapistPosts from './pages/AllTherapistPosts';
 
 function App() {
   return (
@@ -66,7 +67,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/line-callback" element={<LineCallback />} />
           <Route path="/therapists" element={<Therapists />} />
-          <Route path="/therapists/:id" element={<TherapistDetail />} />
+          <Route path="/therapist/:id" element={<TherapistDetail />} />
+          <Route path="/therapist/:id/posts" element={<TherapistPublicPosts />} />
+          <Route path="/all-posts" element={<AllTherapistPosts />} />
           <Route path="/booking/:id" element={<Booking />} />
           <Route path="/messages" element={<MessagesIndex />} />
           <Route path="/messages/:id" element={<Messages />} />
@@ -107,6 +110,7 @@ function App() {
           <Route path="/therapist-messages/:id" element={<TherapistMessagesFix />} />
           <Route path="/therapist-posts" element={<TherapistPosts />} />
           <Route path="/therapist-settings" element={<TherapistSettings />} />
+          <Route path="/therapist-posts/:id" element={<TherapistPublicPosts />} />
           
           {/* Admin Routes */}
           <Route path="/admin/setup" element={<AdminSetup />} />

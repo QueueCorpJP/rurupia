@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast as useToastUI } from "@/components/ui/use-toast";
+import { SupabaseClient } from '@supabase/supabase-js';
+import { BookingData, FormattedBooking, calculateCombinedStatus } from '@/types/booking';
 
 // Map day of week number to Japanese day name
 const dayOfWeekMap = ['日', '月', '火', '水', '木', '金', '土'];
@@ -205,34 +207,19 @@ const StoreAdminDashboard = () => {
         fromDate = new Date(currentDate.setHours(0, 0, 0, 0));
       }
       
-      // Prepare query filters
-      let query = supabase
-        .from("bookings")
-        .select(`
-          id,
-          therapist_id,
-          user_id,
-          service_id,
-          date,
-          status,
-          notes,
-          location,
-          price,
-          created_at
-        `)
-        .in("therapist_id", therapistIds);
-        
-      if (fromDate && timeRange !== "all") {
-        query = query.gte("date", fromDate.toISOString());
-      }
-      
+      // Update the query to use simpler approach
+      const fetchBookings = async (therapistIds: string[]) => {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .in('therapist_id', therapistIds);
+          
+        if (error) throw error;
+        return data as BookingData[];
+      };
+
       // Get bookings
-      const { data: bookingsData, error: bookingsError } = await query;
-      
-      if (bookingsError) {
-        console.error("Error fetching bookings:", bookingsError);
-        throw bookingsError;
-      }
+      const bookingsData = await fetchBookings(therapistIds);
       
       if (!bookingsData || bookingsData.length === 0) {
         setMonthlySales(0);
@@ -259,9 +246,13 @@ const StoreAdminDashboard = () => {
       setMonthlySales(calculatedMonthlySales);
       
       // Calculate dashboard metrics
-      const pendingBookings = bookingsData.filter(booking => booking.status === "pending");
-      const confirmedBookings = bookingsData.filter(booking => booking.status === "confirmed");
-      const completedBookings = bookingsData.filter(booking => booking.status === "completed");
+      const getStatus = (booking: BookingData) => {
+        return calculateCombinedStatus(booking["status therapist"], booking["status store"]);
+      };
+      
+      const pendingBookings = bookingsData.filter(booking => getStatus(booking) === "pending");
+      const confirmedBookings = bookingsData.filter(booking => getStatus(booking) === "confirmed");
+      const completedBookings = bookingsData.filter(booking => getStatus(booking) === "completed");
       
       const todayBookings = bookingsData.filter(booking => {
         const bookingDate = new Date(booking.date);
@@ -274,7 +265,10 @@ const StoreAdminDashboard = () => {
       });
       
       const totalRevenue = bookingsData
-        .filter(booking => booking.status === "completed" || booking.status === "confirmed")
+        .filter(booking => {
+          const status = getStatus(booking);
+          return status === "completed" || status === "confirmed";
+        })
         .reduce((sum, booking) => sum + (booking.price || 0), 0);
         
       // Get bookings by day of week
@@ -363,7 +357,7 @@ const StoreAdminDashboard = () => {
             serviceName: service?.name || "未定",
             date: format(bookingDate, "yyyy/MM/dd", { locale: ja }),
             time: format(bookingDate, "HH:mm", { locale: ja }),
-            status: booking.status,
+            status: getStatus(booking),
             price: booking.price || 0,
             location: booking.location || "未定",
           };

@@ -31,7 +31,7 @@ const LineCallback = () => {
         }
 
         // Ensure this URI exactly matches what is registered in your LINE console
-        const REDIRECT_URI = "http://localhost:8080/line-callback";
+        const REDIRECT_URI = "https://therapist-connectivity.vercel.app/callback";
 
         // It’s recommended to store sensitive keys in environment variables
         const LINE_CLIENT_ID = process.env.REACT_APP_LINE_CLIENT_ID;

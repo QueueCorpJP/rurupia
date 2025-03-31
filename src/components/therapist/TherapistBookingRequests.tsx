@@ -153,20 +153,23 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
     }
 
     try {
+      // Update the 'status therapist' column
       const { error } = await supabase
         .from('bookings')
-        .update({ status: dbStatus })
-        .eq('id', id);
+        .update({ ["status therapist"]: dbStatus } as any)
+        .eq('id', id)
+        .eq('therapist_id', therapistId);
 
       if (error) {
-        console.error('Error updating booking status:', error);
+        console.error('Error updating booking therapist status:', error);
         toast.error('ステータスの更新に失敗しました');
         return;
       }
 
-      // Update local state
-      setBookingRequests(prev => 
-        prev.map(req => 
+      // Update local state (assuming the component consuming this uses a similar status logic)
+      // Might need adjustment depending on how TherapistBookingRequest component handles status display
+      setBookingRequests(prev =>
+        prev.map(req =>
           req.id === id ? { ...req, status: newStatus } : req
         )
       );

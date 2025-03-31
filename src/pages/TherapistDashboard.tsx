@@ -357,7 +357,7 @@ const TherapistDashboard = () => {
                     </div>
                   ))}
                   <div className="mt-4 text-center">
-                    <a href="/therapist/bookings" className="text-primary hover:underline text-sm">
+                    <a href="/therapist-bookings" className="text-primary hover:underline text-sm">
                       すべての予約を表示
                     </a>
                   </div>

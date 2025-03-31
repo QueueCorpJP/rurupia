@@ -59,13 +59,15 @@ const Index = () => {
         const mappedTherapists = (data || []).map((therapist: any) => ({
           id: therapist.id,
           name: therapist.name || "名前なし",
-          imageUrl: therapist.image_url || "", // Empty string will trigger the avatar fallback
+          imageUrl: therapist.image_url || "",
           description: therapist.description || "詳細情報はありません",
           location: therapist.location || "場所未設定",
           price: therapist.price || 0,
           rating: therapist.rating || 0,
           reviews: therapist.reviews || 0,
-          availability: therapist.availability || ["月", "水", "金"],
+          workingDays: therapist.working_days || [],
+          workingHours: therapist.working_hours || null,
+          availability: therapist.availability || [],
           qualifications: therapist.qualifications || [],
           specialties: therapist.specialties || [],
           services: [] // Services will be loaded in the detail view

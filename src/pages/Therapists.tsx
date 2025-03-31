@@ -136,6 +136,8 @@ const Therapists = () => {
           rating: therapist.rating || 0,
           reviews: therapist.reviews || 0,
           availability: therapist.availability || ["月", "水", "金"],
+          workingDays: therapist.working_days || [],
+          workingHours: therapist.working_hours || null,
           qualifications: therapist.qualifications || [],
           specialties: therapist.specialties || [],
           services: [] // Services will be loaded in the detail view

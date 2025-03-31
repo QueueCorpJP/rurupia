@@ -8,28 +8,92 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 interface TherapistCardProps {
   therapist: Therapist;
   className?: string;
 }
 
+// Helper function to check if the therapist is currently open in JST
+// Accepts camelCase properties as defined in the Therapist type
+const isCurrentlyOpen = (workingDays?: number[] | string[] | null, workingHours?: { start?: string | null; end?: string | null } | null): boolean => {
+  let numericWorkingDays: number[] = [];
+  if (workingDays && workingDays.length > 0) {
+    if (typeof workingDays[0] === 'string') {
+      // Map lowercase English names to numbers (0-6)
+      const dayStringToNumber: Record<string, number> = {
+        sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6
+      };
+      numericWorkingDays = (workingDays as string[])
+        .map(day => dayStringToNumber[day.toLowerCase()]) // Ensure lowercase match
+        .filter(day => day !== undefined);
+    } else {
+      numericWorkingDays = workingDays as number[];
+    }
+  }
+
+  if (numericWorkingDays.length === 0 || !workingHours?.start || !workingHours?.end) {
+    return false; // Closed if no data
+  }
+
+  try {
+    const japanTimeZone = 'Asia/Tokyo';
+    const now = toZonedTime(new Date(), japanTimeZone);
+    const currentDay = now.getDay();
+    const currentTime = format(now, 'HH:mm');
+
+    if (!numericWorkingDays.includes(currentDay)) {
+      return false;
+    }
+
+    if (currentTime >= workingHours.start && currentTime < workingHours.end) {
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error checking therapist availability:", error);
+    return false;
+  }
+};
+
 const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isOpenNow, setIsOpenNow] = useState(false);
   
+  // Calculate open status when therapist data changes
+  useEffect(() => {
+    // Use camelCase properties from the Therapist type
+    setIsOpenNow(isCurrentlyOpen(therapist.workingDays, therapist.workingHours));
+  }, [therapist.workingDays, therapist.workingHours]); // Use camelCase dependencies
+
   // Format availability days into a readable string
-  const formatAvailability = (days: string[]) => {
-    // Create mapping from Japanese days to their proper order in a week
-    const sortOrder: Record<string, number> = {
-      '月': 0, '火': 1, '水': 2, '木': 3, '金': 4, '土': 5, '日': 6
+  const formatAvailability = (days?: string[] | number[] | null) => {
+    if (!days || days.length === 0) return '不定';
+
+    // Map lowercase English names to Japanese names
+    const englishToJapaneseMap: Record<string, string> = {
+      sunday: '日', monday: '月', tuesday: '火', wednesday: '水', thursday: '木', friday: '金', saturday: '土'
     };
     
-    // Sort days according to weekday order
-    const sortedDays = [...days].sort((a, b) => sortOrder[a] - sortOrder[b]);
-    
-    // Return the sorted days with proper separator
+    // Map numbers to Japanese names (in case format varies)
+    const numberToJapaneseMap: Record<number, string> = {
+      0: '日', 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土'
+    };
+
+    let japaneseDayStrings: string[];
+    if (typeof days[0] === 'string') {
+      japaneseDayStrings = (days as string[]).map(day => englishToJapaneseMap[day.toLowerCase()] || '?');
+    } else {
+      japaneseDayStrings = (days as number[]).map(day => numberToJapaneseMap[day] || '?');
+    }
+
+    const sortOrder: Record<string, number> = { '月': 0, '火': 1, '水': 2, '木': 3, '金': 4, '土': 5, '日': 6 };
+    const sortedDays = japaneseDayStrings.sort((a, b) => sortOrder[a] - sortOrder[b]);
     return sortedDays.join('・');
   };
 
@@ -148,13 +212,15 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
         </button>
       </div>
       
-      {/* Available now badge */}
-      <div className="absolute left-4 top-4 z-10">
-        <div className="rounded-full bg-green-500 text-white px-3 py-1 text-xs font-medium flex items-center shadow-sm">
-          <Zap className="h-3 w-3 mr-1" />
-          ただいま営業中
+      {/* Conditional "Available now" badge */}
+      {isOpenNow && (
+        <div className="absolute left-4 top-4 z-10">
+          <div className="rounded-full bg-green-500 text-white px-3 py-1 text-xs font-medium flex items-center shadow-sm">
+            <Zap className="h-3 w-3 mr-1" />
+            ただいま営業中
+          </div>
         </div>
-      </div>
+      )}
       
       <Link to={`/therapists/${therapist.id}`}>
         <div className="aspect-[4/3] w-full overflow-hidden">
@@ -202,13 +268,34 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
           </div>
           <div className="flex items-center">
             <Clock className="mr-1 h-4 w-4 text-primary" />
-            <span>営業日：{formatAvailability(therapist.availability)}</span>
+            {/* Use camelCase workingDays here */}
+            <span>営業日：{formatAvailability(therapist.workingDays)}</span>
           </div>
-          {/* Highlighted working hours */}
-          <div className="flex items-center bg-green-50 rounded-md p-1.5 border border-green-100">
-            <Clock className="mr-1 h-4 w-4 text-green-600" />
-            <span className="font-medium text-green-800">営業時間：10:00～20:00</span>
-          </div>
+          {/* Dynamic working hours - use camelCase workingHours */}
+          {(therapist.workingHours?.start && therapist.workingHours?.end) ? (
+            <div className={cn(
+              "flex items-center rounded-md p-1.5 border",
+              isOpenNow
+                ? "bg-green-50 border-green-100"
+                : "bg-gray-50 border-gray-100" // Style for closed hours
+            )}>
+              <Clock className={cn(
+                "mr-1 h-4 w-4",
+                isOpenNow ? "text-green-600" : "text-gray-500"
+              )} />
+              <span className={cn(
+                "font-medium",
+                 isOpenNow ? "text-green-800" : "text-gray-700"
+              )}>
+                 営業時間：{therapist.workingHours.start}～{therapist.workingHours.end}
+              </span>
+            </div>
+          ) : (
+             <div className="flex items-center bg-gray-50 rounded-md p-1.5 border border-gray-100">
+               <Clock className="mr-1 h-4 w-4 text-gray-500" />
+               <span className="font-medium text-gray-700">営業時間：不定</span>
+             </div>
+          )}
         </div>
         
         <div className="mb-4">

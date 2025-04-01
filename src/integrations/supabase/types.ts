@@ -718,9 +718,11 @@ export type Database = {
           image_url: string | null
           location: string
           long_description: string | null
+          mbti_type: string | null
           name: string
           price: number | null
           qualifications: string[]
+          questionnaire_data: Json | null
           rating: number
           reviews: number
           service_areas: Json | null
@@ -742,9 +744,11 @@ export type Database = {
           image_url?: string | null
           location: string
           long_description?: string | null
+          mbti_type?: string | null
           name: string
           price?: number | null
           qualifications?: string[]
+          questionnaire_data?: Json | null
           rating?: number
           reviews?: number
           service_areas?: Json | null
@@ -766,9 +770,11 @@ export type Database = {
           image_url?: string | null
           location?: string
           long_description?: string | null
+          mbti_type?: string | null
           name?: string
           price?: number | null
           qualifications?: string[]
+          questionnaire_data?: Json | null
           rating?: number
           reviews?: number
           service_areas?: Json | null

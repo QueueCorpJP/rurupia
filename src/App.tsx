@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { useScrollToTop } from './hooks/useScrollToTop';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
@@ -57,79 +58,87 @@ import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import TherapistPublicPosts from './pages/TherapistPublicPosts';
 import AllTherapistPosts from './pages/AllTherapistPosts';
 
+// Create a wrapper component that applies scroll restoration
+function ScrollToTop({ children }: { children: React.ReactNode }) {
+  useScrollToTop();
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <AdminAuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/line-callback" element={<LineCallback />} />
-          <Route path="/therapists" element={<Therapists />} />
-          <Route path="/therapist/:id" element={<TherapistDetail />} />
-          <Route path="/therapist/:id/posts" element={<TherapistPublicPosts />} />
-          <Route path="/all-posts" element={<AllTherapistPosts />} />
-          <Route path="/booking/:id" element={<Booking />} />
-          <Route path="/messages" element={<MessagesIndex />} />
-          <Route path="/messages/:id" element={<Messages />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogDetail />} />
-          <Route path="/user-profile" element={<UserProfile />} />
-          <Route path="/user-bookings" element={<UserBookings />} />
-          <Route path="/followed-therapists" element={<FollowedTherapists />} />
-          <Route path="/notification-settings" element={<NotificationSettings />} />
-          <Route path="/delete-account" element={<DeleteAccount />} />
-          
-          {/* Store Admin Routes */}
-          <Route path="/store-signup" element={<StoreSignup />} />
-          <Route path="/store-login" element={<StoreLogin />} />
-          <Route path="/store-admin" element={<StoreAdminLayout />}>
-            <Route index element={<StoreAdminDashboard />} />
-            <Route path="bookings" element={<StoreBookings />} />
-            <Route path="therapists" element={<StoreTherapists />} />
-            <Route path="courses" element={<StoreCourses />} />
-            <Route path="blog" element={<StoreBlog />} />
-            <Route path="analytics" element={<StoreAnalytics />} />
-            <Route path="inquiries" element={<StoreInquiries />} />
-            <Route path="settings" element={<StoreSettings />} />
-          </Route>
-          
-          {/* Therapist Routes */}
-          <Route path="/therapist-login" element={<TherapistLogin />} />
-          <Route path="/therapist-signup" element={<TherapistSignup />} />
-          <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
-          <Route path="/therapist-profile" element={<TherapistProfile />} />
-          <Route path="/therapist-bookings" element={<TherapistBookings />} />
-          <Route path="/therapist-messages" element={<TherapistMessagesFix />} />
-          <Route path="/therapist-messages/:id" element={<TherapistMessagesFix />} />
-          <Route path="/therapist-posts" element={<TherapistPosts />} />
-          <Route path="/therapist-settings" element={<TherapistSettings />} />
-          <Route path="/therapist-posts/:id" element={<TherapistPublicPosts />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin/setup" element={<AdminSetup />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="accounts" element={<AdminAccounts />} />
-            <Route path="verification/:userId" element={<AdminProtectedRoute><VerificationDocument /></AdminProtectedRoute>} />
-            <Route path="blog" element={<AdminBlog />} />
-            <Route path="inquiries" element={<AdminInquiries />} />
-            <Route path="requests" element={<AdminRequests />} />
-            <Route path="auth" element={<AdminAuth />} />
-          </Route>
-          
-          <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <ScrollToTop>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/line-callback" element={<LineCallback />} />
+            <Route path="/therapists" element={<Therapists />} />
+            <Route path="/therapist/:id" element={<TherapistDetail />} />
+            <Route path="/therapist/:id/posts" element={<TherapistPublicPosts />} />
+            <Route path="/all-posts" element={<AllTherapistPosts />} />
+            <Route path="/booking/:id" element={<Booking />} />
+            <Route path="/messages" element={<MessagesIndex />} />
+            <Route path="/messages/:id" element={<Messages />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogDetail />} />
+            <Route path="/user-profile" element={<UserProfile />} />
+            <Route path="/user-bookings" element={<UserBookings />} />
+            <Route path="/followed-therapists" element={<FollowedTherapists />} />
+            <Route path="/notification-settings" element={<NotificationSettings />} />
+            <Route path="/delete-account" element={<DeleteAccount />} />
+            
+            {/* Store Admin Routes */}
+            <Route path="/store-signup" element={<StoreSignup />} />
+            <Route path="/store-login" element={<StoreLogin />} />
+            <Route path="/store-admin" element={<StoreAdminLayout />}>
+              <Route index element={<StoreAdminDashboard />} />
+              <Route path="bookings" element={<StoreBookings />} />
+              <Route path="therapists" element={<StoreTherapists />} />
+              <Route path="courses" element={<StoreCourses />} />
+              <Route path="blog" element={<StoreBlog />} />
+              <Route path="analytics" element={<StoreAnalytics />} />
+              <Route path="inquiries" element={<StoreInquiries />} />
+              <Route path="settings" element={<StoreSettings />} />
+            </Route>
+            
+            {/* Therapist Routes */}
+            <Route path="/therapist-login" element={<TherapistLogin />} />
+            <Route path="/therapist-signup" element={<TherapistSignup />} />
+            <Route path="/therapist-dashboard" element={<TherapistDashboard />} />
+            <Route path="/therapist-profile" element={<TherapistProfile />} />
+            <Route path="/therapist-bookings" element={<TherapistBookings />} />
+            <Route path="/therapist-messages" element={<TherapistMessagesFix />} />
+            <Route path="/therapist-messages/:id" element={<TherapistMessagesFix />} />
+            <Route path="/therapist-posts" element={<TherapistPosts />} />
+            <Route path="/therapist-settings" element={<TherapistSettings />} />
+            <Route path="/therapist-posts/:id" element={<TherapistPublicPosts />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/setup" element={<AdminSetup />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="accounts" element={<AdminAccounts />} />
+              <Route path="verification/:userId" element={<AdminProtectedRoute><VerificationDocument /></AdminProtectedRoute>} />
+              <Route path="blog" element={<AdminBlog />} />
+              <Route path="inquiries" element={<AdminInquiries />} />
+              <Route path="requests" element={<AdminRequests />} />
+              <Route path="auth" element={<AdminAuth />} />
+            </Route>
+            
+            <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ScrollToTop>
       </BrowserRouter>
     </AdminAuthProvider>
   );

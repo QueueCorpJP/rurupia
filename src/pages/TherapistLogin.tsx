@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const TherapistLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,19 +115,19 @@ const TherapistLogin = () => {
                   required
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id="remember"
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  <Label htmlFor="remember" className="text-sm font-normal">
-                    ログイン状態を保持
+                  <Label htmlFor="remember" className="text-sm font-normal whitespace-nowrap">
+                    {isMobile ? "ログイン保持" : "ログイン状態を保持"}
                   </Label>
                 </div>
-                <Link to="/therapist-forgot-password" className="text-sm text-primary hover:underline">
-                  パスワードをお忘れの方
+                <Link to="/therapist-forgot-password" className="text-sm text-primary hover:underline whitespace-nowrap">
+                  {isMobile ? "パスワード忘れ" : "パスワードをお忘れの方"}
                 </Link>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>

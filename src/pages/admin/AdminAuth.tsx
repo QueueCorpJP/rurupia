@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // These would normally be stored securely, not in client code
 // For a real app, this authentication should be server-side
@@ -19,6 +20,7 @@ const AdminAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   // Get the path the user was trying to access
   const from = location.state?.from?.pathname || "/admin";

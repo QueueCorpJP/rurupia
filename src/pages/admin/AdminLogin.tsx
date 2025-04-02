@@ -1,9 +1,11 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -12,6 +14,7 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { adminLogin } = useAdminAuth();
+  const isMobile = useIsMobile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,4 +101,4 @@ const AdminLogin = () => {
   );
 };
 
-export default AdminLogin; 
+export default AdminLogin;

@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +34,6 @@ const Login = () => {
       }
 
       if (data) {
-        // Check if the user is banned
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('status')
@@ -44,7 +45,6 @@ const Login = () => {
         }
         
         if (profileData?.status === 'rejected') {
-          // User is banned, sign them out and show error
           await supabase.auth.signOut();
           toast.error("このアカウントはバンされています。管理者にお問い合わせください。", {
             duration: 5000,
@@ -57,7 +57,6 @@ const Login = () => {
           dismissible: true,
         });
         
-        // Check if user is a store
         const { data: storeData } = await supabase
           .from('stores')
           .select('id')
@@ -69,7 +68,6 @@ const Login = () => {
           return;
         }
         
-        // Check if user is a therapist
         const { data: therapistData } = await supabase
           .from('therapists')
           .select('id')
@@ -81,7 +79,6 @@ const Login = () => {
           return;
         }
         
-        // Default to user profile for other user types
         navigate("/user-profile");
       }
     } catch (error) {
@@ -123,15 +120,11 @@ const Login = () => {
     try {
       setIsLoading(true);
       
-      // Use environment variable for the LINE client ID
       const LINE_CLIENT_ID = process.env.REACT_APP_LINE_CLIENT_ID || "2007106410";
-      // Use a fixed redirect URI that matches your LINE developer console configuration
       const REDIRECT_URI = "https://therapist-connectivity.vercel.app/callback";
       
-      // Store the intent in sessionStorage for the callback handling
       sessionStorage.setItem("line_auth_intent", "login");
       
-      // Construct the LINE OAuth URL using LINE's v2.1 endpoint
       const LINE_OAUTH_URL = 
         `https://access.line.me/oauth2/v2.1/authorize?` + 
         `response_type=code&` +
@@ -143,7 +136,6 @@ const Login = () => {
         `prompt=consent&` +
         `bot_prompt=normal`;
       
-      // Redirect the user to the LINE OAuth page
       window.location.href = LINE_OAUTH_URL;
     } catch (error) {
       console.error("LINE login error:", error);
@@ -227,19 +219,19 @@ const Login = () => {
                   required
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id="remember"
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  <Label htmlFor="remember" className="text-sm font-normal">
-                    ログイン状態を保持
+                  <Label htmlFor="remember" className="text-sm font-normal whitespace-nowrap">
+                    {isMobile ? "ログイン保持" : "ログイン状態を保持"}
                   </Label>
                 </div>
-                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                  パスワードをお忘れの方
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline whitespace-nowrap">
+                  {isMobile ? "パスワード忘れ" : "パスワードをお忘れの方"}
                 </Link>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>

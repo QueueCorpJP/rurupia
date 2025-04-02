@@ -1,5 +1,6 @@
 
 import { Star } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Review {
   id: number;
@@ -14,19 +15,24 @@ interface TherapistReviewsProps {
 }
 
 const TherapistReviews = ({ reviews }: TherapistReviewsProps) => {
+  const isMobile = useIsMobile();
+  
   return (
     <div className="mt-8">
       <h2 className="font-semibold text-lg mb-3">お客様の声</h2>
       <div className="space-y-4">
         {reviews.length > 0 ? (
           reviews.map(review => (
-            <div key={review.id} className="border rounded-lg p-4">
+            <div key={review.id} className="border rounded-lg p-4 transition-all hover:shadow-md hover:border-primary/20">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="font-medium">{review.user}</div>
                   <div className="flex items-center mt-1">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'fill-amber-500 text-amber-500' : 'text-gray-300'}`} />
+                      <Star 
+                        key={i} 
+                        className={`h-4 w-4 ${i < review.rating ? 'fill-amber-500 text-amber-500' : 'text-gray-300'} transition-colors`}
+                      />
                     ))}
                   </div>
                 </div>
@@ -42,7 +48,7 @@ const TherapistReviews = ({ reviews }: TherapistReviewsProps) => {
           </div>
         )}
       </div>
-      <button className="w-full mt-4 bg-muted hover:bg-muted/80 text-foreground h-10 px-4 py-2 rounded-md transition-all">
+      <button className="w-full mt-4 bg-gradient-to-r from-pink-500 to-rose-400 text-white hover:from-pink-600 hover:to-rose-500 h-10 px-4 py-2 rounded-md transition-all">
         レビューを書く
       </button>
     </div>

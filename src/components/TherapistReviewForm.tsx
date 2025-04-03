@@ -1,4 +1,9 @@
+
+import { useState } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Star } from 'lucide-react';
 
 interface TherapistReviewFormProps {
   therapistId: string;
@@ -6,6 +11,9 @@ interface TherapistReviewFormProps {
 }
 
 export default function TherapistReviewForm({ therapistId, onReviewSubmitted }: TherapistReviewFormProps) {
+  const [rating, setRating] = useState<number>(0);
+  const [hoveredRating, setHoveredRating] = useState<number>(0);
+  
   return (
     <Alert>
       <AlertDescription>

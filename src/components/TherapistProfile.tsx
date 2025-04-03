@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -92,62 +93,6 @@ export function TherapistProfile({
           {isFollowing ? "フォロー中" : "フォローする"}
         </Button>
       </div>
-      <Tabs defaultValue="profile">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="profile">プロフィール</TabsTrigger>
-          <TabsTrigger value="info">詳細情報</TabsTrigger>
-        </TabsList>
-        <TabsContent value="profile" className="space-y-4 mt-4">
-          <div>
-            <h3 className="text-lg font-medium">自己紹介</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {formatValue(therapist.description)}
-            </p>
-          </div>
-        </TabsContent>
-        <TabsContent value="info" className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-            <div>
-              <h4 className="text-sm font-medium">エリア</h4>
-              <p className="text-sm text-muted-foreground">
-                {formatValue(therapist.area || therapist.location)}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium">詳細エリア</h4>
-              <p className="text-sm text-muted-foreground">
-                {formatValue(therapist.detailedArea)}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium">身長</h4>
-              <p className="text-sm text-muted-foreground">
-                {formatHeight(therapist.height)}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium">体重</h4>
-              <p className="text-sm text-muted-foreground">
-                {formatWeight(therapist.weight)}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium">年齢</h4>
-              <p className="text-sm text-muted-foreground">
-                {formatValue(therapist.age)}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium">趣味</h4>
-              <p className="text-sm text-muted-foreground">
-                {therapist.hobbies && Array.isArray(therapist.hobbies) && therapist.hobbies.length > 0
-                  ? therapist.hobbies.join(', ')
-                  : formatValue(therapist.hobbies)}
-              </p>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

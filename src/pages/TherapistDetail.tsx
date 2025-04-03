@@ -16,13 +16,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Extend the Therapist interface to include gallery_images
 interface ExtendedTherapist extends Therapist {
   galleryImages?: string[];
   followers_count?: number;
 }
 
-// Interface for posts from Supabase
 interface SupabasePost {
   id: string;
   therapist_id: string;
@@ -33,7 +31,6 @@ interface SupabasePost {
   created_at: string;
 }
 
-// Interface for the TherapistPosts component
 interface Post {
   id: number;
   content: string;
@@ -54,7 +51,6 @@ const TherapistDetail = () => {
   const [therapistPosts, setTherapistPosts] = useState<Post[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Format or default values for therapist data
   const formatValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
       return '-';
@@ -62,7 +58,6 @@ const TherapistDetail = () => {
     return String(value);
   };
 
-  // Check if user is authenticated
   const checkUserAuth = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
     if (data?.session?.user) {
@@ -72,7 +67,6 @@ const TherapistDetail = () => {
     return null;
   }, []);
 
-  // Check if the user is following the therapist
   const checkIsFollowing = useCallback(async (userId: string, therapistId: string) => {
     if (!userId || !therapistId) return false;
     
@@ -91,7 +85,6 @@ const TherapistDetail = () => {
     return !!data;
   }, []);
 
-  // Use useCallback to memoize the fetchTherapist function
   const fetchTherapist = useCallback(async () => {
     if (!id || !isMounted) return;
     
@@ -99,7 +92,6 @@ const TherapistDetail = () => {
       setIsLoading(true);
       setError(null);
       
-      // Fetch from Supabase with followers count
       const { data, error } = await supabase
         .from('therapists')
         .select(`
@@ -122,7 +114,6 @@ const TherapistDetail = () => {
       
       console.log("Raw therapist data from Supabase:", data);
       
-      // Fetch services for this therapist
       let therapistServices: Service[] = [];
       
       try {
@@ -134,7 +125,6 @@ const TherapistDetail = () => {
         if (servicesError) {
           console.error("Error fetching therapist services:", servicesError);
         } else if (servicesData && servicesData.length > 0) {
-          // Map the services data to match the Service type
           therapistServices = servicesData.map((item: any) => ({
             id: item.service_id || item.id,
             name: item.services?.name || "",
@@ -147,7 +137,6 @@ const TherapistDetail = () => {
         console.error("Error processing services:", servicesErr);
       }
       
-      // Fetch posts for this therapist
       let posts: Post[] = [];
       
       try {
@@ -160,12 +149,11 @@ const TherapistDetail = () => {
         if (postsError) {
           console.error("Error fetching therapist posts:", postsError);
         } else if (postsData && postsData.length > 0) {
-          // Map the posts data to match the Post type expected by TherapistPosts
           posts = postsData.map((post: SupabasePost) => ({
-            id: parseInt(post.id) || Math.floor(Math.random() * 10000), // Fallback if id can't be parsed
+            id: parseInt(post.id) || Math.floor(Math.random() * 10000),
             content: post.content || post.title || "",
             image: post.image_url,
-            date: new Date(post.created_at).toLocaleDateString('ja-JP'), // Format date for Japanese locale
+            date: new Date(post.created_at).toLocaleDateString('ja-JP'),
             isPrivate: post.visibility === 'followers'
           }));
         }
@@ -176,7 +164,6 @@ const TherapistDetail = () => {
         console.error("Error processing posts:", postsErr);
       }
       
-      // Map Supabase data to the extended Therapist format
       const mappedTherapist: ExtendedTherapist = {
         id: data.id,
         name: data.name || "",
@@ -190,9 +177,7 @@ const TherapistDetail = () => {
         qualifications: data.qualifications || [],
         specialties: data.specialties || [],
         services: therapistServices,
-        // Add the gallery images from Supabase
         galleryImages: (data as any).gallery_images || [],
-        // Add other fields that might be useful for display
         height: (data as any).height,
         weight: (data as any).weight,
         workingHours: (data as any).working_hours,
@@ -217,10 +202,8 @@ const TherapistDetail = () => {
   }, [id, isMounted]);
 
   useEffect(() => {
-    // Set mounted flag
     setIsMounted(true);
     
-    // Check if user is authenticated and following status
     const checkFollowStatus = async () => {
       const user = await checkUserAuth();
       if (user && id) {
@@ -229,13 +212,11 @@ const TherapistDetail = () => {
       }
     };
     
-    // Load data with a small delay to ensure smooth transitions
     const timer = setTimeout(() => {
       fetchTherapist();
       checkFollowStatus();
     }, 300);
     
-    // Cleanup function
     return () => {
       clearTimeout(timer);
       setIsMounted(false);
@@ -270,14 +251,12 @@ const TherapistDetail = () => {
     );
   }
 
-  // Update handleToggleFollow to actually update the database
   const handleToggleFollow = async () => {
-    // Check if user is authenticated
     const user = currentUser || await checkUserAuth();
     
     if (!user) {
       toast.error('フォローするにはログインが必要です');
-      navigate('/login'); // Redirect to login
+      navigate('/login');
       return;
     }
     
@@ -285,7 +264,6 @@ const TherapistDetail = () => {
     
     try {
       if (isFollowing) {
-        // Unfollow: Delete the record
         const { error } = await supabase
           .from('followed_therapists')
           .delete()
@@ -296,12 +274,11 @@ const TherapistDetail = () => {
         
         toast.success(`${therapist.name}のフォローを解除しました`);
       } else {
-        // Follow: Insert a new record
         const { error } = await supabase
           .from('followed_therapists')
           .insert({
             user_id: String(user.id),
-            therapist_id: String(therapist.id), // Ensure string type
+            therapist_id: String(therapist.id),
             created_at: new Date().toISOString()
           });
           
@@ -310,7 +287,6 @@ const TherapistDetail = () => {
         toast.success(`${therapist.name}をフォローしました`);
       }
       
-      // Update local state
       setIsFollowing(prev => !prev);
       
     } catch (error) {
@@ -318,7 +294,7 @@ const TherapistDetail = () => {
       toast.error('エラーが発生しました。もう一度お試しください');
     }
   };
-  
+
   const handleTabChange = (value: string) => {
     setSidebarTab(value as 'availability' | 'message');
   };
@@ -427,7 +403,6 @@ const TherapistDetail = () => {
                 
                 <TabsContent value="availability" className="p-0 m-0 pt-4">
                   <h3 className="font-semibold mb-3">空き状況</h3>
-                  {/* Use key to ensure proper remounting when therapist changes */}
                   <AvailabilityCalendar 
                     key={`availability-${therapist.id}`} 
                     therapistId={therapist.id} 
@@ -435,7 +410,6 @@ const TherapistDetail = () => {
                 </TabsContent>
                 
                 <TabsContent value="message" className="p-0 m-0 pt-4">
-                  {/* Use key to ensure proper remounting when therapist changes */}
                   <MessageInterface 
                     key={`message-${therapist.id}`} 
                     therapist={therapist} 

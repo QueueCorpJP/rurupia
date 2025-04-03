@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Therapist } from '@/utils/types';
 import { useNavigate } from 'react-router-dom';
@@ -441,8 +442,8 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
   };
 
   return (
-    <div className="bg-card rounded-lg border shadow-sm overflow-hidden animate-fade-in">
-      <div className="p-6">
+    <div className="overflow-hidden animate-fade-in">
+      <div className="p-6 md:p-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">予約リクエストを送信</h2>
         </div>
@@ -563,16 +564,17 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
                 {usingDefaultSlots && (
                   <p className="text-amber-500 text-sm mb-2">注意: セラピストの実際の予定がまだ登録されていないため、仮の時間枠を表示しています。</p>
                 )}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {availableTimeSlots.map((slot, index) => (
                     <button
                       key={index}
                       className={`p-2 rounded border ${
                         selectedTime === slot 
-                          ? 'bg-primary text-white' 
-                          : 'hover:bg-gray-100'
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'hover:bg-muted'
                       }`}
                       onClick={() => setSelectedTime(slot)}
+                      type="button"
                     >
                       {slot}
                     </button>
@@ -650,7 +652,7 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
           </div>
 
           {/* Fee Information */}
-          <div className="p-4 bg-muted rounded-lg mb-4">
+          <div className="p-4 bg-muted/50 rounded-lg mb-4">
             <h4 className="font-medium mb-2">料金情報</h4>
             <p className="text-sm text-muted-foreground mb-1">
               セラピスト料金: {therapist.price.toLocaleString()}円 / 時間
@@ -665,6 +667,7 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
             type="submit" 
             className="w-full" 
             disabled={isSubmitting}
+            size="lg"
           >
             {isSubmitting ? (
               <>

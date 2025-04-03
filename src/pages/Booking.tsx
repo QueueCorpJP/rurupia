@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -104,7 +105,7 @@ const Booking = () => {
 
   return (
     <Layout>
-      <div className="container max-w-4xl mx-auto py-8">
+      <div className="container max-w-4xl mx-auto py-8 px-4 sm:px-6">
         <button
           onClick={() => navigate(`/therapist/${id}`)}
           className="inline-flex items-center mb-6 text-muted-foreground hover:text-foreground transition-colors"
@@ -113,14 +114,14 @@ const Booking = () => {
           セラピスト詳細に戻る
         </button>
         
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">{therapist.name} へ予約</h1>
-            <BookingForm 
-              therapist={therapist} 
-              onClose={() => navigate(`/therapist/${id}`)} 
-            />
+        <div className="bg-background rounded-lg shadow-sm overflow-hidden">
+          <div className="p-4 sm:p-6 border-b">
+            <h1 className="text-2xl sm:text-3xl font-bold">{therapist.name} へ予約</h1>
           </div>
+          <BookingForm 
+            therapist={therapist} 
+            onClose={() => navigate(`/therapist/${id}`)} 
+          />
         </div>
       </div>
     </Layout>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -170,7 +171,7 @@ const UserBookings = () => {
   
   const renderBookingCard = (booking: BookingRequest) => {
     return (
-      <div key={booking.id} className="border rounded-lg p-4 mb-4">
+      <div key={booking.id} className="bg-background rounded-lg shadow-sm p-4 mb-4 border">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
@@ -189,7 +190,7 @@ const UserBookings = () => {
               </div>
               <div className="flex items-center">
                 <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{booking.serviceLocation}</span>
+                <span className="truncate">{booking.serviceLocation}</span>
               </div>
               <div className="flex items-center">
                 <User className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -260,8 +261,8 @@ const UserBookings = () => {
   
   return (
     <Layout>
-      <div className="container max-w-4xl py-8">
-        <h1 className="text-3xl font-bold mb-6">予約履歴</h1>
+      <div className="container max-w-4xl py-8 px-4 sm:px-6">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6">予約履歴</h1>
         
         <Tabs defaultValue="pending" className="w-full">
           <TabsList className="grid grid-cols-4 mb-6">

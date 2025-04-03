@@ -1,16 +1,16 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import BlogSidebar from '../components/BlogSidebar';
 import BlogCard from '../components/BlogCard';
-import { blogPosts } from '../utils/blogData';
 import { BlogPost } from '../utils/types';
 import { ArrowLeft, Heart, Share, MessageSquare, CalendarDays, Clock, Link2, TrendingUp } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { toast } from '../components/ui/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from '@/integrations/supabase/client';
+import SEO from '@/components/SEO';
 
 const BlogDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -18,38 +18,211 @@ const BlogDetail = () => {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
+  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+  const [popularPosts, setPopularPosts] = useState<BlogPost[]>([]);
+  const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (slug) {
-        const foundPost = blogPosts.find(p => p.slug === slug);
-        setPost(foundPost || null);
+    const fetchPostAndRelated = async () => {
+      setIsLoading(true);
+      try {
+        if (!slug) return;
+        
+        // 1. Fetch the specific post
+        const { data: postData, error: postError } = await supabase
+          .from('blog_posts')
+          .select('*')
+          .eq('slug', slug)
+          .eq('published', true)
+          .single();
+        
+        if (postError) {
+          console.error('Error fetching blog post:', postError);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!postData) {
+          setIsLoading(false);
+          return;
+        }
+        
+        // 2. Transform the post data
+        const transformedPost: BlogPost = {
+          id: postData.id,
+          title: postData.title,
+          slug: postData.slug,
+          excerpt: postData.excerpt,
+          content: postData.content,
+          publishedAt: new Date(postData.published_at).toLocaleDateString('ja-JP'),
+          category: postData.category,
+          tags: postData.tags || [],
+          coverImage: postData.cover_image || 'https://placehold.co/600x400/png',
+          readTime: postData.read_time,
+          views: postData.views,
+          author_name: postData.author_name,
+          author_avatar: postData.author_avatar
+        };
+        
+        setPost(transformedPost);
+        
+        // 3. Increment view count
+        try {
+          await supabase.rpc('increment_blog_view', { slug_param: slug });
+        } catch (error) {
+          console.error('Error incrementing view count:', error);
+        }
+        
+        // 4. Fetch related posts (same category or tags)
+        const { data: relatedData, error: relatedError } = await supabase
+          .from('blog_posts')
+          .select('*')
+          .eq('published', true)
+          .neq('slug', slug)
+          .or(`category.eq.${postData.category},tags.cs.{${postData.tags?.join(',')}}`)
+          .limit(3);
+        
+        if (!relatedError && relatedData) {
+          const transformedRelated: BlogPost[] = relatedData.map(post => ({
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            content: post.content,
+            publishedAt: new Date(post.published_at).toLocaleDateString('ja-JP'),
+            category: post.category,
+            tags: post.tags || [],
+            coverImage: post.cover_image || 'https://placehold.co/600x400/png',
+            readTime: post.read_time,
+            views: post.views,
+            author_name: post.author_name,
+            author_avatar: post.author_avatar
+          }));
+          setRelatedPosts(transformedRelated);
+        }
+        
+        // 5. Fetch popular posts
+        const { data: popularData, error: popularError } = await supabase
+          .from('blog_posts')
+          .select('*')
+          .eq('published', true)
+          .order('views', { ascending: false })
+          .limit(5);
+        
+        if (!popularError && popularData) {
+          const transformedPopular: BlogPost[] = popularData.map(post => ({
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            content: post.content,
+            publishedAt: new Date(post.published_at).toLocaleDateString('ja-JP'),
+            category: post.category,
+            tags: post.tags || [],
+            coverImage: post.cover_image || 'https://placehold.co/600x400/png',
+            readTime: post.read_time,
+            views: post.views,
+            author_name: post.author_name,
+            author_avatar: post.author_avatar
+          }));
+          setPopularPosts(transformedPopular);
+        }
+        
+        // 6. Fetch recent posts
+        const { data: recentData, error: recentError } = await supabase
+          .from('blog_posts')
+          .select('*')
+          .eq('published', true)
+          .neq('slug', slug)
+          .order('published_at', { ascending: false })
+          .limit(3);
+        
+        if (!recentError && recentData) {
+          const transformedRecent: BlogPost[] = recentData.map(post => ({
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            content: post.content,
+            publishedAt: new Date(post.published_at).toLocaleDateString('ja-JP'),
+            category: post.category,
+            tags: post.tags || [],
+            coverImage: post.cover_image || 'https://placehold.co/600x400/png',
+            readTime: post.read_time,
+            views: post.views,
+            author_name: post.author_name,
+            author_avatar: post.author_avatar
+          }));
+          setRecentPosts(transformedRecent);
+        }
+        
+        // 7. Get unique categories and tags
+        const { data: allPosts, error: allPostsError } = await supabase
+          .from('blog_posts')
+          .select('category, tags')
+          .eq('published', true);
+        
+        if (!allPostsError && allPosts) {
+          const allCategories = [...new Set(allPosts.map(p => p.category))];
+          const allTags = [...new Set(allPosts.flatMap(p => p.tags || []))];
+          setCategories(allCategories);
+          setTags(allTags);
+        }
+        
+        // 8. Log page view
+        try {
+          await supabase.rpc('log_page_view', {
+            page_path: `/blog/${slug}`,
+            ip: '0.0.0.0', // We don't track user IP
+            user_agent: navigator.userAgent
+          });
+        } catch (error) {
+          console.error('Error logging page view:', error);
+        }
+        
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }, 500);
+    };
     
-    return () => clearTimeout(timer);
+    fetchPostAndRelated();
   }, [slug]);
   
-  const categories = [...new Set(blogPosts.map(post => post.category))];
-  const tags = [...new Set(blogPosts.flatMap(post => post.tags))];
-  
-  // Get top 5 popular posts based on view count
-  const popularPosts = [...blogPosts]
-    .sort((a, b) => (b.views || 0) - (a.views || 0))
-    .slice(0, 5);
-  
-  const recentPosts = [...blogPosts]
-    .filter(p => p.slug !== slug)
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, 3);
-  
-  const relatedPosts = post ? blogPosts
-    .filter(p => p.slug !== post.slug && (
-      p.category === post.category ||
-      p.tags.some(tag => post.tags.includes(tag))
-    ))
-    .slice(0, 3) : [];
+  // Create structured data for BlogPosting
+  const getBlogPostSchema = () => {
+    if (!post) return null;
+    
+    return {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": post.title,
+      "description": post.excerpt,
+      "image": post.coverImage,
+      "author": {
+        "@type": "Person",
+        "name": post.author_name || "SerenitySage"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "SerenitySage",
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${window.location.origin}/logo.png`
+        }
+      },
+      "datePublished": post.publishedAt,
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": window.location.href
+      },
+      "keywords": post.tags.join(","),
+      "articleSection": post.category
+    };
+  };
   
   const handleShare = () => {
     if (navigator.share) {
@@ -80,6 +253,10 @@ const BlogDetail = () => {
   if (isLoading) {
     return (
       <Layout>
+        <SEO 
+          title="ブログ記事を読み込み中..."
+          description="ブログ記事を読み込んでいます。少々お待ちください。"
+        />
         <div className="flex justify-center items-center h-96">
           <div className="flex space-x-2">
             <div className="w-3 h-3 rounded-full bg-primary loading-dot"></div>
@@ -94,6 +271,10 @@ const BlogDetail = () => {
   if (!post) {
     return (
       <Layout>
+        <SEO 
+          title="記事が見つかりません"
+          description="お探しのブログ記事は存在しないか、削除された可能性があります。"
+        />
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold">ブログ記事が見つかりません</h2>
           <p className="text-muted-foreground mt-2">
@@ -113,6 +294,16 @@ const BlogDetail = () => {
   
   return (
     <Layout>
+      <SEO 
+        title={post.title}
+        description={post.excerpt}
+        image={post.coverImage}
+        type="article"
+        publishedAt={post.publishedAt}
+        author={post.author_name}
+        schemaJson={getBlogPostSchema()}
+        keywords={post.tags.join(', ')}
+      />
       <button
         onClick={() => navigate('/blog')}
         className="inline-flex items-center mb-6 text-muted-foreground hover:text-foreground transition-colors"
@@ -181,38 +372,41 @@ const BlogDetail = () => {
           </article>
           
           {/* Popular Posts Section */}
-          <div className="mt-12 border-t pt-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <TrendingUp className="mr-2 h-5 w-5 text-primary" />
-              人気の記事
-            </h2>
-            <div className="grid gap-6 sm:grid-cols-2">
-              {popularPosts.map(popularPost => (
-                <Card key={popularPost.id} className="overflow-hidden">
-                  <div className="h-40 overflow-hidden">
-                    <img 
-                      src={popularPost.coverImage} 
-                      alt={popularPost.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-4">
-                    <Badge className="mb-2">{popularPost.views || 0} 閲覧</Badge>
-                    <h3 className="font-semibold line-clamp-2">
-                      <Link to={`/blog/${popularPost.slug}`} className="hover:underline">{popularPost.title}</Link>
-                    </h3>
-                  </CardContent>
-                </Card>
-              ))}
+          {popularPosts.length > 0 && (
+            <div className="mt-12 border-t pt-8">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <TrendingUp className="mr-2 h-5 w-5 text-primary" />
+                人気の記事
+              </h2>
+              <div className="grid gap-6 sm:grid-cols-2">
+                {popularPosts.map(popularPost => (
+                  <Card key={popularPost.id} className="overflow-hidden">
+                    <div className="h-40 overflow-hidden">
+                      <img 
+                        src={popularPost.coverImage} 
+                        alt={popularPost.title} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <CardContent className="p-4">
+                      <Badge className="mb-2">{popularPost.views || 0} 閲覧</Badge>
+                      <h3 className="font-semibold line-clamp-2">
+                        <Link to={`/blog/${popularPost.slug}`} className="hover:underline">{popularPost.title}</Link>
+                      </h3>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           
-          <div className="mt-12 border-t pt-8">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Link2 className="mr-2 h-5 w-5 text-primary" />
-              関連記事
-            </h2>
-            {relatedPosts.length > 0 ? (
+          {/* Related Posts Section */}
+          {relatedPosts.length > 0 && (
+            <div className="mt-12 border-t pt-8">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <Link2 className="mr-2 h-5 w-5 text-primary" />
+                関連記事
+              </h2>
               <div className="grid gap-6 sm:grid-cols-2">
                 {relatedPosts.map(relatedPost => (
                   <BlogCard 
@@ -222,12 +416,8 @@ const BlogDetail = () => {
                   />
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-8 border rounded-lg">
-                <p className="text-muted-foreground">関連記事はありません</p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         
         <BlogSidebar 

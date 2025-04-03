@@ -1,0 +1,18 @@
+# Allow all web crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://therapist-connectivity.vercel.app/sitemap.xml
+
+# Disallow crawling of admin and private areas
+User-agent: *
+Disallow: /admin/
+Disallow: /store-admin/
+Disallow: /therapist-dashboard/
+Disallow: /user-profile/
+Disallow: /therapist-profile/
+Disallow: /therapist-posts/
+Disallow: /therapist-bookings/
+Disallow: /therapist-messages/
+Disallow: /messages/ 

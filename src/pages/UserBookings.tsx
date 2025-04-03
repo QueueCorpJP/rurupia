@@ -15,7 +15,8 @@ interface SupabaseBooking {
   therapist_id: string;
   user_id: string;
   date: string;
-  status: string;
+  ["status therapist"]?: string;
+  ["status store"]?: string;
   notes: string;
   location: string;
   price: number;
@@ -30,14 +31,17 @@ const UserBookings = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Map status from English to Japanese
-  const mapStatus = (status: string): "承認待ち" | "確定" | "キャンセル" | "完了" => {
-    switch (status.toLowerCase()) {
-      case 'pending': return "承認待ち";
-      case 'confirmed': return "確定";
-      case 'completed': return "完了";
-      case 'cancelled': return "キャンセル";
-      default: return "承認待ち";
-    }
+  const mapStatus = (statusTherapist: string | null | undefined, statusStore: string | null | undefined): "承認待ち" | "確定" | "キャンセル" | "完了" => {
+    // Default to pending if both are null/undefined
+    if (!statusTherapist && !statusStore) return "承認待ち";
+    
+    // Priority order: cancelled > completed > confirmed > pending
+    if (statusTherapist === 'cancelled' || statusStore === 'cancelled') return "キャンセル";
+    if (statusTherapist === 'completed' || statusStore === 'completed') return "完了";
+    if (statusTherapist === 'confirmed' || statusStore === 'confirmed') return "確定";
+    
+    // Default to pending for any other status
+    return "承認待ち";
   };
   
   // Function to format date
@@ -102,6 +106,8 @@ const UserBookings = () => {
           return;
         }
         
+        console.log('Bookings data:', data);
+        
         // Transform database bookings to match BookingRequest interface
         const transformedBookings: BookingRequest[] = data.map((booking: any) => ({
           id: booking.id,
@@ -110,7 +116,7 @@ const UserBookings = () => {
           servicePrice: booking.price,
           serviceLocation: booking.location,
           meetingMethod: extractMeetingMethod(booking),
-          status: mapStatus(booking.status),
+          status: mapStatus(booking["status therapist"], booking["status store"]),
           notes: booking.notes || '',
           therapistId: booking.therapist_id,
           therapistName: booking.therapists?.name || 'セラピスト'
@@ -135,10 +141,13 @@ const UserBookings = () => {
   
   const handleCancelRequest = async (id: string) => {
     try {
-      // Update booking status in Supabase
+      // Update both status fields to cancelled
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'cancelled' })
+        .update({ 
+          ["status therapist"]: 'cancelled',
+          ["status store"]: 'cancelled'
+        } as any)
         .eq('id', id);
         
       if (error) {

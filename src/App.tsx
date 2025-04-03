@@ -3,6 +3,8 @@ import { useScrollToTop } from './hooks/useScrollToTop';
 import Index from './pages/Index';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import LineCallback from './pages/LineCallback';
 import Therapists from './pages/Therapists';
 import TherapistDetail from './pages/TherapistDetail';
@@ -73,6 +75,8 @@ function App() {
             <Route path="/" element={<Index />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/line-callback" element={<LineCallback />} />
             <Route path="/therapists" element={<Therapists />} />
             <Route path="/therapist/:id" element={<TherapistDetail />} />

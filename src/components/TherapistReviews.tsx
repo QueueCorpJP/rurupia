@@ -1,56 +1,25 @@
-
+import { useState } from 'react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Star } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
-
-interface Review {
-  id: number;
-  user: string;
-  rating: number;
-  content: string;
-  date: string;
-}
 
 interface TherapistReviewsProps {
-  reviews: Review[];
+  therapistId: string;
 }
 
-const TherapistReviews = ({ reviews }: TherapistReviewsProps) => {
-  const isMobile = useIsMobile();
-  
+const TherapistReviews = ({ therapistId }: TherapistReviewsProps) => {
   return (
-    <div className="mt-8">
-      <h2 className="font-semibold text-lg mb-3">お客様の声</h2>
-      <div className="space-y-4">
-        {reviews.length > 0 ? (
-          reviews.map(review => (
-            <div key={review.id} className="border rounded-lg p-4 transition-all hover:shadow-md hover:border-primary/20">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-medium">{review.user}</div>
-                  <div className="flex items-center mt-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`h-4 w-4 ${i < review.rating ? 'fill-amber-500 text-amber-500' : 'text-gray-300'} transition-colors`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground">{review.date}</div>
-              </div>
-              <p className="text-sm mt-2">{review.content}</p>
-            </div>
-          ))
-        ) : (
-          <div className="border rounded-lg p-6 text-center">
-            <p className="text-muted-foreground">まだレビューはありません</p>
-            <p className="text-sm mt-2">このセラピストはまだレビューを受けていません。</p>
-          </div>
-        )}
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">レビュー</h2>
+      
+      <Alert>
+        <AlertDescription>
+          レビュー機能は現在準備中です。近日公開予定ですので、しばらくお待ちください。
+        </AlertDescription>
+      </Alert>
+      
+      <div className="text-center py-4 text-muted-foreground">
+        このセラピストにはまだレビューがありません
       </div>
-      <button className="w-full mt-4 bg-gradient-to-r from-pink-500 to-rose-400 text-white hover:from-pink-600 hover:to-rose-500 h-10 px-4 py-2 rounded-md transition-all">
-        レビューを書く
-      </button>
     </div>
   );
 };

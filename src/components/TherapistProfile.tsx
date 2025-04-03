@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Separator } from "./ui/separator";
 import { Therapist } from "../utils/types";
 import { User } from "lucide-react";
+import { getAvatarImageUrl } from "@/utils/imageOptimizer";
 
 interface TherapistProfileProps {
   therapist: Therapist;
@@ -46,12 +47,18 @@ export function TherapistProfile({
     return name.charAt(0).toUpperCase();
   };
 
+  // Get optimized avatar URL
+  const getProfileImage = (imageUrl: string): string => {
+    if (!imageUrl) return '';
+    return getAvatarImageUrl(imageUrl, 96); // 96px for the avatar (24*4)
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center justify-center space-y-3">
-        <Avatar className="h-24 w-24">
+        <Avatar className="h-24 w-24 border overflow-hidden">
           {therapist.imageUrl ? (
-            <AvatarImage src={therapist.imageUrl} alt={therapist.name} />
+            <AvatarImage src={getProfileImage(therapist.imageUrl)} alt={therapist.name} />
           ) : (
             <AvatarFallback className="text-lg">
               {getInitials(therapist.name)}

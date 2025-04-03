@@ -20,9 +20,10 @@ const SUPABASE_INIT_DELAY = 50; // Small delay to ensure Supabase is ready
 
 interface LayoutProps {
   children: ReactNode;
+  lang?: string;
 }
 
-const Layout = ({ children }: LayoutProps) => {
+const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
@@ -453,8 +454,8 @@ const Layout = ({ children }: LayoutProps) => {
   }, [user, userType, loading]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
+    <div className="flex flex-col min-h-screen" lang={lang}>
+      <header className="sticky top-0 w-full bg-white border-b z-40">
         <div className="container flex h-16 items-center">
           <Link to="/" className="flex items-center gap-2">
             <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
@@ -695,123 +696,115 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </header>
       
-      <main className="flex-1">
+      <main className="flex-grow py-8">
         {children}
       </main>
       
-      <footer className="relative bg-gradient-to-br from-gray-50 to-pink-50 pt-16 pb-8 border-t border-pink-100">
-        <div className="container px-4 md:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+      <footer className="bg-gray-100 dark:bg-gray-900 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="relative h-10 w-10 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
-                  <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
-                </div>
-                <span className="font-semibold text-xl">のくとる</span>
-              </div>
+              <h2 className="text-lg font-bold mb-4">SerenitySage</h2>
               <p className="text-muted-foreground mb-4">
-                安心して利用できる、男性セラピストによるリラクゼーションサービスマッチングプラットフォーム
+                リラクゼーションと癒やしの空間を提供し、あなたの心と体のバランスを整えるお手伝いをします。
               </p>
               <div className="flex space-x-4">
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Instagram className="h-5 w-5" />
+                <a 
+                  href="https://instagram.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Instagram"
+                >
+                  <Instagram size={20} />
                 </a>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Facebook className="h-5 w-5" />
+                <a 
+                  href="https://facebook.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Facebook"
+                >
+                  <Facebook size={20} />
                 </a>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Twitter className="h-5 w-5" />
+                <a 
+                  href="https://twitter.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Twitter"
+                >
+                  <Twitter size={20} />
                 </a>
               </div>
             </div>
             
-            <div>
-              <h3 className="font-medium text-lg mb-4">サービス</h3>
-              <ul className="space-y-3">
+            <nav aria-label="フッターナビゲーション">
+              <h2 className="text-lg font-bold mb-4">リンク</h2>
+              <ul className="space-y-2">
                 <li>
-                  <Link to="/therapists" className="text-muted-foreground hover:text-primary transition-colors">
-                    セラピスト検索
+                  <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                    ホーム
                   </Link>
                 </li>
                 <li>
-                  <Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
+                    私たちについて
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/therapists" className="text-muted-foreground hover:text-foreground transition-colors">
+                    セラピスト一覧
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog" className="text-muted-foreground hover:text-foreground transition-colors">
                     ブログ
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">
-                    会社概要
-                  </Link>
-                </li>
-              
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-medium text-lg mb-4">サポート</h3>
-              <ul className="space-y-3">
-                <li>
-                  <Link to="/faq" className="text-muted-foreground hover:text-primary transition-colors">
-                    よくある質問
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
-                    利用規約
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
-                    プライバシーポリシー
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
                     お問い合わせ
                   </Link>
                 </li>
+                <li>
+                  <Link to="/faq" className="text-muted-foreground hover:text-foreground transition-colors">
+                    よくある質問
+                  </Link>
+                </li>
               </ul>
-            </div>
+            </nav>
             
             <div>
-              <h3 className="font-medium text-lg mb-4">お問い合わせ</h3>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-muted-foreground">
-                  〒130-0022 東京都墨田区江東橋4丁目27番14号 楽天地ビル3F                  </span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-primary flex-shrink-0" />
-                  <span className="text-muted-foreground">
-                    03-1234-5678
-                  </span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-primary flex-shrink-0" />
-                  <span className="text-muted-foreground">
-                  info@noctle.com
-                  </span>
-                </li>
-              </ul>
+              <h2 className="text-lg font-bold mb-4">お問い合わせ</h2>
+              <address className="not-italic">
+                <div className="flex items-center text-muted-foreground mb-2">
+                  <MapPin size={16} className="mr-2" aria-hidden="true" />
+                  <span>東京都渋谷区〇〇町1-2-3</span>
+                </div>
+                <div className="flex items-center text-muted-foreground mb-2">
+                  <Phone size={16} className="mr-2" aria-hidden="true" />
+                  <a href="tel:03-1234-5678" className="hover:text-foreground transition-colors">03-1234-5678</a>
+                </div>
+                <div className="flex items-center text-muted-foreground">
+                  <Mail size={16} className="mr-2" aria-hidden="true" />
+                  <a href="mailto:info@example.com" className="hover:text-foreground transition-colors">info@example.com</a>
+                </div>
+              </address>
             </div>
           </div>
           
-          <div className="border-t border-pink-100 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-muted-foreground order-2 md:order-1 mt-4 md:mt-0 text-center md:text-left">
-              &copy; 2023 のくとる All rights reserved.
+          <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p className="text-sm text-muted-foreground mb-4 md:mb-0">
+              &copy; {new Date().getFullYear()} SerenitySage. All rights reserved.
             </p>
-            <div className="flex items-center space-x-4 order-1 md:order-2">
-              <Link to="/terms" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+            
+            <div className="flex space-x-4">
+              <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 利用規約
               </Link>
-              <span className="text-muted-foreground">•</span>
-              <Link to="/privacy" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 プライバシーポリシー
-              </Link>
-              <span className="text-muted-foreground">•</span>
-              <Link to="/sitemap" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                サイトマップ
               </Link>
             </div>
           </div>

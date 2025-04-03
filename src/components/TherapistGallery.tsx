@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Therapist } from '../utils/types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getOptimizedImageUrl } from '@/utils/imageOptimizer';
 
 interface TherapistGalleryProps {
   therapist: Therapist;
@@ -53,12 +54,19 @@ const TherapistGallery = ({ therapist }: TherapistGalleryProps) => {
     setCurrentIndex(slideIndex);
   };
 
+  // Get optimized image URL with appropriate dimensions and object-fit
+  const getGalleryImageUrl = (url: string) => {
+    const containerWidth = 800; // Approximate max width of the container
+    const containerHeight = 384; // Height of the gallery (h-96)
+    return getOptimizedImageUrl(url, containerWidth, containerHeight, 80, 'contain');
+  };
+
   return (
-    <div className="relative w-full h-96">
+    <div className="relative w-full h-96 bg-gray-100">
       <img
-        src={images[currentIndex]}
+        src={getGalleryImageUrl(images[currentIndex])}
         alt={`Photo of ${therapist.name}`}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         onError={(e) => {
           // Replace broken image with placeholder
           const target = e.target as HTMLImageElement;

@@ -84,7 +84,11 @@ const mapDatabaseToComponentFormat = (data: any) => {
     workingHours: data.working_hours || data.workingHours || { start: "09:00", end: "18:00" },
     pricePerHour: price,
     bio: data.bio || data.description || '',
-    serviceAreas: data.service_areas || data.serviceAreas || { prefecture: data.location || '', cities: [] },
+    serviceAreas: {
+      prefecture: data.service_areas?.prefecture || data.serviceAreas?.prefecture || data.location || '',
+      cities: data.service_areas?.cities || data.serviceAreas?.cities || [],
+      detailedArea: data.service_areas?.detailedArea || data.serviceAreas?.detailedArea || data.detailedArea || '',
+    },
     height: data.height,
     weight: data.weight,
     hobbies: data.hobbies || [],
@@ -93,6 +97,7 @@ const mapDatabaseToComponentFormat = (data: any) => {
     galleryImages: data.gallery_images || data.galleryImages || [],
     healthDocumentUrl: data.health_document_url || '',
     mbtiType: data.mbti_type || 'unknown',
+    age: data.age || data.age_group || '',
     questionnaireData: {
       mood: questionnaireData.mood || '',
       therapistType: questionnaireData.therapistType || '',
@@ -108,7 +113,11 @@ interface ProfileState {
   workingHours: { start: string; end: string };
   pricePerHour: number;
   bio: string;
-  serviceAreas: { prefecture: string; cities: [] };
+  serviceAreas: { 
+    prefecture: string; 
+    cities: [];
+    detailedArea?: string;  // Add detailed area field
+  };
   height: number | undefined;
   weight: number | undefined;
   experience: number | undefined;
@@ -119,6 +128,7 @@ interface ProfileState {
   galleryImages: string[];
   healthDocumentUrl: string;
   mbtiType: string;
+  age: string;  // Add age field
   questionnaireData: {
     mood: string;
     therapistType: string;
@@ -153,6 +163,7 @@ export const TherapistProfileForm = ({
     galleryImages: [],
     healthDocumentUrl: '',
     mbtiType: 'unknown',
+    age: '',
     questionnaireData: {
       mood: '',
       therapistType: '',
@@ -446,9 +457,30 @@ export const TherapistProfileForm = ({
 
   // Return mapped data for saving to database
   const mapComponentToDatabaseFormat = (data: any) => {
-    // Convert working days from UI format (single characters) to database format
-    // Store the full day name to make it more readable in the database
-    const workingDaysMap: { [key: string]: string } = {
+    console.log("Mapping component format to database format:", data);
+    
+    // Extract individual fields
+    const {
+      name,
+      workingDays,
+      workingHours,
+      pricePerHour,
+      bio,
+      serviceAreas,
+      height,
+      weight,
+      hobbies,
+      qualifications,
+      avatarUrl,
+      galleryImages,
+      healthDocumentUrl,
+      mbtiType,
+      age,
+      questionnaireData
+    } = data;
+    
+    // Convert Japanese day abbreviations back to full English day names
+    const dayCharToName: { [key: string]: string } = {
       '月': 'monday',
       '火': 'tuesday',
       '水': 'wednesday',
@@ -458,27 +490,36 @@ export const TherapistProfileForm = ({
       '日': 'sunday'
     };
     
-    const workingDays = data.workingDays.map((day: string) => {
-      return workingDaysMap[day] || day;
+    const working_days = workingDays.map((day: string) => {
+      return dayCharToName[day] || day;
     });
     
+    // Consolidated database format
     return {
-      name: data.name,
-      working_days: workingDays,
-      working_hours: data.workingHours,
-      price: data.pricePerHour,
-      description: data.bio,
-      service_areas: data.serviceAreas,
-      location: data.serviceAreas.prefecture || '',
-      height: data.height,
-      weight: data.weight,
-      hobbies: data.hobbies,
-      specialties: [], // Keep for backward compatibility
-      image_url: data.avatarUrl,
-      gallery_images: data.galleryImages,
-      health_document_url: data.healthDocumentUrl,
-      mbti_type: data.mbtiType,
-      questionnaire_data: data.questionnaireData
+      name,
+      working_days,
+      working_hours: workingHours,
+      price: pricePerHour, // Store in price field for compatibility
+      price_per_hour: pricePerHour,
+      bio,
+      description: bio, // Duplicate in description for compatibility
+      service_areas: {
+        prefecture: serviceAreas.prefecture,
+        cities: serviceAreas.cities,
+        detailedArea: serviceAreas.detailedArea
+      },
+      location: serviceAreas.prefecture, // Store prefecture in location for compatibility
+      detailedArea: serviceAreas.detailedArea, // Also store at root level for compatibility
+      height,
+      weight,
+      hobbies,
+      qualifications,
+      image_url: avatarUrl,
+      gallery_images: galleryImages,
+      health_document_url: healthDocumentUrl,
+      mbti_type: mbtiType,
+      age_group: age,
+      questionnaire_data: questionnaireData
     };
   };
 
@@ -729,6 +770,25 @@ export const TherapistProfileForm = ({
     };
   }, [profilePreviewUrl, galleryPreviews]);
 
+  // Add this function to handle the detailed area input
+  const handleDetailedAreaChange = (value: string) => {
+    setProfile(prev => ({
+      ...prev,
+      serviceAreas: {
+        ...prev.serviceAreas,
+        detailedArea: value
+      }
+    }));
+  };
+
+  // Add this function to handle the age input
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProfile(prev => ({
+      ...prev,
+      age: e.target.value
+    }));
+  };
+
   return (
     <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
       {/* Circular Profile Picture Uploader */}
@@ -782,6 +842,21 @@ export const TherapistProfileForm = ({
                 onChange={handleInputChange}
                 className="w-full"
                 placeholder="セラピスト名"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="age" className="block text-sm font-medium mb-1">
+                年齢 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="age"
+                name="age"
+                value={profile.age}
+                onChange={handleAgeChange}
+                className="w-full"
+                placeholder="例: 20代後半"
                 required
               />
             </div>
@@ -854,16 +929,41 @@ export const TherapistProfileForm = ({
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="location" className="block text-sm font-medium mb-1">
-                エリア (都道府県) <span className="text-red-500">*</span>
-              </Label>
-              <PrefectureSelect
-                value={profile.serviceAreas?.prefecture || ''}
-                onValueChange={(value) => handleServiceAreasChange('prefecture', value)}
-              />
+            <div className="mb-6">
+              <h3 className="text-base font-semibold mb-3">サービス提供エリア</h3>
+              
+              <div className="grid grid-cols-1 gap-4 mb-4">
+                <div>
+                  <Label htmlFor="prefecture" className="block text-sm font-medium mb-1">
+                    都道府県 <span className="text-red-500">*</span>
+                  </Label>
+                  <PrefectureSelect
+                    value={profile.serviceAreas.prefecture}
+                    onValueChange={(value) => handleServiceAreasChange('prefecture', value)}
+                    placeholder="都道府県を選択"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="detailedArea" className="block text-sm font-medium mb-1">
+                    詳細エリア <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="detailedArea"
+                    value={profile.serviceAreas.detailedArea || ''}
+                    onChange={(e) => handleDetailedAreaChange(e.target.value)}
+                    className="w-full"
+                    placeholder="例: 渋谷区、新宿区、中央区など"
+                    rows={2}
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    あなたがサービスを提供できる詳細なエリアを入力してください。市区町村名や地域名など具体的に記載するとお客様が見つけやすくなります。
+                  </p>
+                </div>
+              </div>
             </div>
-            
+
             <div className="mt-4">
               <Label htmlFor="pricePerHour" className="block text-sm font-medium mb-1">
                 料金 (1時間あたり) <span className="text-red-500">*</span>

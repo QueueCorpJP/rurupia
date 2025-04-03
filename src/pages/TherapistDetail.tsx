@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 // Extend the Therapist interface to include gallery_images
 interface ExtendedTherapist extends Therapist {
   galleryImages?: string[];
+  followers_count?: number;
 }
 
 // Interface for posts from Supabase
@@ -52,6 +53,14 @@ const TherapistDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [therapistPosts, setTherapistPosts] = useState<Post[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Format or default values for therapist data
+  const formatValue = (value: any): string => {
+    if (value === null || value === undefined || value === '') {
+      return '-';
+    }
+    return String(value);
+  };
 
   // Check if user is authenticated
   const checkUserAuth = useCallback(async () => {
@@ -90,10 +99,13 @@ const TherapistDetail = () => {
       setIsLoading(true);
       setError(null);
       
-      // Fetch from Supabase
+      // Fetch from Supabase with followers count
       const { data, error } = await supabase
         .from('therapists')
-        .select('*')
+        .select(`
+          *,
+          followers_count:followed_therapists(count)
+        `)
         .eq('id', id)
         .single();
       
@@ -188,7 +200,9 @@ const TherapistDetail = () => {
         hobbies: (data as any).hobbies,
         age: (data as any).age_group,
         area: (data as any).service_areas?.prefecture,
-        detailedArea: (data as any).service_areas?.cities?.join(', ')
+        detailedArea: (data as any).service_areas?.cities?.join(', '),
+        followers_count: typeof data.followers_count === 'number' ? data.followers_count : 
+                         Array.isArray(data.followers_count) ? data.followers_count.length : 0
       };
       
       console.log("Mapped therapist data:", mappedTherapist);
@@ -335,9 +349,27 @@ const TherapistDetail = () => {
                 onToggleFollow={handleToggleFollow}
               />
               
-              <TherapistQualifications therapist={therapist} />
-              
-              <TherapistReviews reviews={[]} />
+              <Tabs defaultValue="profile">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="profile">プロフィール</TabsTrigger>
+                  <TabsTrigger value="info">詳細情報</TabsTrigger>
+                  <TabsTrigger value="reviews">レビュー</TabsTrigger>
+                </TabsList>
+                <TabsContent value="profile" className="space-y-4 mt-4">
+                  <div>
+                    <h3 className="text-lg font-medium">自己紹介</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {formatValue(therapist.description)}
+                    </p>
+                  </div>
+                </TabsContent>
+                <TabsContent value="info" className="space-y-4 mt-4">
+                  {/* Info content here */}
+                </TabsContent>
+                <TabsContent value="reviews" className="space-y-4 mt-4">
+                  <TherapistReviews therapistId={id!} />
+                </TabsContent>
+              </Tabs>
               
               <TherapistPosts 
                 posts={therapistPosts} 

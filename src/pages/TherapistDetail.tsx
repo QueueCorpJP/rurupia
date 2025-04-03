@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -325,27 +326,29 @@ const TherapistDetail = () => {
                 onToggleFollow={handleToggleFollow}
               />
               
-              <Tabs defaultValue="profile">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="profile">プロフィール</TabsTrigger>
-                  <TabsTrigger value="info">詳細情報</TabsTrigger>
-                  <TabsTrigger value="reviews">レビュー</TabsTrigger>
-                </TabsList>
-                <TabsContent value="profile" className="space-y-4 mt-4">
-                  <div>
-                    <h3 className="text-lg font-medium">自己紹介</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {formatValue(therapist.description)}
-                    </p>
-                  </div>
-                </TabsContent>
-                <TabsContent value="info" className="space-y-4 mt-4">
-                  {/* Info content here */}
-                </TabsContent>
-                <TabsContent value="reviews" className="space-y-4 mt-4">
-                  <TherapistReviews therapistId={id!} />
-                </TabsContent>
-              </Tabs>
+              <div className="mt-8">
+                <Tabs defaultValue="profile">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="profile">プロフィール</TabsTrigger>
+                    <TabsTrigger value="info">詳細情報</TabsTrigger>
+                    <TabsTrigger value="reviews">レビュー</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="profile" className="space-y-4 mt-4">
+                    <div>
+                      <h3 className="text-lg font-medium">自己紹介</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {formatValue(therapist.description)}
+                      </p>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="info" className="space-y-4 mt-4">
+                    {/* Info content here */}
+                  </TabsContent>
+                  <TabsContent value="reviews" className="space-y-4 mt-4">
+                    <TherapistReviews therapistId={id!} />
+                  </TabsContent>
+                </Tabs>
+              </div>
               
               <TherapistPosts 
                 posts={therapistPosts} 

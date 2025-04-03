@@ -89,9 +89,11 @@ export function TherapistProfile({
             <div className="text-xs text-muted-foreground">フォロワー</div>
           </div>
         </div>
-        <Button onClick={onToggleFollow} variant={isFollowing ? "outline" : "default"}>
-          {isFollowing ? "フォロー中" : "フォローする"}
-        </Button>
+        <div className="mb-4">
+          <Button onClick={onToggleFollow} variant={isFollowing ? "outline" : "default"}>
+            {isFollowing ? "フォロー中" : "フォローする"}
+          </Button>
+        </div>
       </div>
     </div>
   );

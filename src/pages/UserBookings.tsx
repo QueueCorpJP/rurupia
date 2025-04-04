@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
 
 // Define a new interface that matches our Supabase booking structure
 interface SupabaseBooking {
@@ -175,7 +176,12 @@ const UserBookings = () => {
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-medium">{booking.therapistName || 'セラピスト'}へのリクエスト</h3>
+              <h3 className="font-medium">
+                <Link to={`/therapist/${booking.therapistId}`} className="hover:text-primary hover:underline">
+                  {booking.therapistName || 'セラピスト'}
+                </Link>
+                へのリクエスト
+              </h3>
               <StatusBadge status={booking.status || '未定義'} />
             </div>
             
@@ -274,7 +280,7 @@ const UserBookings = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="confirmed">
+            <TabsTrigger value="confirmed" className="relative">
               確定済み
               {confirmedBookings.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -282,8 +288,22 @@ const UserBookings = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="completed">完了</TabsTrigger>
-            <TabsTrigger value="cancelled">キャンセル</TabsTrigger>
+            <TabsTrigger value="completed" className="relative">
+              完了
+              {completedBookings.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {completedBookings.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" className="relative">
+              キャンセル
+              {cancelledBookings.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {cancelledBookings.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="pending" className="mt-0">

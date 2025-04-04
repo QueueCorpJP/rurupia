@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageSquare, Share2, Filter } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -15,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import PostCard, { PostWithInteractions } from '@/components/PostCard';
 
 // Extended Post interface that includes therapist information
 interface Post {
@@ -34,7 +34,7 @@ interface Post {
 
 const AllTherapistPosts = () => {
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostWithInteractions[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -68,7 +68,7 @@ const AllTherapistPosts = () => {
   };
   
   // Check if user is authenticated and get followed therapists
-  const checkAuthAndFollows = async () => {
+  const checkAuthAndFollows = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -93,7 +93,7 @@ const AllTherapistPosts = () => {
     } catch (error) {
       console.error('Error checking auth status:', error);
     }
-  };
+  }, []);
   
   // Toggle follow status for a therapist
   const handleToggleFollow = async (therapistId: string) => {
@@ -146,8 +146,12 @@ const AllTherapistPosts = () => {
   };
   
   // Fetch all public posts
-  const fetchPosts = async () => {
-    setLoading(true);
+  const fetchPosts = useCallback(async () => {
+    // Don't set loading to true on subsequent calls to prevent flicker
+    if (!posts.length) {
+      setLoading(true);
+    }
+    
     try {
       // First, get all public posts from therapist_posts table
       let query = supabase
@@ -217,18 +221,53 @@ const AllTherapistPosts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sortOrder, posts.length]);
+  
+  // Optimized version of post update that just updates one post's like count
+  const handlePostUpdate = useCallback(async (postId: string) => {
+    // Instead of refetching all posts, just update the specific post's like count
+    try {
+      // Get the updated likes count
+      const { data, error } = await (supabase as any)
+        .from('therapist_posts')
+        .select('likes')
+        .eq('id', postId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching updated post:', error);
+        return;
+      }
+      
+      if (data) {
+        // Only update this one post in state, preserving all others
+        setPosts(currentPosts => 
+          currentPosts.map(post => 
+            post.id === postId 
+              ? { ...post, likes: data.likes || post.likes } 
+              : post
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
+    }
+  }, []);
   
   // Initial data fetch
   useEffect(() => {
-    fetchPosts();
-    checkAuthAndFollows();
-  }, []);
+    const initialize = async () => {
+      await checkAuthAndFollows();
+      await fetchPosts();
+    };
+    
+    initialize();
+  }, [checkAuthAndFollows, fetchPosts]);
   
   // Re-fetch when sort order changes
   useEffect(() => {
     fetchPosts();
-  }, [sortOrder]);
+  }, [sortOrder, fetchPosts]);
   
   return (
     <Layout>
@@ -259,102 +298,23 @@ const AllTherapistPosts = () => {
             </div>
           </div>
           
-          {/* Posts list */}
+          {/* Posts List */}
           <div className="space-y-6">
             {loading ? (
               <div className="flex justify-center items-center py-12">
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
               </div>
             ) : posts.length > 0 ? (
-              posts.map(post => {
-                const shouldTruncate = post.content.length > charLimit && !expandedPosts.has(post.id);
-                const isFollowing = followedTherapists.has(post.therapist_id);
-                
-                return (
-                  <div 
-                    key={post.id} 
-                    className="bg-white border rounded-lg overflow-hidden"
-                  >
-                    {/* Post header */}
-                    <div className="p-4 flex items-center gap-3 border-b">
-                      <Link to={`/therapist/${post.therapist_id}`}>
-                        <Avatar className="cursor-pointer">
-                          {post.therapist_image_url ? (
-                            <AvatarImage src={post.therapist_image_url} alt={post.therapist_name} />
-                          ) : (
-                            <AvatarFallback>{post.therapist_name?.charAt(0) || 'T'}</AvatarFallback>
-                          )}
-                        </Avatar>
-                      </Link>
-                      <div className="flex-grow">
-                        <Link to={`/therapist/${post.therapist_id}`} className="hover:underline">
-                          <p className="font-medium">{post.therapist_name}</p>
-                        </Link>
-                        <p className="text-xs text-muted-foreground">{formatDate(post.created_at)}</p>
-                      </div>
-                      <Button
-                        variant={isFollowing ? "outline" : "default"}
-                        size="sm"
-                        onClick={() => handleToggleFollow(post.therapist_id)}
-                      >
-                        {isFollowing ? 'フォロー中' : 'フォローする'}
-                      </Button>
-                    </div>
-                    
-                    {/* Post content */}
-                    <div>
-                      {/* Post image if available */}
-                      {post.image_url && (
-                        <div className="aspect-video w-full bg-muted overflow-hidden">
-                          <img 
-                            src={post.image_url} 
-                            alt={post.title || "投稿画像"} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Post text content */}
-                      <div className="p-4">
-                        {post.title && (
-                          <h3 className="font-medium mb-2">{post.title}</h3>
-                        )}
-                        <p className="text-sm">
-                          {shouldTruncate ? `${post.content.substring(0, charLimit)}...` : post.content}
-                        </p>
-                        
-                        {/* Read more button if content is truncated */}
-                        {post.content.length > charLimit && (
-                          <button 
-                            onClick={() => togglePostExpansion(post.id)}
-                            className="text-xs text-primary mt-2 font-medium"
-                          >
-                            {expandedPosts.has(post.id) ? '閉じる' : 'もっと見る'}
-                          </button>
-                        )}
-                      </div>
-                      
-                      {/* Post actions */}
-                      <div className="p-2 flex items-center gap-2 border-t">
-                        <button className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors">
-                          <Heart className="h-5 w-5" />
-                        </button>
-                        <span className="text-sm text-muted-foreground">{post.likes || 0}</span>
-                        <Link 
-                          to={`/therapist/${post.therapist_id}`}
-                          className="ml-auto text-sm text-primary hover:underline"
-                        >
-                          このセラピストの投稿をもっと見る
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+              posts.map(post => (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  onPostUpdated={() => handlePostUpdate(post.id)}
+                />
+              ))
             ) : (
-              <div className="bg-white border rounded-lg p-6 text-center">
-                <p className="text-muted-foreground">まだ投稿はありません</p>
-                <p className="text-sm mt-2">セラピストが投稿すると、ここに表示されます。</p>
+              <div className="bg-white border rounded-lg p-8 text-center">
+                <p className="text-muted-foreground">投稿がありません</p>
               </div>
             )}
           </div>

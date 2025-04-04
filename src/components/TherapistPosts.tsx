@@ -118,7 +118,7 @@ END;
 $$;
 */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageSquare, Share2, Send } from 'lucide-react';
@@ -144,6 +144,10 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
+import PostCard, { PostWithInteractions } from '@/components/PostCard';
 
 // Define custom types for the tables that exist in the database but not in TypeScript definitions
 interface PostLike {
@@ -192,7 +196,7 @@ interface TherapistPostsProps {
 
 const TherapistPosts = ({ posts: initialPosts, therapistName, isFollowing = false }: TherapistPostsProps) => {
   // Transform initial posts to include likes and comments
-  const [posts, setPosts] = useState<Post[]>(
+  const [posts, setPosts] = useState<PostWithInteractions[]>(
     initialPosts.map(post => ({
       ...post,
       likes: post.likes || 0,
@@ -202,7 +206,7 @@ const TherapistPosts = ({ posts: initialPosts, therapistName, isFollowing = fals
   );
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [commentText, setCommentText] = useState<string>('');
-  const [activePost, setActivePost] = useState<Post | null>(null);
+  const [activePost, setActivePost] = useState<PostWithInteractions | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -589,7 +593,7 @@ const TherapistPosts = ({ posts: initialPosts, therapistName, isFollowing = fals
     }
   };
   
-  const openComments = (post: Post) => {
+  const openComments = (post: PostWithInteractions) => {
     setActivePost(post);
     setShowComments(true);
   };
@@ -678,7 +682,7 @@ const TherapistPosts = ({ posts: initialPosts, therapistName, isFollowing = fals
     }
   };
   
-  const handleShare = (post: Post) => {
+  const handleShare = (post: PostWithInteractions) => {
     setActivePost(post);
     setShowShareDialog(true);
   };
@@ -800,79 +804,11 @@ const TherapistPosts = ({ posts: initialPosts, therapistName, isFollowing = fals
             const isBlurred = post.isPrivate && !isFollowing;
             
             return (
-              <div 
+              <PostCard 
                 key={post.id} 
-                className={`border rounded-lg overflow-hidden ${isBlurred ? 'relative' : ''}`}
-              >
-                <div className="p-4 flex items-center gap-3 border-b">
-                  <Avatar>
-                    <AvatarFallback>{therapistName.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{therapistName}</p>
-                    <p className="text-xs text-muted-foreground">{post.date}</p>
-                  </div>
-                </div>
-                
-                <div className={`${isBlurred ? 'blur-sm' : ''}`}>
-                  {post.image && (
-                    <div className="aspect-video w-full bg-muted overflow-hidden">
-                      <img 
-                        src={post.image} 
-                        alt="Post content" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="p-4">
-                    <p className="text-sm">
-                      {shouldTruncate ? `${post.content.substring(0, charLimit)}...` : post.content}
-                    </p>
-                    
-                    {post.content.length > charLimit && (
-                      <button 
-                        onClick={() => togglePostExpansion(post.id)}
-                        className="text-xs text-primary mt-2 font-medium"
-                      >
-                        {expandedPosts.has(post.id) ? '閉じる' : 'もっと見る'}
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="p-2 flex items-center gap-2 border-t">
-                    <button 
-                      className={`${post.liked ? 'text-red-500' : 'text-muted-foreground hover:text-primary'} p-2 rounded-full transition-colors flex items-center gap-1`}
-                      onClick={() => handleLike(post.id)}
-                    >
-                      <Heart className="h-5 w-5" fill={post.liked ? "currentColor" : "none"} />
-                      {post.likes > 0 && <span className="text-xs">{post.likes}</span>}
-                    </button>
-                    <button 
-                      className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors flex items-center gap-1"
-                      onClick={() => openComments(post)}
-                    >
-                      <MessageSquare className="h-5 w-5" />
-                      {post.comments && post.comments.length > 0 && (
-                        <span className="text-xs">{post.comments.length}</span>
-                      )}
-                    </button>
-                    <button 
-                      className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors"
-                      onClick={() => handleShare(post)}
-                    >
-                      <Share2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-                
-                {isBlurred && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 p-4 z-10">
-                    <p className="text-center mb-2">この投稿はフォロワー限定です</p>
-                    <Button>フォローして投稿を見る</Button>
-                  </div>
-                )}
-              </div>
+                post={post} 
+                onPostUpdated={() => handleLike(post.id)}
+              />
             );
           })
         ) : (

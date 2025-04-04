@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -8,7 +7,6 @@ import AvailabilityCalendar from '../components/AvailabilityCalendar';
 import { TherapistProfile } from '../components/TherapistProfile';
 import TherapistQualifications from '../components/TherapistQualifications';
 import TherapistReviews from '../components/TherapistReviews';
-import TherapistPosts from '../components/TherapistPosts';
 import { Therapist, Service } from '../utils/types';
 import { ArrowLeft, Calendar, MessageSquare, ExternalLink } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -16,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import PostCard, { PostWithInteractions } from '@/components/PostCard';
 
 interface ExtendedTherapist extends Therapist {
   galleryImages?: string[];
@@ -49,7 +48,7 @@ const TherapistDetail = () => {
   const [sidebarTab, setSidebarTab] = useState<'availability' | 'message'>('availability');
   const [isMounted, setIsMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [therapistPosts, setTherapistPosts] = useState<Post[]>([]);
+  const [therapistPosts, setTherapistPosts] = useState<PostWithInteractions[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const formatValue = (value: any): string => {
@@ -138,28 +137,49 @@ const TherapistDetail = () => {
         console.error("Error processing services:", servicesErr);
       }
       
-      let posts: Post[] = [];
-      
       try {
         const { data: postsData, error: postsError } = await supabase
           .from('therapist_posts')
           .select('*')
           .eq('therapist_id', id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(3);
           
         if (postsError) {
           console.error("Error fetching therapist posts:", postsError);
         } else if (postsData && postsData.length > 0) {
-          posts = postsData.map((post: SupabasePost) => ({
-            id: parseInt(post.id) || Math.floor(Math.random() * 10000),
-            content: post.content || post.title || "",
-            image: post.image_url,
-            date: new Date(post.created_at).toLocaleDateString('ja-JP'),
-            isPrivate: post.visibility === 'followers'
+          const posts: PostWithInteractions[] = postsData.map((post: SupabasePost) => ({
+            id: post.id,
+            therapist_id: post.therapist_id,
+            content: post.content,
+            title: post.title,
+            image_url: post.image_url,
+            visibility: post.visibility,
+            created_at: post.created_at,
+            likes: 0,
+            therapist_name: data.name || "セラピスト",
+            therapist_image_url: data.image_url
           }));
+          
+          for (const post of posts) {
+            try {
+              const { data, error } = await (supabase as any)
+                .from('post_likes')
+                .select('*')
+                .eq('post_id', post.id);
+                
+              if (!error && data) {
+                post.likes = data.length || 0;
+              }
+            } catch (error) {
+              console.error(`Error fetching likes for post ${post.id}:`, error);
+            }
+          }
+          
+          setTherapistPosts(posts);
+        } else {
+          setTherapistPosts([]);
         }
-        
-        setTherapistPosts(posts);
         
       } catch (postsErr) {
         console.error("Error processing posts:", postsErr);
@@ -304,6 +324,85 @@ const TherapistDetail = () => {
     navigate('/therapists');
   };
 
+  const handlePostUpdate = useCallback(async (postId: string) => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('therapist_posts')
+        .select('likes')
+        .eq('id', postId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching updated post:', error);
+        return;
+      }
+      
+      if (data) {
+        setTherapistPosts(currentPosts => 
+          currentPosts.map(post => 
+            post.id === postId 
+              ? { ...post, likes: data.likes || post.likes } 
+              : post
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
+    }
+  }, []);
+
+  const refreshPosts = async () => {
+    if (!id) return;
+    
+    try {
+      const { data: postsData, error: postsError } = await supabase
+        .from('therapist_posts')
+        .select('*')
+        .eq('therapist_id', id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+        
+      if (postsError) {
+        console.error("Error fetching therapist posts:", postsError);
+        return;
+      }
+      
+      if (postsData && postsData.length > 0 && therapist) {
+        const posts: PostWithInteractions[] = postsData.map((post: SupabasePost) => ({
+          id: post.id,
+          therapist_id: post.therapist_id,
+          content: post.content,
+          title: post.title,
+          image_url: post.image_url,
+          visibility: post.visibility,
+          created_at: post.created_at,
+          likes: 0,
+          therapist_name: therapist.name || "セラピスト",
+          therapist_image_url: therapist.imageUrl
+        }));
+        
+        for (const post of posts) {
+          try {
+            const { data, error } = await (supabase as any)
+              .from('post_likes')
+              .select('*')
+              .eq('post_id', post.id);
+              
+            if (!error && data) {
+              post.likes = data.length || 0;
+            }
+          } catch (error) {
+            console.error(`Error fetching likes for post ${post.id}:`, error);
+          }
+        }
+        
+        setTherapistPosts(posts);
+      }
+    } catch (error) {
+      console.error("Error refreshing posts:", error);
+    }
+  };
+
   return (
     <Layout>
       <button
@@ -350,17 +449,22 @@ const TherapistDetail = () => {
                 </Tabs>
               </div>
               
-              <TherapistPosts 
-                posts={therapistPosts} 
-                therapistName={therapist.name} 
-                isFollowing={isFollowing}
-              />
               {therapistPosts.length > 0 && (
-                <div className="mt-4 flex justify-end">
-                  <Link to={`/therapist-posts/${therapist.id}`} className="inline-flex items-center text-sm text-primary hover:underline">
-                    <span>すべての投稿を見る</span>
-                    <ExternalLink className="ml-1 h-3 w-3" />
-                  </Link>
+                <div className="mt-8 space-y-6">
+                  <h3 className="text-lg font-medium">最近の投稿</h3>
+                  {therapistPosts.map(post => (
+                    <PostCard 
+                      key={post.id}
+                      post={post}
+                      onPostUpdated={() => handlePostUpdate(post.id)}
+                    />
+                  ))}
+                  <div className="flex justify-end">
+                    <Link to={`/therapist-posts/${therapist.id}`} className="inline-flex items-center text-sm text-primary hover:underline">
+                      <span>すべての投稿を見る</span>
+                      <ExternalLink className="ml-1 h-3 w-3" />
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

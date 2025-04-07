@@ -56,6 +56,7 @@ export interface PostWithInteractions {
   likes: number;
   liked?: boolean;
   comments?: PostComment[];
+  comment_count?: number;
   // Therapist information
   therapist_name: string;
   therapist_image_url?: string;
@@ -246,14 +247,15 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
         const userIds = data.map(comment => comment.user_id);
         const { data: profilesData } = await (supabase as any)
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, username')
           .in('id', userIds);
           
         // Create a map of user_id to name
         const userNameMap: Record<string, string> = {};
         if (profilesData) {
           profilesData.forEach((profile: any) => {
-            userNameMap[profile.id] = profile.full_name || 'User';
+            // Prefer username over full_name if available, fall back to User if neither exists
+            userNameMap[profile.id] = profile.username || profile.full_name || 'User';
           });
         }
         
@@ -294,50 +296,17 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
     let userName = 'User';
     
     try {
-      // First try to insert with selection (might fail due to trigger error)
-      const { data, error } = await (supabase as any)
-        .from('post_comments')
-        .insert({
-          user_id: currentUser.id,
-          post_id: post.id,
-          content: commentText.trim()
-        })
-        .select('*')
-        .single();
-        
-      if (error) {
-        // Check if this is the specific trigger error with ambiguous column
-        if (error.code === '42702' && error.message.includes('comment_count')) {
-          console.log("Handling comment_count ambiguity error, proceeding with simpler insert");
-          
-          // Try a simpler insert without selecting (to avoid the trigger error)
-          const { error: insertError } = await (supabase as any)
-            .from('post_comments')
-            .insert({
-              user_id: currentUser.id,
-              post_id: post.id,
-              content: commentText.trim()
-            });
-            
-          if (insertError) throw insertError;
-        } else {
-          // Different error, rethrow it
-          throw error;
-        }
-      } else {
-        // No error occurred, store the comment data
-        newCommentData = data;
-      }
-      
-      // Try to get user's name from profiles
+      // Get the user's name first
       try {
         const { data: profileData } = await (supabase as any)
           .from('profiles')
-          .select('full_name')
+          .select('full_name, username')
           .eq('id', currentUser.id)
           .maybeSingle();
           
-        if (profileData?.full_name) {
+        if (profileData?.username) {
+          userName = profileData.username;
+        } else if (profileData?.full_name) {
           userName = profileData.full_name;
         } else {
           userName = currentUser.email || 'User';
@@ -346,12 +315,23 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
         console.error('Error fetching profile:', profileError);
         userName = currentUser.email || 'User';
       }
+
+      // Skip the standard approach and directly use a simplified insert without any .select()
+      // This avoids triggering the ambiguous column error
+      const { error: insertError } = await (supabase as any)
+        .from('post_comments')
+        .insert({
+          user_id: currentUser.id,
+          post_id: post.id,
+          content: commentText.trim()
+        });
+        
+      if (insertError) {
+        throw insertError;
+      }
       
-      // Create a temporary comment object if we don't have real data
-      const newComment = newCommentData ? {
-        ...newCommentData,
-        user_name: userName
-      } : {
+      // Create a temporary comment object
+      const newComment = {
         id: `temp-${Date.now()}`,
         post_id: post.id,
         user_id: currentUser.id,
@@ -363,6 +343,12 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
       // Update local state with new comment
       setComments(prev => [newComment, ...prev]);
       setCommentText('');
+      
+      // Update the comment count in the UI
+      setPost(prev => ({
+        ...prev,
+        comment_count: (prev.comment_count || 0) + 1
+      }));
       
       // Call onPostUpdated to refresh the post data if needed
       if (onPostUpdated) onPostUpdated();

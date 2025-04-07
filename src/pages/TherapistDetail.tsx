@@ -51,6 +51,33 @@ const TherapistDetail = () => {
   const [therapistPosts, setTherapistPosts] = useState<PostWithInteractions[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  const handlePostUpdate = useCallback(async (postId: string) => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('therapist_posts')
+        .select('likes')
+        .eq('id', postId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching updated post:', error);
+        return;
+      }
+      
+      if (data) {
+        setTherapistPosts(currentPosts => 
+          currentPosts.map(post => 
+            post.id === postId 
+              ? { ...post, likes: data.likes || post.likes } 
+              : post
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
+    }
+  }, []);
+
   const formatValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
       return '-';
@@ -323,33 +350,6 @@ const TherapistDetail = () => {
   const handleBackClick = () => {
     navigate('/therapists');
   };
-
-  const handlePostUpdate = useCallback(async (postId: string) => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from('therapist_posts')
-        .select('likes')
-        .eq('id', postId)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching updated post:', error);
-        return;
-      }
-      
-      if (data) {
-        setTherapistPosts(currentPosts => 
-          currentPosts.map(post => 
-            post.id === postId 
-              ? { ...post, likes: data.likes || post.likes } 
-              : post
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error updating post:', error);
-    }
-  }, []);
 
   const refreshPosts = async () => {
     if (!id) return;

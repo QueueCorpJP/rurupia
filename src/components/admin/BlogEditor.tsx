@@ -54,12 +54,60 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authorName, setAuthorName] = useState(initialData?.author_name || '管理者');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoadingFullPost, setIsLoadingFullPost] = useState(false);
   const editorRef = useRef<any>(null);
   
   useEffect(() => {
     fetchCategories();
     checkAdminStatus();
   }, []);
+
+  // Add effect to fetch full post data when only partial data is available
+  useEffect(() => {
+    // Only run this if we have an initialData object with an ID but missing key fields
+    if (initialData?.id && !initialData.content) {
+      const fetchCompletePostData = async () => {
+        setIsLoadingFullPost(true);
+        try {
+          const { data, error } = await supabase
+            .from('blog_posts')
+            .select('*')
+            .eq('id', initialData.id)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching complete post data:', error);
+            toast.error('記事データの取得に失敗しました');
+            return;
+          }
+          
+          if (data) {
+            // Update all state variables with the complete data
+            setTitle(data.title || '');
+            setContent(data.content || '');
+            setExcerpt(data.excerpt || '');
+            setCoverImage(data.cover_image || '');
+            setCategoryId(data.category_id || '');
+            setTags(data.tags || []);
+            setIsPublished(data.published || false);
+            setScheduledFor(data.scheduled_for ? new Date(data.scheduled_for) : undefined);
+            setAuthorName(data.author_name || '管理者');
+            
+            // If content is available and editor is initialized, set the content
+            if (data.content && editorRef.current) {
+              editorRef.current.setContent(data.content);
+            }
+          }
+        } catch (err) {
+          console.error('Unexpected error fetching post data:', err);
+        } finally {
+          setIsLoadingFullPost(false);
+        }
+      };
+      
+      fetchCompletePostData();
+    }
+  }, [initialData]);
 
   const checkAdminStatus = async () => {
     try {
@@ -273,8 +321,21 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       // Format the date for Supabase
       const scheduledForISOString = scheduledFor ? scheduledFor.toISOString() : null;
       
-      // Create the post data object
-      const postData = {
+      // Create the post data object with proper typing for all fields
+      const postData: {
+        title: string;
+        content: string;
+        excerpt: string;
+        slug: string;
+        cover_image: string | null;
+        category_id: string;
+        category: string;
+        tags: string[];
+        published: boolean;
+        scheduled_for: string | null;
+        author_name: string;
+        published_at?: string;
+      } = {
         title,
         content: editorContent,
         excerpt,
@@ -289,6 +350,28 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       };
       
       console.log('Post data prepared:', { ...postData, content: postData.content.substring(0, 50) + '...' });
+      
+      // If there's a scheduled date in the future, modify the published status
+      if (scheduledFor) {
+        const now = new Date();
+        const isFutureDate = scheduledFor > now;
+        
+        if (isFutureDate) {
+          console.log('Post scheduled for future date:', scheduledForISOString);
+          // For future dates, we still respect the user's published choice but add published_at
+          // that matches the scheduled date
+          postData.published_at = scheduledForISOString;
+        } else {
+          console.log('Scheduled date is not in the future');
+          // For current/past dates, use current time for published_at
+          postData.published_at = new Date().toISOString();
+        }
+      } else {
+        // No scheduled date, use current time for published_at if published
+        if (postData.published) {
+          postData.published_at = new Date().toISOString();
+        }
+      }
       
       if (initialData?.id) {
         console.log('Updating existing post with ID:', initialData.id);
@@ -374,6 +457,15 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
     <Card>
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {isLoadingFullPost && (
+            <div className="p-4 text-center text-muted-foreground">
+              <div className="flex justify-center mb-2">
+                <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+              </div>
+              <p>記事データを読み込み中...</p>
+            </div>
+          )}
+          
           <div className="space-y-4">
             <div>
               <Label htmlFor="title">タイトル <span className="text-destructive">*</span></Label>

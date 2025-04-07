@@ -8,7 +8,7 @@ import { TherapistProfile } from '../components/TherapistProfile';
 import TherapistQualifications from '../components/TherapistQualifications';
 import TherapistReviews from '../components/TherapistReviews';
 import { Therapist, Service } from '../utils/types';
-import { ArrowLeft, Calendar, MessageSquare, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar, MessageSquare, ExternalLink, MapPin, Ruler, Weight, Brain, Heart } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +38,17 @@ interface Post {
   date: string;
   isPrivate?: boolean;
 }
+
+// Add Japanese day mapping
+const dayMap: { [key: string]: string } = {
+  monday: '月曜日',
+  tuesday: '火曜日',
+  wednesday: '水曜日',
+  thursday: '木曜日',
+  friday: '金曜日',
+  saturday: '土曜日',
+  sunday: '日曜日',
+};
 
 const TherapistDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -78,9 +89,17 @@ const TherapistDetail = () => {
     }
   }, []);
 
-  const formatValue = (value: any): string => {
+  const formatValue = (value: any, unit: string = ''): string => {
     if (value === null || value === undefined || value === '') {
       return '-';
+    }
+    return `${String(value)}${unit}`;
+  };
+
+  // Specific formatter for MBTI
+  const formatMbti = (value: any): string => {
+    if (value === null || value === undefined || value === '' || value === 'unknown') {
+      return '未設定';
     }
     return String(value);
   };
@@ -231,9 +250,10 @@ const TherapistDetail = () => {
         workingHours: (data as any).working_hours,
         workingDays: (data as any).working_days,
         hobbies: (data as any).hobbies,
-        age: (data as any).age_group,
+        age: (data as any).age || '',
+        mbtiType: (data as any).mbti_type,
         area: (data as any).service_areas?.prefecture,
-        detailedArea: (data as any).service_areas?.cities?.join(', '),
+        detailedArea: (data as any).detailed_area || (data as any).service_areas?.detailedArea || (data as any).service_areas?.cities?.join(', '),
         followers_count: typeof data.followers_count === 'number' ? data.followers_count : 
                          Array.isArray(data.followers_count) ? data.followers_count.length : 0
       };
@@ -432,41 +452,92 @@ const TherapistDetail = () => {
                     <TabsTrigger value="info">詳細情報</TabsTrigger>
                     <TabsTrigger value="reviews">レビュー</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="profile" className="space-y-4 mt-4">
-                    <div>
-                      <h3 className="text-lg font-medium">自己紹介</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {formatValue(therapist.description)}
-                      </p>
-                    </div>
+                  <TabsContent value="profile" className="space-y-6 mt-6">
+                    {/* Use dl for definition list styling */}
+                    <dl className="space-y-4">
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground mb-1">自己紹介</dt>
+                        <dd className="text-sm">
+                          {formatValue(therapist.description)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground mb-1">営業時間</dt>
+                        <dd className="text-sm">
+                          {formatValue(therapist.workingHours?.start)} - {formatValue(therapist.workingHours?.end)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground mb-1">営業日</dt>
+                        <dd className="text-sm">
+                          {therapist.workingDays?.length > 0 
+                            ? therapist.workingDays.map(day => dayMap[day.toLowerCase()] || day).join(', ') 
+                            : '-'}
+                        </dd>
+                      </div>
+                    </dl>
+                    {/* Posts Section */}
+                    {therapistPosts.length > 0 && (
+                      <div className="pt-6 border-t">
+                        <h3 className="text-lg font-semibold mb-4">最近の投稿</h3>
+                        <div className="space-y-6">
+                          {therapistPosts.map(post => (
+                            <PostCard 
+                              key={post.id}
+                              post={post}
+                              onPostUpdated={() => handlePostUpdate(post.id)}
+                            />
+                          ))}
+                          <div className="flex justify-end">
+                            <Link to={`/therapist-posts/${therapist.id}`} className="inline-flex items-center text-sm text-primary hover:underline">
+                              <span>すべての投稿を見る</span>
+                              <ExternalLink className="ml-1 h-3 w-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </TabsContent>
-                  <TabsContent value="info" className="space-y-4 mt-4">
-                    {/* Info content here */}
+                  <TabsContent value="info" className="mt-6">
+                    {/* Use dl for definition list styling with icons */}
+                    <dl className="space-y-5">
+                      <div className="flex items-center">
+                        <dt className="w-24 text-sm font-medium text-muted-foreground flex items-center"><Calendar className="mr-2 h-4 w-4"/>年齢</dt>
+                        <dd className="text-sm font-semibold">{formatValue(therapist.age)}</dd>
+                      </div>
+                      <div className="flex items-center">
+                        <dt className="w-24 text-sm font-medium text-muted-foreground flex items-center"><Ruler className="mr-2 h-4 w-4"/>身長</dt>
+                        <dd className="text-sm font-semibold">{formatValue(therapist.height, ' cm')}</dd>
+                      </div>
+                      <div className="flex items-center">
+                        <dt className="w-24 text-sm font-medium text-muted-foreground flex items-center"><Weight className="mr-2 h-4 w-4"/>体重</dt>
+                        <dd className="text-sm font-semibold">{formatValue(therapist.weight, ' kg')}</dd>
+                      </div>
+                       <div className="flex items-start">
+                        <dt className="w-24 text-sm font-medium text-muted-foreground flex items-center pt-0.5"><MapPin className="mr-2 h-4 w-4"/>エリア</dt>
+                        <dd className="text-sm font-semibold">
+                           {formatValue(therapist.area)}<br/>
+                           <span className="text-xs text-muted-foreground">{formatValue(therapist.detailedArea)}</span>
+                         </dd>
+                      </div>
+                      <div className="flex items-start">
+                        <dt className="w-24 text-sm font-medium text-muted-foreground flex items-center pt-0.5"><Heart className="mr-2 h-4 w-4"/>趣味</dt>
+                        <dd className="text-sm font-semibold">
+                          {therapist.hobbies?.length > 0 ? therapist.hobbies.join(', ') : '-'}
+                        </dd>
+                      </div>
+                      <div className="flex items-center">
+                        <dt className="w-24 text-sm font-medium text-muted-foreground flex items-center"><Brain className="mr-2 h-4 w-4"/>MBTI</dt>
+                        <dd className="text-sm font-semibold">{formatMbti(therapist.mbtiType)}</dd>
+                      </div>
+                      {/* Removed Qualifications Section */}
+                    </dl>
                   </TabsContent>
-                  <TabsContent value="reviews" className="space-y-4 mt-4">
-                    <TherapistReviews therapistId={id!} />
+                  <TabsContent value="reviews" className="space-y-4 mt-6">
+                    <TherapistReviews therapistId={id!} currentUser={currentUser} />
                   </TabsContent>
                 </Tabs>
               </div>
-              
-              {therapistPosts.length > 0 && (
-                <div className="mt-8 space-y-6">
-                  <h3 className="text-lg font-medium">最近の投稿</h3>
-                  {therapistPosts.map(post => (
-                    <PostCard 
-                      key={post.id}
-                      post={post}
-                      onPostUpdated={() => handlePostUpdate(post.id)}
-                    />
-                  ))}
-                  <div className="flex justify-end">
-                    <Link to={`/therapist-posts/${therapist.id}`} className="inline-flex items-center text-sm text-primary hover:underline">
-                      <span>すべての投稿を見る</span>
-                      <ExternalLink className="ml-1 h-3 w-3" />
-                    </Link>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

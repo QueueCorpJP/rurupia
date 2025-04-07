@@ -72,7 +72,8 @@ const AdminBlog = () => {
           published_at,
           published,
           views,
-          category_id
+          category_id,
+          scheduled_for
         `)
         .order('published_at', { ascending: false });
       
@@ -172,15 +173,26 @@ const AdminBlog = () => {
     {
       key: "published_at",
       label: "公開日",
-      accessorKey: "published_at",
       render: (data: any) => {
         // Safely access data - check if it exists before destructuring
         if (!data) return "-";
         
         // Now we can safely destructure
         const { row } = data;
-        if (!row || !row.published_at) return "-";
+        if (!row) return "-";
         
+        // Check if this is a scheduled post
+        if (row.scheduled_for) {
+          const scheduledDate = new Date(row.scheduled_for);
+          const now = new Date();
+          
+          if (scheduledDate > now) {
+            return `${format(scheduledDate, "yyyy/MM/dd")} (予約済み)`;
+          }
+        }
+        
+        // Default to published_at date
+        if (!row.published_at) return "-";
         const date = new Date(row.published_at);
         return format(date, "yyyy/MM/dd");
       }
@@ -188,14 +200,25 @@ const AdminBlog = () => {
     {
       key: "status",
       label: "ステータス",
-      accessorKey: "published",
       render: (data: any) => {
         // Safely access data
         if (!data || !data.row) return null;
         
+        const row = data.row;
+        
+        // Check if this is a scheduled post
+        if (row.scheduled_for) {
+          const scheduledDate = new Date(row.scheduled_for);
+          const now = new Date();
+          
+          if (scheduledDate > now) {
+            return <StatusBadge status="予約済み" />;
+          }
+        }
+        
         return (
           <StatusBadge 
-            status={data.row.published ? "公開中" : "下書き"} 
+            status={row.published ? "公開中" : "下書き"} 
           />
         );
       }

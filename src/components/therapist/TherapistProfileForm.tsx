@@ -87,7 +87,7 @@ const mapDatabaseToComponentFormat = (data: any) => {
     serviceAreas: {
       prefecture: data.service_areas?.prefecture || data.serviceAreas?.prefecture || data.location || '',
       cities: data.service_areas?.cities || data.serviceAreas?.cities || [],
-      detailedArea: data.service_areas?.detailedArea || data.serviceAreas?.detailedArea || data.detailedArea || '',
+      detailedArea: data.service_areas?.detailedArea || data.serviceAreas?.detailedArea || data.detailed_area || '',
     },
     height: data.height,
     weight: data.weight,
@@ -97,7 +97,7 @@ const mapDatabaseToComponentFormat = (data: any) => {
     galleryImages: data.gallery_images || data.galleryImages || [],
     healthDocumentUrl: data.health_document_url || '',
     mbtiType: data.mbti_type || 'unknown',
-    age: data.age || data.age_group || '',
+    age: data.age || '',
     questionnaireData: {
       mood: questionnaireData.mood || '',
       therapistType: questionnaireData.therapistType || '',
@@ -500,16 +500,14 @@ export const TherapistProfileForm = ({
       working_days,
       working_hours: workingHours,
       price: pricePerHour, // Store in price field for compatibility
-      price_per_hour: pricePerHour,
-      bio,
-      description: bio, // Duplicate in description for compatibility
+      description: bio, // Keep only description, remove bio
       service_areas: {
         prefecture: serviceAreas.prefecture,
         cities: serviceAreas.cities,
         detailedArea: serviceAreas.detailedArea
       },
       location: serviceAreas.prefecture, // Store prefecture in location for compatibility
-      detailedArea: serviceAreas.detailedArea, // Also store at root level for compatibility
+      detailed_area: serviceAreas.detailedArea, // Store in detailed_area column (not detailedArea)
       height,
       weight,
       hobbies,
@@ -518,7 +516,7 @@ export const TherapistProfileForm = ({
       gallery_images: galleryImages,
       health_document_url: healthDocumentUrl,
       mbti_type: mbtiType,
-      age_group: age,
+      age: age, // Use 'age' column, not 'age_group'
       questionnaire_data: questionnaireData
     };
   };

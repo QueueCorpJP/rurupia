@@ -172,16 +172,54 @@ interface DatabaseReview {
 interface TherapistReviewsProps {
   therapistId: string;
   therapistName?: string;
+  currentUser?: { id: string; [key: string]: any } | null;
 }
 
-const TherapistReviews = ({ therapistId, therapistName }: TherapistReviewsProps) => {
+const TherapistReviews = ({ therapistId, therapistName, currentUser }: TherapistReviewsProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [canReview, setCanReview] = useState(false);
+
   useEffect(() => {
     fetchReviews();
   }, [therapistId]);
+
+  useEffect(() => {
+    const checkReviewStatus = async () => {
+      if (!currentUser || !therapistId) return;
+
+      try {
+        const { data: reviewedData, error: reviewedError } = await (supabase as any).rpc(
+          'has_user_reviewed_therapist',
+          { p_user_id: currentUser.id, p_therapist_id: therapistId }
+        );
+        
+        if (reviewedError) {
+          console.error('Error checking if user has reviewed:', reviewedError);
+        } else {
+          setHasReviewed(reviewedData as boolean === true);
+        }
+
+        const { data: bookedData, error: bookedError } = await (supabase as any).rpc(
+          'has_user_booked_with_therapist',
+          { p_user_id: currentUser.id, p_therapist_id: therapistId }
+        );
+
+        if (bookedError) {
+          console.error('Error checking if user has booked:', bookedError);
+        } else {
+          setCanReview(bookedData as boolean === true);
+        }
+
+      } catch (err) {
+        console.error('Error checking review/booking status:', err);
+      }
+    };
+
+    checkReviewStatus();
+  }, [currentUser, therapistId]);
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -191,11 +229,11 @@ const TherapistReviews = ({ therapistId, therapistName }: TherapistReviewsProps)
       // Direct query to check if the table exists and fetch reviews in one go
       try {
         // Don't use profiles join initially to avoid relationship errors
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('therapist_reviews')
           .select('id, user_id, rating, content, created_at')
           .eq('therapist_id', therapistId)
-          .order('created_at', { ascending: false }) as any;
+          .order('created_at', { ascending: false });
 
         if (error) {
           console.error('Error fetching reviews:', error);
@@ -206,7 +244,9 @@ const TherapistReviews = ({ therapistId, therapistName }: TherapistReviewsProps)
 
         if (data && data.length > 0) {
           // Got reviews, now get usernames separately to avoid join issues
-          const userIds = [...new Set(data.map((review: any) => review.user_id))];
+          // Explicitly type userIds as string[] and filter out non-strings
+          const userIds: string[] = [...new Set(data.map((review: any) => review.user_id))]
+                                      .filter((id): id is string => typeof id === 'string');
           const userProfiles: Record<string, string> = {};
           
           try {
@@ -246,67 +286,76 @@ const TherapistReviews = ({ therapistId, therapistName }: TherapistReviewsProps)
 
   const handleReviewSubmitted = () => {
     fetchReviews();
+    setHasReviewed(true);
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center py-4">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      <div className="flex justify-center items-center h-40">
+        <Loader2 className="animate-spin text-primary" size={32} />
       </div>
     );
   }
 
+  if (error) {
+    return <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>;
+  }
+
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">
-        レビュー
-        {reviews.length > 0 && <span className="text-sm font-normal ml-2">({reviews.length}件)</span>}
-      </h2>
-
-      <TherapistReviewForm 
-        therapistId={therapistId} 
-        onReviewSubmitted={handleReviewSubmitted}
-      />
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {reviews.length > 0 ? (
-        <div className="space-y-4">
-          {reviews.map((review) => (
-            <div key={review.id} className="border rounded-lg p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <Avatar>
-                    <AvatarFallback>{review.userName[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">{review.userName}</div>
-                    <div className="text-sm text-muted-foreground">{review.date}</div>
-                  </div>
-                </div>
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className="h-4 w-4"
-                      filled={star <= review.rating}
-                    />
-                  ))}
-                </div>
+      <div>
+        {currentUser ? (
+          hasReviewed ? (
+            <Alert variant="default">
+              <AlertDescription>あなたは既にレビューを投稿しています。</AlertDescription>
+            </Alert>
+          ) : canReview ? (
+            <TherapistReviewForm 
+              therapistId={therapistId} 
+              onReviewSubmitted={handleReviewSubmitted}
+            />
+          ) : (
+            <Alert variant="default">
+              <AlertDescription>
+                レビューを投稿するには、このセラピストのセッションを完了している必要があります。
+              </AlertDescription>
+            </Alert>
+          )
+        ) : (
+          <Alert variant="default">
+            <AlertDescription>レビューを投稿するにはログインが必要です。</AlertDescription>
+          </Alert>
+        )}
+      </div>
+      
+      <div className="space-y-4">
+        {reviews.length > 0 ? (
+          reviews.map((review) => (
+            <div key={review.id} className="p-4 border rounded-lg bg-card">
+              <div className="flex items-center mb-2">
+                <Avatar className="h-8 w-8 mr-2">
+                  <AvatarFallback>{review.userName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <span className="font-medium text-sm">{review.userName}</span>
+                <span className="ml-auto text-xs text-muted-foreground">{review.date}</span>
               </div>
-              <p className="mt-2 text-sm">{review.content}</p>
+              <div className="flex mb-2">
+                {[...Array(5)].map((_, i) => (
+                  <Star 
+                    key={i} 
+                    className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} 
+                  />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">{review.content}</p>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-4 text-muted-foreground">
-          このセラピストにはまだレビューがありません
-        </div>
-      )}
+          ))
+        ) : (
+          <p className="text-center text-sm text-muted-foreground py-4">
+            まだレビューはありません。
+          </p>
+        )}
+      </div>
     </div>
   );
 };

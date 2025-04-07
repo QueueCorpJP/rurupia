@@ -19,10 +19,14 @@ const Blog = () => {
     const fetchBlogPosts = async () => {
       setIsLoading(true);
       try {
+        // Get current date in ISO format for filtering scheduled posts
+        const now = new Date().toISOString();
+        
         const { data, error } = await supabase
           .from('blog_posts')
           .select('*')
           .eq('published', true)
+          .or(`scheduled_for.is.null,scheduled_for.lte.${now}`)
           .order('published_at', { ascending: false });
         
         if (error) {

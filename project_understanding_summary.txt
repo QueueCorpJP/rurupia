@@ -1,0 +1,104 @@
+## Project: Therapist Connectivity
+
+**Core Idea:** A web application to connect clients with therapists, manage therapy-related services, and provide a platform for therapist-client interaction.
+
+**Key Features & Functionality:**
+*   **User Roles:** Client, Therapist, Store Admin, System Admin.
+*   **Client Features:**
+    *   Browse and filter therapists.
+    *   View detailed therapist profiles.
+    *   Questionnaire-based therapist matching (including MBTI personality types).
+    *   Book appointments.
+    *   Manage personal bookings.
+    *   Messaging system.
+    *   Login via email/password, LINE, and Google.
+*   **Therapist Features:**
+    *   Self-registration via invitation link.
+    *   Comprehensive profile management (specializations, questionnaire, MBTI, posts).
+    *   Manage availability and bookings.
+    *   Messaging system with clients.
+    *   Create blog-like posts viewable by clients.
+*   **Store Admin Features:**
+    *   Manage therapists associated with their store (approval process).
+    *   Oversee bookings.
+    *   Manage courses.
+    *   Contribute to/manage blog content.
+    *   View analytics for their store.
+    *   Handle inquiries.
+*   **System Admin Features:**
+    *   User account management (all types).
+    *   Overall blog content management.
+    *   System settings and configuration.
+    *   View platform-wide analytics (e.g., page views).
+    *   Handle system-level inquiries and requests.
+*   **Content & Interaction:**
+    *   Blog system with Rich Text Editor (TinyMCE).
+    *   Therapist posts (distinct from blog).
+    *   Social features: Therapist reviews (clients can review after a completed session), Post liking, Post commenting.
+*   **Database & Backend Logic:**
+    *   Extensive use of Supabase PostgreSQL.
+    *   Numerous tables including: `profiles`, `therapists`, `bookings`, `blog_posts`, `therapist_posts`, `messages`, `therapist_reviews`, `post_likes`, `post_comments`, `page_views`, `store_therapist_relations`, etc.
+    *   Heavy reliance on Row Level Security (RLS) policies for granular data access control based on user roles and relationships.
+    *   PostgreSQL functions and triggers for automating tasks (e.g., calculating average ratings, updating like/comment counts, handling new user profile creation).
+*   **AI/Agent Aspect (Development Tooling):**
+    *   `memory.json`: A structured knowledge base capturing project architecture, tech stack, features, and user information. Seems to be for an AI assistant guiding development.
+    *   `lessons.json`: Tracks common errors, their patterns, solutions, and verification steps, likely for the same AI assistant.
+
+**Technical Setup:**
+*   **Frontend:**
+    *   Framework/Library: React (v18) with Vite as the build tool.
+    *   Language: TypeScript.
+    *   Routing: `react-router-dom`.
+    *   State Management: Primarily TanStack Query (React Query) for server state; local component state and React Context API (e.g., `AdminAuthContext`).
+    *   Forms: `react-hook-form` with Zod for validation.
+    *   UI: Tailwind CSS, Shadcn UI (extensive use of its components), custom components.
+    *   Styling: `index.css`, `App.css` for global styles, Tailwind utility classes.
+*   **Backend & Database:**
+    *   Provider: Supabase (PaaS).
+    *   Services Used: Supabase Auth (including OAuth for LINE, Google), Supabase Database (PostgreSQL), Supabase Storage (for blog images, verification documents).
+    *   Database Migrations: Managed via Supabase CLI (migration files in `supabase/migrations/`). Numerous other ad-hoc SQL scripts are present in various locations (`/`, `api/`, `supabase/`, `migrations/` at root).
+*   **API Interaction:**
+    *   Primarily client-side interaction with Supabase services (Database, Auth, Storage) using the `supabase-js` client library.
+    *   Data logic, authorization, and complex operations are handled by Supabase RLS policies, database functions (PL/pgSQL), and triggers.
+*   **Deployment:**
+    *   Platform: Configured for Vercel (`vercel.json`).
+    *   Strategy: Deployed as a Single Page Application (SPA). `vercel.json` specifies `framework: "vite"` and rewrites all requests to `index.html`.
+    *   Build: `npm run build` outputting to `dist/` directory.
+*   **Development & Tooling:**
+    *   Package Manager: npm (indicated by `package-lock.json`, though `bun.lockb` also exists).
+    *   Linting: ESLint with TypeScript support.
+    *   Component Tagger: `lovable-tagger` (used in development mode via Vite config).
+    *   Supabase Client: Initialized in `src/integrations/supabase/client.ts` with hardcoded URL/anon key and `localStorage` for session persistence.
+    *   Supabase Admin Client: A separate client initialized in `src/integrations/supabase/admin-client.ts` using a hardcoded Service Role Key. This is intended for admin operations but poses a **critical security risk if ever imported and used in client-side code.**
+    *   Storage Setup: Client-side script (`src/supabase/storage-setup.ts`) attempts to ensure the 'blog' bucket exists, run by admin users.
+
+**Key Files & Directories:**
+*   `src/`: Main application source code.
+    *   `main.tsx`: App entry point.
+    *   `App.tsx`: Root component with routing setup.
+    *   `pages/`: Route components.
+    *   `components/`: Reusable UI components (including Shadcn UI).
+    *   `integrations/supabase/client.ts`: Supabase client setup.
+    *   `contexts/`, `hooks/`, `utils/`, `types/`.
+*   `supabase/`: Supabase CLI related files.
+    *   `migrations/`: Official database migration scripts.
+    *   `config.toml`: Supabase project ID.
+    *   Numerous other SQL scripts and READMEs for specific features/fixes.
+*   `public/`: Static assets.
+*   SQL Scripts: Many `.sql` files across the project for initial setup, fixes, feature additions (e.g., `supabase-setup.sql`, `api/database-setup.sql`, `add-questionnaire-columns.sql`).
+*   Configuration: `vite.config.ts`, `tailwind.config.ts`, `tsconfig.json`, `package.json`, `vercel.json`, `eslint.config.js`.
+*   Documentation: Various `README.md` files explaining setup for Supabase, LINE login, questionnaire, therapist signup, etc.
+*   AI/Agent Files: `memory.json`, `lessons.json`.
+
+**Discrepancies & Potential Issues:**
+*   **Documentation Mismatch:** `README.md` tech stack mentions Next.js, but the project is Vite-based.
+*   **Hardcoded Keys:** Supabase URL and anon key are hardcoded in `src/integrations/supabase/client.ts`. The Service Role Key is hardcoded in `src/integrations/supabase/admin-client.ts` (critical security risk if used client-side).
+*   **Scattered SQL Scripts:** SQL logic is spread across CLI migrations and many other ad-hoc files.
+*   **Risky SQL in `fixes.sql`:** Contains a command to unconditionally grant admin rights to the current user.
+*   **Legacy API Code:** `api/post-api-routes.js` contains Next.js-style API route handlers that are not used by the Vite setup or Vercel SPA deployment.
+*   **Dual Lockfiles:** `package-lock.json` (npm) and `bun.lockb` (Bun) coexist.
+*   **Security of Generated Supabase Client:** The client file `src/integrations/supabase/client.ts` is marked as "automatically generated". If it's regenerated, manual changes (like moving keys to env vars) might be overwritten. The `admin-client.ts` also contains a hardcoded service role key.
+
+**Overall Architecture:**
+The application follows a modern SPA architecture with React on the frontend and Supabase providing the BaaS (Backend as a Service). The frontend is responsible for UI rendering and user interaction, while Supabase handles data storage, querying, real-time capabilities (if used, not explicitly detailed but possible with Supabase), authentication, and file storage. Security is enforced primarily through Supabase's RLS policies and database-level logic.
+The project is quite extensive with many features and user roles, indicating a complex application. The presence of AI-related helper files (`memory.json`, `lessons.json`) is a unique aspect, suggesting advanced development tooling or an integrated AI assistant. 

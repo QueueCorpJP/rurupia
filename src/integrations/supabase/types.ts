@@ -843,6 +843,14 @@ export type Database = {
             }
             Returns: undefined
           }
+      log_page_view_text: {
+        Args: {
+          page_path: string
+          ip: string
+          user_agent: string
+        }
+        Returns: undefined
+      }
       setup_admin_policies: {
         Args: Record<PropertyKey, never>
         Returns: undefined

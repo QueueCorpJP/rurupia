@@ -36,7 +36,7 @@ export const usePageViewTracking = () => {
         }
         
         // Try using the RPC function first
-        const { error } = await supabase.rpc('log_page_view', {
+        const { error } = await supabase.rpc('log_page_view_text', {
           page_path: location.pathname,
           ip: ipAddress,
           user_agent: navigator.userAgent

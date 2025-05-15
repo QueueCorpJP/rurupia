@@ -6,6 +6,7 @@ import { MessageSquare, MessageCircle, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 
 const MessagesIndex = () => {
   const navigate = useNavigate();
@@ -73,7 +74,14 @@ const MessagesIndex = () => {
 
   return (
     <Layout>
-      <div className="space-y-6 px-4 sm:px-6 mt-8">
+      <div className="container space-y-6 py-8">
+        <Breadcrumb 
+          items={[
+            { label: 'マイページ', href: '/user-profile' },
+            { label: 'メッセージ', href: '/messages', current: true }
+          ]}
+        />
+        
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight mb-3">メッセージ</h1>
           <p className="text-muted-foreground">

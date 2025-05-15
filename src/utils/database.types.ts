@@ -83,6 +83,79 @@ export interface Database {
           service_areas?: Json | null
         }
       }
+      notification_settings: {
+        Row: {
+          id: string
+          user_id: string
+          email_notifications: boolean
+          message_notifications: boolean
+          booking_notifications: boolean
+          promotion_notifications: boolean
+          review_notifications: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          email_notifications?: boolean
+          message_notifications?: boolean
+          booking_notifications?: boolean
+          promotion_notifications?: boolean
+          review_notifications?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          email_notifications?: boolean
+          message_notifications?: boolean
+          booking_notifications?: boolean
+          promotion_notifications?: boolean
+          review_notifications?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          type: string
+          email_sent: boolean
+          data: Json
+          created_at: string
+          read: boolean
+          read_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          type: string
+          email_sent?: boolean
+          data?: Json
+          created_at?: string
+          read?: boolean
+          read_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          message?: string
+          type?: string
+          email_sent?: boolean
+          data?: Json
+          created_at?: string
+          read?: boolean
+          read_at?: string | null
+        }
+      }
     }
   }
 } 

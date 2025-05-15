@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import TherapistCard from '@/components/TherapistCard';
 import { Loader2 } from 'lucide-react';
 import { Therapist } from '@/utils/types';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 
 const FollowedTherapists = () => {
   const [followedTherapists, setFollowedTherapists] = useState<Therapist[]>([]);
@@ -99,6 +100,13 @@ const FollowedTherapists = () => {
   return (
     <Layout>
       <div className="container py-8">
+        <Breadcrumb 
+          items={[
+            { label: 'マイページ', href: '/user-profile' },
+            { label: 'お気に入りセラピスト', href: '/followed-therapists', current: true }
+          ]}
+        />
+        
         <h1 className="text-2xl font-bold mb-6">お気に入りセラピスト</h1>
         
         {loading ? (

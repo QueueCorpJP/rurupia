@@ -70,7 +70,28 @@
     *   Component Tagger: `lovable-tagger` (used in development mode via Vite config).
     *   Supabase Client: Initialized in `src/integrations/supabase/client.ts` with hardcoded URL/anon key and `localStorage` for session persistence.
     *   Supabase Admin Client: A separate client initialized in `src/integrations/supabase/admin-client.ts` using a hardcoded Service Role Key. This is intended for admin operations but poses a **critical security risk if ever imported and used in client-side code.**
-    *   Storage Setup: Client-side script (`src/supabase/storage-setup.ts`) attempts to ensure the 'blog' bucket exists, run by admin users.
+    *   Auth State Management: 
+        *   Uses a combination of Supabase auth session and custom localStorage caching for user types.
+        *   The app determines user types by checking multiple tables (`stores`, `therapists`, `profiles`) and caches the result in localStorage under the key 'nokutoru_user_type'.
+        *   UI rendering logic checks both user session and userType before showing logged-in UI elements to prevent inconsistencies.
+        *   Enhanced logout functionality includes proper state and localStorage clearing with fallback mechanisms.
+        *   Stale state detection clears localStorage when user session doesn't exist.
+        *   Added admin client fallback for retrieving user profiles when normal queries fail.
+    *   Auth Debugging: 
+        *   Custom utilities in `src/utils/auth-debug.ts` provide browser console tools for diagnosing and fixing auth state issues.
+        *   Available tools include `checkState()`, `clearAll()`, `forceSignOut()`, and `fixState()` to assist developers.
+        *   These utilities are exposed in the browser console in `main.tsx` via the `window.authDebug` object.
+    *   Storage Setup: Client-side script (`src/supabase/storage-setup.ts`) attempts to ensure the 'blog' bucket exists, run by administrators during initial setup.
+    *   User Interface Navigation:
+        *   Breadcrumbs for navigating between hierarchical pages (user profile → messages, bookings, etc.)
+        *   Loading indicators for UI state transitions (login, logout, navigation, profile saving)
+        *   Consistent back-navigation from child pages to parent pages
+        *   Fixed links to followed therapists page (using dedicated page instead of filtered view)
+    *   Notification System:
+        *   Database tables (notification_settings, notifications) to store user preferences and notification history
+        *   Typed notification service helpers for different notification types (messages, bookings, promotions, reviews)
+        *   User notification settings page with toggles for different notification types
+        *   Integration with messaging and other features to send appropriate notifications
 
 **Key Files & Directories:**
 *   `src/`: Main application source code.
@@ -90,6 +111,31 @@
 *   Documentation: Various `README.md` files explaining setup for Supabase, LINE login, questionnaire, therapist signup, etc.
 *   AI/Agent Files: `memory.json`, `lessons.json`.
 
+**Recent UI Improvements:**
+* Added breadcrumbs navigation to all key user pages (user-bookings, messages, messages-index, followed-therapists)
+* Fixed link to followed therapists in user profile sidebar (now using dedicated page)
+* Fixed multiline input for 趣味 (hobbies) field in user profile
+* Removed verification request button from mypage (feature under maintenance)
+* Removed the プロフィール編集 (Profile Edit) button from the left profile card
+* Added loading indicators for UI state transitions (login, logout, profile saving)
+* Enhanced session management to prevent UI flickering during auth state changes
+* Improved the mobile layout with consistent container styling
+
+**Recent Updates:**
+- Fixed the availability calendar in therapist detail and booking pages to strictly use real therapist working days/hours from the database without fallback mock data
+- Added clear messaging when a therapist has no availability instead of showing mock calendar data
+- Added fuzzy search functionality to the Index page search field, showing real-time suggestions as users type
+- Integrated all 47 Japanese prefectures in the area dropdown using the PrefectureSelect component
+- Enhanced notification system with proper error handling and user feedback
+- Fixed various UI consistency issues including React Fragment handling
+- Removed Lovable-related components and references
+- Added toast notifications for user actions across the application
+- Fixed booking submission issues by correcting database field names and adapting to schema constraints
+- Implemented comprehensive booking notification system for therapists, stores, and users
+- Fixed messaging system by properly maintaining session context and improving error handling
+- Created new therapist messaging interface with improved UX and notification support
+- Added support for image attachments in messages with proper error handling and feedback
+
 **Discrepancies & Potential Issues:**
 *   **Documentation Mismatch:** `README.md` tech stack mentions Next.js, but the project is Vite-based.
 *   **Hardcoded Keys:** Supabase URL and anon key are hardcoded in `src/integrations/supabase/client.ts`. The Service Role Key is hardcoded in `src/integrations/supabase/admin-client.ts` (critical security risk if used client-side).
@@ -98,7 +144,43 @@
 *   **Legacy API Code:** `api/post-api-routes.js` contains Next.js-style API route handlers that are not used by the Vite setup or Vercel SPA deployment.
 *   **Dual Lockfiles:** `package-lock.json` (npm) and `bun.lockb` (Bun) coexist.
 *   **Security of Generated Supabase Client:** The client file `src/integrations/supabase/client.ts` is marked as "automatically generated". If it's regenerated, manual changes (like moving keys to env vars) might be overwritten. The `admin-client.ts` also contains a hardcoded service role key.
+*   **Auth State Limitations:** Still using localStorage for userType caching instead of a centralized auth context. Multiple client warning occurs when admin pages import both regular and admin client instances.
 
 **Overall Architecture:**
 The application follows a modern SPA architecture with React on the frontend and Supabase providing the BaaS (Backend as a Service). The frontend is responsible for UI rendering and user interaction, while Supabase handles data storage, querying, real-time capabilities (if used, not explicitly detailed but possible with Supabase), authentication, and file storage. Security is enforced primarily through Supabase's RLS policies and database-level logic.
-The project is quite extensive with many features and user roles, indicating a complex application. The presence of AI-related helper files (`memory.json`, `lessons.json`) is a unique aspect, suggesting advanced development tooling or an integrated AI assistant. 
+The project is quite extensive with many features and user roles, indicating a complex application. The presence of AI-related helper files (`memory.json`, `lessons.json`) is a unique aspect, suggesting advanced development tooling or an integrated AI assistant.
+
+## Recent Updates & Improvements
+
+### User Interface Enhancements
+- Added breadcrumbs navigation to UserBookings, Messages, MessagesIndex, and FollowedTherapists pages
+- Fixed the link to フォロー中のセラピスト (Followed Therapists) to use correct path
+- Added loading indicators for UI state transitions (login, logout, profile saving)
+- Fixed the textarea input for the 趣味 (hobbies) field in UserProfile to properly handle Enter key
+- Removed verification request button from mypage as it's currently under maintenance
+- Removed the プロフィール編集 (Profile Edit) button from the left profile card since the user profile page itself serves that purpose
+
+### Email Notification System
+- Implemented a comprehensive email notification system with user-configurable preferences
+- Created notification_settings table to store user preferences for different notification types
+- Created notifications table to track all notifications sent to users
+- Added a notification settings page with toggles for different notification types:
+  - Email notifications (overall toggle)
+  - Message notifications
+  - Booking notifications
+  - Promotion notifications
+  - Review notifications
+- Implemented notification service with type-specific helper functions for sending notifications
+- Created UserNotifications.tsx page for viewing notifications
+- Updated NotificationSettings.tsx to toggle different notification types
+- Added the notification route to App.tsx
+- Integrated notifications with the Messages feature
+
+### Authentication System Fixes
+- Enhanced Layout.tsx to correctly handle auth state and display proper UI
+- Fixed auth state UI inconsistencies where UI showed "mypage" header when auth state was false
+- Improved logout functionality with better error handling and fallback mechanisms
+- Added state indicators for auth operations (logging in, logging out)
+- Fixed persistent login issues by removing auth timeout
+- Added admin client fallback for retrieving user profiles when normal queries fail
+- Added auth debugging utilities in auth-debug.ts for state checking and recovery 

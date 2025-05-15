@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -29,13 +28,15 @@ import {
   Heart,
   Clock,
   Bell,
-  UserX
+  UserX,
+  Loader2
 } from 'lucide-react';
 import type { UserProfile as UserProfileType } from "@/utils/types";
 
 const UserProfile = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [verificationFile, setVerificationFile] = useState<File | null>(null);
@@ -104,7 +105,7 @@ const UserProfile = () => {
   }, [navigate]);
 
   const handleProfileUpdate = async () => {
-    setIsLoading(true);
+    setIsSaving(true);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -140,12 +141,17 @@ const UserProfile = () => {
       }
 
       console.log("Profile updated successfully:", data);
-      toast.success("プロフィールを更新しました！");
+      toast.success("プロフィールを更新しました！", {
+        position: "top-center",
+        duration: 3000,
+        icon: <CheckCircle className="h-5 w-5" />,
+        description: "変更内容が保存されました"
+      });
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("プロフィールの更新に失敗しました");
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -195,7 +201,12 @@ const UserProfile = () => {
         avatar_url: publicUrlData.publicUrl,
       });
 
-      toast.success("プロフィール画像をアップロードしました！");
+      toast.success("プロフィール画像をアップロードしました！", {
+        position: "top-center",
+        duration: 3000,
+        icon: <CheckCircle className="h-5 w-5" />,
+        description: "新しいプロフィール画像が保存されました"
+      });
     } catch (error) {
       console.error("Error uploading avatar:", error);
       toast.error("画像のアップロードに失敗しました");
@@ -263,51 +274,17 @@ const UserProfile = () => {
         verification_document: filePath,
       });
 
-      toast.success("書類をアップロードしました！");
+      toast.success("書類をアップロードしました！", {
+        position: "top-center",
+        duration: 3000,
+        icon: <CheckCircle className="h-5 w-5" />,
+        description: "書類が正常にアップロードされました"
+      });
     } catch (error) {
       console.error("Error uploading document:", error);
       toast.error("書類のアップロードに失敗しました");
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleVerificationRequest = async () => {
-    setIsLoading(true);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error("ユーザー情報を取得できませんでした");
-        return;
-      }
-
-      if (!profile.verification_document) {
-        toast.error("認証書類をアップロードしてください");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          is_verified: true,
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setProfile({
-        ...profile,
-        is_verified: true,
-      });
-
-      toast.success("アカウント認証リクエストを送信しました！管理者の確認をお待ちください。");
-    } catch (error) {
-      console.error("Error requesting verification:", error);
-      toast.error("アカウント認証リクエストに失敗しました");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -328,6 +305,19 @@ const UserProfile = () => {
     "ISTJ", "ISFJ", "ESTJ", "ESFJ", 
     "ISTP", "ISFP", "ESTP", "ESFP"
   ];
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container py-8 flex justify-center items-center min-h-[50vh]">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-lg font-medium">プロフィールを読み込み中...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -395,7 +385,7 @@ const UserProfile = () => {
                   </li>
                   <li>
                     <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link to="/therapists?filter=followed">
+                      <Link to="/followed-therapists">
                         <Heart className="mr-2 h-4 w-4" />
                         フォロー中のセラピスト
                       </Link>
@@ -407,14 +397,6 @@ const UserProfile = () => {
               <div className="mt-6 border-t pt-6">
                 <h3 className="text-md font-semibold mb-3">アカウント設定</h3>
                 <ul className="space-y-2">
-                  <li>
-                    <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link to="/profile">
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        プロフィール編集
-                      </Link>
-                    </Button>
-                  </li>
                   <li>
                     <Button variant="ghost" className="w-full justify-start" asChild>
                       <Link to="/notification-settings">
@@ -457,14 +439,25 @@ const UserProfile = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="profile-image" className="cursor-pointer bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors">
-                    画像をアップロード
+                  <Label htmlFor="profile-image" className="cursor-pointer bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors inline-flex items-center">
+                    {isUploading ? (
+                      <span className="contents">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        アップロード中...
+                      </span>
+                    ) : (
+                      <span className="contents">
+                        <UploadCloud className="h-4 w-4 mr-2" />
+                        画像をアップロード
+                      </span>
+                    )}
                     <input 
                       type="file" 
                       id="profile-image" 
                       className="hidden"
                       onChange={handleAvatarUpload}
                       accept="image/*"
+                      disabled={isUploading}
                     />
                   </Label>
                   <p className="text-sm text-gray-500 mt-2">推奨サイズ：300x300px</p>
@@ -541,18 +534,23 @@ const UserProfile = () => {
                 <div className="mt-1">
                   <Textarea
                     id="hobbies"
-                    placeholder="趣味"
-                    value={profile.hobbies?.join(", ") || ""}
-                    onChange={(e) => setProfile({ ...profile, hobbies: e.target.value.split(",").map(h => h.trim()) })}
+                    placeholder="趣味を入力（改行で複数入力可能）"
+                    value={Array.isArray(profile.hobbies) ? profile.hobbies.join("\n") : ""}
+                    onChange={(e) => {
+                      const hobbies = e.target.value.split("\n").map(h => h.trim()).filter(Boolean);
+                      setProfile({ ...profile, hobbies });
+                    }}
+                    rows={4}
                   />
+                  <p className="text-sm text-gray-500 mt-1">Enterキーで改行して複数の趣味を入力できます</p>
                 </div>
               </div>
             </div>
             
             <div className="mb-8 bg-gray-50 p-6 rounded-lg border mt-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">アカウント認証</h3>
-                <Badge variant={profile.is_verified ? "secondary" : "outline"}>
+                <h3 className="text-lg font-medium">アカウント認証状態</h3>
+                <Badge variant={profile.is_verified ? "secondary" : "outline"} className={profile.is_verified ? "bg-green-100 text-green-800" : ""}>
                   {profile.is_verified ? "認証済み" : "未認証"}
                 </Badge>
               </div>
@@ -584,11 +582,11 @@ const UserProfile = () => {
               ) : (
                 <div>
                   <p className="text-sm text-gray-600 mb-4">
-                    アカウントを認証すると、他のユーザーからの信頼性が向上します。身分証明書をアップロードして認証をリクエストしてください。
+                    アカウント認証サービスは現在メンテナンス中です。認証が必要な場合は、カスタマーサポートにお問い合わせください。
                   </p>
                   
-                  {profile.verification_document ? (
-                    <div className="mb-4">
+                  {profile.verification_document && (
+                    <div className="mt-2">
                       <p className="text-sm font-medium text-gray-700">アップロード済み書類:</p>
                       <div className="mt-1 flex items-center p-3 bg-white border rounded-md">
                         <FileText className="h-5 w-5 text-blue-500 mr-2" />
@@ -603,40 +601,25 @@ const UserProfile = () => {
                           表示
                         </a>
                       </div>
-                      
-                      <Button 
-                        onClick={handleVerificationRequest} 
-                        disabled={isLoading} 
-                        className="bg-green-500 text-green-50 hover:bg-green-600 transition-colors mt-4"
-                      >
-                        認証をリクエスト
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="mb-4">
-                      <Label htmlFor="verification-document" className="block text-sm font-medium text-gray-700">身分証明書</Label>
-                      <div className="mt-1 flex items-center">
-                        <input 
-                          type="file" 
-                          id="verification-document" 
-                          className="hidden" 
-                          onChange={handleDocumentUpload}
-                          accept="image/*,application/pdf" 
-                        />
-                        <Label htmlFor="verification-document" className="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors">
-                          {verificationFile ? verificationFile.name : "書類を選択"}
-                        </Label>
-                        {isUploading && <span className="ml-2 text-sm text-gray-500">アップロード中...</span>}
-                      </div>
-                      <p className="text-sm text-gray-500 mt-2">有効な身分証明書には、運転免許証、パスポート、マイナンバーカードなどが含まれます。</p>
                     </div>
                   )}
                 </div>
               )}
             </div>
             
-            <Button onClick={handleProfileUpdate} disabled={isLoading} className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-              プロフィールを保存
+            <Button 
+              onClick={handleProfileUpdate} 
+              disabled={isSaving} 
+              className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors inline-flex items-center"
+            >
+              {isSaving ? (
+                <span className="contents">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  保存中...
+                </span>
+              ) : (
+                "プロフィールを保存"
+              )}
             </Button>
           </div>
         </div>

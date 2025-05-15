@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 
 // Define a new interface that matches our Supabase booking structure
 interface SupabaseBooking {
@@ -255,9 +255,11 @@ const UserBookings = () => {
       <Layout>
         <div className="container max-w-4xl py-8">
           <div className="flex justify-center items-center min-h-[400px]">
-            <div className="text-center">
-              <p className="text-red-500 mb-4">{error}</p>
-              <Button onClick={() => window.location.reload()}>再読み込み</Button>
+            <div className="flex flex-col items-center">
+              <p className="text-red-500">{error}</p>
+              <Button className="mt-4" asChild>
+                <Link to="/">トップページへ</Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -267,8 +269,15 @@ const UserBookings = () => {
   
   return (
     <Layout>
-      <div className="container max-w-4xl py-8 px-4 sm:px-6">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6">予約履歴</h1>
+      <div className="container max-w-4xl py-8">
+        <Breadcrumb 
+          items={[
+            { label: 'マイページ', href: '/user-profile' },
+            { label: '予約履歴', href: '/user-bookings', current: true }
+          ]}
+        />
+        
+        <h1 className="text-2xl font-bold mb-6">予約履歴</h1>
         
         <Tabs defaultValue="pending" className="w-full">
           <TabsList className="grid grid-cols-4 mb-6">

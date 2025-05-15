@@ -266,23 +266,48 @@ export function UserNav() {
 
   const handleLogout = async () => {
     try {
+      console.log("UserNav: Starting logout process");
+      
+      // Clear localStorage first to prevent UI flicker
+      localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
+      
+      // Additional clear of any potential stale data
+      localStorage.removeItem('therapist-app-auth');
+      
+      // Clear user state before async operations
+      setUserEmail(null);
+      setUserType(null);
+      
       // Check if the current path is in the admin section
       const isAdminPath = window.location.pathname.startsWith('/admin');
       
       if (isAdminPath) {
+        console.log("UserNav: Using admin logout for admin section");
         // Use admin logout for admin section
         adminLogout();
       } else {
+        console.log("UserNav: Using regular logout");
         // Use regular logout for other sections
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('UserNav: Logout error:', error);
+          throw error;
+        }
       }
       
-      localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
+      console.log("UserNav: Logout successful, redirecting to home");
       navigate('/');
       toast.success('ログアウトしました');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('UserNav: Logout error:', error);
       toast.error('ログアウトに失敗しました');
+      
+      // Even if there's an error, clear the UI state
+      setUserEmail(null);
+      setUserType(null);
+      
+      // Force page reload as last resort if logout fails
+      window.location.href = "/";
     }
   };
 

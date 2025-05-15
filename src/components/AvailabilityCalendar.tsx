@@ -53,25 +53,6 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
   const [therapistData, setTherapistData] = useState<any>(null);
   const [debugInfo, setDebugInfo] = useState<string>("");
   
-  // For demo purposes - generate mock data if none exists
-  const generateMockData = () => {
-    // Create availability for the next 14 days
-    const today = new Date();
-    const mockDays: Date[] = [];
-    
-    // Add every Monday, Wednesday, and Friday for the next 30 days
-    for (let i = 0; i < 30; i++) {
-      const date = addDays(today, i);
-      const day = getDay(date);
-      // 1 = Monday, 3 = Wednesday, 5 = Friday
-      if (day === 1 || day === 3 || day === 5) {
-        mockDays.push(date);
-      }
-    }
-    
-    return mockDays;
-  };
-  
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -96,6 +77,7 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
         if (error) {
           console.error('Error fetching therapist availability:', error);
           setDebugInfo(`Error: ${error.message}`);
+          setIsLoading(false);
           return;
         }
         
@@ -154,12 +136,6 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
           });
         } else {
           console.log('No availability found or it is empty');
-        }
-        
-        // If no data is available, generate mock data for demo purposes
-        if (availableDates.length === 0) {
-          console.log('No availability data found, generating mock data');
-          availableDates = generateMockData();
         }
         
         console.log('Final available dates:', availableDates);
@@ -232,8 +208,7 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
   // Update the getAvailableTimesForDate function
   const getAvailableTimesForDate = (date: Date): string[] => {
     if (!therapistData) {
-      // Default time slots if no data is available
-      return ['10:00', '11:00', '14:00', '15:00', '16:00'];
+      return [];
     }
     
     try {
@@ -241,7 +216,7 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
       const typedData = therapistData as DatabaseTherapist;
       
       if (!typedData.working_hours) {
-        return ['10:00', '11:00', '14:00', '15:00', '16:00'];
+        return [];
       }
       
       // Parse working_hours
@@ -275,12 +250,11 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
         }
       }
       
-      // Default time slots if no specific hours found for this day
-      return ['10:00', '11:00', '14:00', '15:00', '16:00'];
+      // No hours found for this day
+      return [];
     } catch (error) {
       console.error('Error parsing working hours:', error);
-      // Default time slots in case of error
-      return ['10:00', '11:00', '14:00', '15:00', '16:00'];
+      return [];
     }
   };
   
@@ -375,6 +349,12 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
               </div>
             )}
           </div>
+        </div>
+      )}
+      
+      {availableDays.length === 0 && !isLoading && (
+        <div className="text-center p-4 text-sm text-muted-foreground">
+          このセラピストは現在予約を受け付けていません
         </div>
       )}
     </div>

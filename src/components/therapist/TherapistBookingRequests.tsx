@@ -4,10 +4,11 @@ import TherapistBookingRequest from "./TherapistBookingRequest";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { sendBookingConfirmationToClient } from "@/utils/notification-service";
 
 interface TherapistBookingRequestsProps {
   therapistId: string;
@@ -175,6 +176,22 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
       );
 
       toast.success('ステータスを更新しました');
+
+      // Send notification to client
+      const booking = bookingRequests.find(req => req.id === id);
+      if (booking && newStatus === "確定") {
+        try {
+          const bookingDate = parseISO(booking.requestTime.split(' ')[0] + 'T' + booking.requestTime.split(' ')[1]);
+          await sendBookingConfirmationToClient(
+            booking.userId, 
+            booking.therapistName || "セラピスト", 
+            bookingDate
+          );
+        } catch (notifyError) {
+          console.error('Error sending confirmation notification:', notifyError);
+          // Continue even if notification fails
+        }
+      }
     } catch (error) {
       console.error('Error in status update:', error);
       toast.error('ステータスの更新に失敗しました');

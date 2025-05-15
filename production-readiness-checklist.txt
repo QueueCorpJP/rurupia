@@ -1,0 +1,174 @@
+# PRODUCTION READINESS CHECKLIST: THERAPIST CONNECTIVITY PROJECT
+
+## DATABASE & SUPABASE CONFIGURATION
+
+☐ Verify all Supabase migrations have been applied successfully
+☐ Ensure all required RLS policies are properly configured for each table
+☐ Remove all hardcoded service role keys from client-side code (critical security risk)
+☐ Set up proper environment variables for Supabase URL and keys
+☐ Verify database triggers and functions work correctly (especially for page views and post interactions)
+☐ Test database performance with expected production load
+☐ Ensure proper backups are configured
+☐ Verify correct function resolution (check if log_page_view_text is working properly)
+☐ Review and consolidate scattered SQL files, converting important ones to proper migrations
+
+## AUTHENTICATION & SECURITY
+
+☐ Test all authentication flows (email/password, LINE, Google)
+☐ Verify proper role/type assignment for new users
+☐ Test invitation and self-registration flows for therapists
+☐ Ensure admin client is never loaded in regular client-side code
+☐ Verify profile creation on signup
+☐ Test password reset functionality
+☐ Check session persistence and refresh behavior
+☐ Verify proper access controls for different user types
+☐ Ensure secure storage of verification documents
+
+## USER PROFILES & ACCOUNTS
+
+☐ Test profile creation, editing, and viewing for all user types
+☐ Verify profile image upload and storage
+☐ Check questionnaire data storage and retrieval
+☐ Test therapist verification workflow
+☐ Ensure proper handling of user type changes
+☐ Verify proper data is displayed based on user types
+☐ Test user status changes (active, pending, etc.)
+
+## THERAPIST FUNCTIONALITY
+
+☐ Test therapist profile creation and editing
+☐ Verify specialty, qualification, and service area management
+☐ Check availability settings and calendar integration
+☐ Test therapist post creation, editing, and scheduling
+☐ Verify image uploads for therapist profiles and posts
+☐ Test questionnaire-based matching algorithm
+☐ Ensure proper display of therapist ratings and reviews
+
+## BOOKING SYSTEM
+
+☐ Test booking creation for all user types
+☐ Verify date/time selection and availability checking
+☐ Test booking status changes and notifications
+☐ Check booking management for clients, therapists, and stores
+☐ Verify price calculations and service selection
+☐ Test booking notes and special requests
+☐ Ensure proper validation of booking data
+
+## MESSAGING SYSTEM
+
+☐ Test message sending between all user types
+☐ Verify real-time updates or proper polling
+☐ Check unread message indicators
+☐ Test image attachments in messages
+☐ Verify conversation threading and history
+☐ Ensure proper message recipient selection
+☐ Test notification systems for new messages
+
+## BLOG & CONTENT MANAGEMENT
+
+☐ Test blog post creation, editing, and publishing
+☐ Verify scheduled posts functionality
+☐ Check category and tag management
+☐ Test rich text editor (TinyMCE) integration
+☐ Verify image uploads and storage for blog posts
+☐ Test blog post visibility and access controls
+☐ Check view counting mechanism
+
+## STORE ADMIN FUNCTIONALITY
+
+☐ Test store creation and management
+☐ Verify therapist-store relationships
+☐ Check store-specific analytics and reporting
+☐ Test store admin dashboard functionality
+☐ Verify store booking management
+☐ Ensure proper access controls for store admins
+
+## SYSTEM ADMIN FUNCTIONALITY
+
+☐ Test system-wide user management
+☐ Verify analytics dashboard and data
+☐ Check system settings and configuration
+☐ Test content moderation tools
+☐ Verify global announcement functionality
+☐ Ensure proper access controls for system admins
+
+## FRONTEND & UI
+
+☐ Test responsive design on mobile, tablet, and desktop
+☐ Verify proper loading states and transitions
+☐ Check form validation and error messages
+☐ Test accessibility compliance (keyboard navigation, screen readers)
+☐ Verify proper internationalization (Japanese support)
+☐ Check dark/light mode if applicable
+☐ Test browser compatibility (Chrome, Firefox, Safari, Edge)
+
+## PERFORMANCE & OPTIMIZATION
+
+☐ Verify lazy loading for images and components
+☐ Check bundle size and code splitting
+☐ Test initial load time and time-to-interactive
+☐ Verify caching strategies
+☐ Check media optimization (images, videos)
+☐ Test offline capabilities if applicable
+☐ Verify database query performance
+
+## ERROR HANDLING & LOGGING
+
+☐ Test error boundary functionality
+☐ Verify proper error messages for users
+☐ Check logging for critical operations
+☐ Test recovery from network failures
+☐ Verify handling of Supabase service disruptions
+☐ Check form input validation and error states
+☐ Test handling of authentication failures
+
+## ANALYTICS & TRACKING
+
+☐ Verify page view tracking functionality
+☐ Check custom analytics events
+☐ Test dashboard data accuracy
+☐ Verify user behavior tracking compliance
+☐ Ensure privacy regulations compliance (GDPR, etc.)
+
+## DEPLOYMENT & DEVOPS
+
+☐ Verify Vercel deployment configuration
+☐ Check environment variables in production
+☐ Test custom domain configuration
+☐ Verify build and CI/CD pipeline
+☐ Test rollback procedures
+☐ Check SSL/TLS configuration
+☐ Verify proper caching headers
+
+## SPECIFIC PROJECT ISSUES
+
+☐ Fix Multiple GoTrueClient instances warning
+☐ Resolve function resolution ambiguity with log_page_view
+☐ Fix RLS policy for page_views table
+☐ Address React Router future flag warnings
+☐ Verify admin-client.ts is not imported in general components
+
+## LEGAL & COMPLIANCE
+
+☐ Verify Privacy Policy is up-to-date and accessible
+☐ Check Terms of Service documentation
+☐ Ensure proper data handling for compliance with Japanese regulations
+☐ Verify cookie consent mechanisms if applicable
+☐ Check proper attribution for third-party resources
+
+## FINAL VERIFICATION
+
+☐ Complete end-to-end testing of critical user journeys
+☐ Verify all integrations are working (LINE, Google, etc.)
+☐ Check production database schema matches development
+☐ Verify proper handling of production vs. development features
+☐ Final security review and penetration testing
+☐ Performance testing under expected load
+
+## POST-LAUNCH PLAN
+
+☐ Setup monitoring and alerting
+☐ Prepare support procedures and documentation
+☐ Define maintenance schedule
+☐ Plan for gathering user feedback
+☐ Establish update and feature release process 

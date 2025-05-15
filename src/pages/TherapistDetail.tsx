@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import PostCard, { PostWithInteractions } from '@/components/PostCard';
+import { addDays, isAfter, isBefore } from 'date-fns';
 
 interface ExtendedTherapist extends Therapist {
   galleryImages?: string[];
@@ -61,6 +62,7 @@ const TherapistDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [therapistPosts, setTherapistPosts] = useState<PostWithInteractions[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [hasAvailability, setHasAvailability] = useState<boolean>(true);
 
   const handlePostUpdate = useCallback(async (postId: string) => {
     try {
@@ -290,6 +292,152 @@ const TherapistDetail = () => {
       setIsMounted(false);
     };
   }, [fetchTherapist, checkUserAuth, checkIsFollowing, id]);
+
+  // Add an effect to check if therapist has any available days
+  useEffect(() => {
+    if (!therapist) return;
+    
+    const checkTherapistAvailability = async () => {
+      try {
+        console.log("Checking availability for therapist:", therapist.id, "Name:", therapist.name);
+        console.log("Working days data:", therapist.workingDays);
+        console.log("Availability data:", therapist.availability);
+        
+        // Always consider therapists with availability to be available
+        if (therapist.availability && Array.isArray(therapist.availability) && therapist.availability.length > 0) {
+          console.log("Therapist has availability days:", therapist.availability);
+          setHasAvailability(true);
+          return;
+        }
+        
+        // First check if the therapist object has working days data
+        if (therapist.workingDays && Array.isArray(therapist.workingDays) && therapist.workingDays.length > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          // End date (one month from today)
+          const endDate = addDays(new Date(), 30);
+          
+          // Working days could be actual dates or day names
+          let isAvailable = false;
+          
+          // Check both formats: specific dates and day names
+          for (const day of therapist.workingDays) {
+            // Try to parse as date first
+            try {
+              const date = new Date(day);
+              if (!isNaN(date.getTime()) && isAfter(date, today) && isBefore(date, endDate)) {
+                console.log("Found available date:", date);
+                isAvailable = true;
+                break;
+              }
+            } catch (e) {
+              // Not a date, might be a day name
+            }
+            
+            // Check if it's a day name (like "monday", "tuesday", etc.)
+            if (typeof day === 'string' && Object.keys(dayMap).includes(day.toLowerCase())) {
+              console.log("Found available day of week:", day);
+              isAvailable = true;
+              break;
+            }
+          }
+          
+          setHasAvailability(isAvailable);
+        } else {
+          // Fetch from database if not available in the therapist object
+          console.log("Fetching availability data from database for therapist:", therapist.id);
+          const { data, error } = await supabase
+            .from('therapists')
+            .select('working_days, availability, working_hours')
+            .eq('id', String(therapist.id))
+            .single();
+            
+          if (error) {
+            console.error('Error checking therapist availability:', error);
+            setHasAvailability(false);
+            return;
+          }
+          
+          console.log("Database availability data:", data);
+          
+          // Consider therapist available if they have any form of availability set
+          // Case 1: Has availability days set (recurring weekly schedule)
+          if (data.availability && Array.isArray(data.availability) && data.availability.length > 0) {
+            console.log("Therapist has availability days in DB:", data.availability);
+            setHasAvailability(true);
+            return;
+          }
+          
+          // Case 2: Has working hours set (needed to actually book)
+          if (data.working_hours) {
+            try {
+              const workingHours = typeof data.working_hours === 'string' 
+                ? JSON.parse(data.working_hours) 
+                : data.working_hours;
+                
+              if (workingHours) {
+                // If they have working hours defined for any day or have start/end times
+                if ((Object.keys(workingHours).some(key => Array.isArray(workingHours[key]) && workingHours[key].length > 0)) ||
+                    (workingHours.start && workingHours.end)) {
+                  console.log("Therapist has working hours:", workingHours);
+                  setHasAvailability(true);
+                  return;
+                }
+              }
+            } catch (e) {
+              console.error("Error parsing working hours:", e);
+            }
+          }
+          
+          // Case 3: Has specific working days
+          if (data.working_days && Array.isArray(data.working_days) && data.working_days.length > 0) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // End date (one month from today)
+            const endDate = addDays(new Date(), 30);
+            
+            // Working days could be actual dates or day names
+            let isAvailable = false;
+            
+            // Check both formats: specific dates and day names
+            for (const day of data.working_days) {
+              // Try to parse as date first
+              try {
+                const date = new Date(day);
+                if (!isNaN(date.getTime()) && isAfter(date, today) && isBefore(date, endDate)) {
+                  console.log("Found available date in DB:", date);
+                  isAvailable = true;
+                  break;
+                }
+              } catch (e) {
+                // Not a date, might be a day name
+              }
+              
+              // Check if it's a day name (like "monday", "tuesday", etc.)
+              if (typeof day === 'string' && Object.keys(dayMap).includes(day.toLowerCase())) {
+                console.log("Found available day of week in DB:", day);
+                isAvailable = true;
+                break;
+              }
+            }
+            
+            setHasAvailability(isAvailable);
+          } else {
+            // No availability data found
+            console.log("No availability data found for therapist:", therapist.id);
+            setHasAvailability(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking therapist availability:', error);
+        setHasAvailability(false);
+      }
+    };
+    
+    checkTherapistAvailability();
+  }, [therapist]);
 
   if (isLoading) {
     return (
@@ -552,8 +700,18 @@ const TherapistDetail = () => {
                     <p className="text-muted-foreground">
                       {therapist?.name}さんの施術を予約しましょう。
                     </p>
-                    <Link to={`/booking/${therapist?.id}`}>
-                      <Button className="w-full" size="lg">
+                    {!hasAvailability && (
+                      <p className="text-red-500 text-sm">
+                        このセラピストは現在予約可能日がありません。
+                      </p>
+                    )}
+                    <Link to={hasAvailability ? `/booking/${therapist?.id}` : "#"}>
+                      <Button 
+                        className="w-full" 
+                        size="lg"
+                        disabled={!hasAvailability}
+                        onClick={e => !hasAvailability && e.preventDefault()}
+                      >
                         <Calendar className="mr-2 h-5 w-5" />
                         予約ページへ進む
                       </Button>

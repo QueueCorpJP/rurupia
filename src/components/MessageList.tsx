@@ -27,182 +27,165 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
   const [userType, setUserType] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        console.log("[MessageList] Fetching conversations, activeConversationId:", activeConversationId);
-        setIsLoading(true);
+    // Set up auth state change listener to refresh conversations when auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[MessageList] Auth state changed:', event);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('[MessageList] User signed in or token refreshed, refreshing conversations');
+        fetchConversations();
+      }
+    });
+    
+    // Initial fetch
+    fetchConversations();
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [activeConversationId]);
+
+  const fetchConversations = async () => {
+    try {
+      console.log("[MessageList] Fetching conversations, activeConversationId:", activeConversationId);
+      setIsLoading(true);
+      
+      // Get current user
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      
+      console.log("[MessageList] Current user:", user);
+      
+      if (!user) {
+        console.log("[MessageList] No user found, setting empty conversations");
+        setConversations([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      setUserId(user.id);
+      
+      // Get user type (therapist or customer)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', user.id)
+        .single();
         
-        // Get current user
-        const { data } = await supabase.auth.getSession();
-        const user = data.session?.user;
+      if (profileError) {
+        console.error("[MessageList] Error fetching profile:", profileError);
+        // Continue anyway with null userType
+      }
+      
+      console.log("[MessageList] User profile data:", profileData);
+      setUserType(profileData?.user_type || null);
+      
+      // First, get raw messages to identify all conversation partners
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select('sender_id, receiver_id, content, timestamp')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order('timestamp', { ascending: false })
+        .limit(100);
         
-        console.log("[MessageList] Current user:", user);
-        
-        if (!user) {
-          console.log("[MessageList] No user found");
-          return;
+      if (messagesError) {
+        console.error("[MessageList] Error fetching messages:", messagesError);
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("[MessageList] All messages involving this user:", messagesData);
+      
+      if (!messagesData || messagesData.length === 0) {
+        console.log("[MessageList] No messages found for user");
+        setConversations([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Extract unique partner IDs
+      const partnerIds = new Set<string>();
+      
+      messagesData.forEach(msg => {
+        if (msg.sender_id !== user.id) {
+          partnerIds.add(msg.sender_id);
         }
+        if (msg.receiver_id !== user.id) {
+          partnerIds.add(msg.receiver_id);
+        }
+      });
+      
+      const uniquePartnerIds = Array.from(partnerIds);
+      console.log("[MessageList] Unique partner IDs:", uniquePartnerIds);
+      
+      if (uniquePartnerIds.length === 0) {
+        console.log("[MessageList] No conversation partners found");
+        setConversations([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Build partner data from appropriate tables based on user type
+      let partners = [];
+      
+      if (profileData?.user_type === 'therapist') {
+        // For therapists, fetch customer profiles from profiles table
+        console.log("[MessageList] Fetching customer profiles for IDs:", uniquePartnerIds);
         
-        setUserId(user.id);
-        
-        // Get user type (therapist or customer)
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', user.id)
-          .single();
+        // Make sure we're working with a non-empty array of valid IDs
+        if (uniquePartnerIds.length > 0) {
+          // Get all profiles in a single query instead of individually
+          console.log('[MessageList] Profile query parameters:', { 
+            table: 'profiles',
+            queryType: 'in',
+            column: 'id',
+            values: uniquePartnerIds
+          });
           
-        if (profileError) {
-          console.error("[MessageList] Error fetching profile:", profileError);
-          return;
-        }
-        
-        console.log("[MessageList] User profile data:", profileData);
-        setUserType(profileData?.user_type || null);
-        
-        // First, get raw messages to identify all conversation partners
-        const { data: messagesData, error: messagesError } = await supabase
-          .from('messages')
-          .select('sender_id, receiver_id, timestamp')
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .order('timestamp', { ascending: false })
-          .limit(100);
+          // Ensure IDs are properly formatted as strings
+          const stringIds = uniquePartnerIds.map(id => String(id));
+          console.log('[MessageList] Formatted IDs as strings:', stringIds);
           
-        if (messagesError) {
-          console.error("[MessageList] Error fetching messages:", messagesError);
-          return;
-        }
-        
-        console.log("[MessageList] All messages involving this user:", messagesData);
-        
-        if (!messagesData || messagesData.length === 0) {
-          console.log("[MessageList] No messages found for user");
-          setConversations([]);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Extract unique partner IDs
-        const partnerIds = new Set<string>();
-        
-        messagesData.forEach(msg => {
-          if (msg.sender_id !== user.id) {
-            partnerIds.add(msg.sender_id);
-          }
-          if (msg.receiver_id !== user.id) {
-            partnerIds.add(msg.receiver_id);
-          }
-        });
-        
-        const uniquePartnerIds = Array.from(partnerIds);
-        console.log("[MessageList] Unique partner IDs:", uniquePartnerIds);
-        
-        if (uniquePartnerIds.length === 0) {
-          console.log("[MessageList] No conversation partners found");
-          setConversations([]);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Build partner data from appropriate tables based on user type
-        let partners = [];
-        
-        if (profileData?.user_type === 'therapist') {
-          // For therapists, fetch customer profiles from profiles table
-          console.log("[MessageList] Fetching customer profiles for IDs:", uniquePartnerIds);
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, nickname, name, avatar_url, user_type')
+            .in('id', stringIds);
           
-          // Make sure we're working with a non-empty array of valid IDs
-          if (uniquePartnerIds.length > 0) {
-            // Get all profiles in a single query instead of individually
-            console.log('[MessageList] Profile query parameters:', { 
-              table: 'profiles',
-              queryType: 'in',
-              column: 'id',
-              values: uniquePartnerIds
-            });
+          if (profilesError) {
+            console.error(`[MessageList] Error fetching profiles:`, profilesError);
             
-            // Ensure IDs are properly formatted as strings
-            const stringIds = uniquePartnerIds.map(id => String(id));
-            console.log('[MessageList] Formatted IDs as strings:', stringIds);
+            // Try fetching profiles individually as a fallback
+            console.log('[MessageList] Trying to fetch profiles individually as fallback');
             
-            const { data: profilesData, error: profilesError } = await supabase
-              .from('profiles')
-              .select('id, nickname, name, avatar_url, user_type')
-              .in('id', stringIds);
+            const individualProfiles = [];
             
-            if (profilesError) {
-              console.error(`[MessageList] Error fetching profiles:`, profilesError);
-              
-              // Try fetching profiles individually as a fallback
-              console.log('[MessageList] Trying to fetch profiles individually as fallback');
-              
-              const individualProfiles = [];
-              
-              for (const partnerId of uniquePartnerIds) {
-                try {
-                  console.log(`[MessageList] Fetching individual profile for: ${partnerId}`);
+            for (const partnerId of uniquePartnerIds) {
+              try {
+                console.log(`[MessageList] Fetching individual profile for: ${partnerId}`);
+                
+                const { data: profileData, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('id, nickname, name, avatar_url, user_type')
+                  .eq('id', partnerId)
+                  .maybeSingle();
                   
-                  const { data: profileData, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('id, nickname, name, avatar_url, user_type')
-                    .eq('id', partnerId)
-                    .maybeSingle();
-                    
-                  if (profileError) {
-                    console.error(`[MessageList] Error fetching individual profile for ${partnerId}:`, profileError);
-                  } else if (profileData) {
-                    console.log(`[MessageList] Found individual profile for ${partnerId}:`, profileData);
-                    individualProfiles.push(profileData);
-                  } else {
-                    console.log(`[MessageList] No individual profile found for ${partnerId}`);
-                  }
-                } catch (err) {
-                  console.error(`[MessageList] Exception fetching profile for ${partnerId}:`, err);
+                if (profileError) {
+                  console.error(`[MessageList] Error fetching individual profile for ${partnerId}:`, profileError);
+                } else if (profileData) {
+                  console.log(`[MessageList] Found individual profile for ${partnerId}:`, profileData);
+                  individualProfiles.push(profileData);
+                } else {
+                  console.log(`[MessageList] No individual profile found for ${partnerId}`);
                 }
+              } catch (err) {
+                console.error(`[MessageList] Exception fetching profile for ${partnerId}:`, err);
               }
+            }
+            
+            if (individualProfiles.length > 0) {
+              console.log(`[MessageList] Found ${individualProfiles.length} profiles through individual queries`);
               
-              if (individualProfiles.length > 0) {
-                console.log(`[MessageList] Found ${individualProfiles.length} profiles through individual queries`);
-                
-                // Use these profiles instead
-                partners = individualProfiles.map(profile => {
-                  const displayName = profile.nickname || profile.name || 'Customer';
-                  console.log(`[MessageList] Setting partner name to: ${displayName} for user ${profile.id}`);
-                  
-                  return {
-                    id: profile.id,
-                    name: displayName,
-                    image_url: profile.avatar_url || '/placeholder.svg'
-                  };
-                });
-                
-                // Create placeholders for partners without profiles
-                const foundIds = individualProfiles.map(p => p.id);
-                const missingPartnerIds = uniquePartnerIds.filter(id => !foundIds.includes(id));
-                
-                if (missingPartnerIds.length > 0) {
-                  const placeholderPartners = missingPartnerIds.map(partnerId => ({
-                    id: partnerId,
-                    name: `Customer ${partnerId.substring(0, 6)}...`,
-                    image_url: '/placeholder.svg'
-                  }));
-                  
-                  partners = [...partners, ...placeholderPartners];
-                }
-              } else {
-                // If all individual queries also failed, fall back to placeholders
-                console.log('[MessageList] All individual queries failed, using placeholders');
-                partners = uniquePartnerIds.map(partnerId => ({
-                  id: partnerId,
-                  name: `Customer ${partnerId.substring(0, 6)}...`,
-                  image_url: '/placeholder.svg'
-                }));
-              }
-            } else if (profilesData && profilesData.length > 0) {
-              console.log(`[MessageList] Found ${profilesData.length} profiles:`, profilesData);
-              
-              // Process the profiles into partner data
-              partners = profilesData.map(profile => {
+              // Use these profiles instead
+              partners = individualProfiles.map(profile => {
                 const displayName = profile.nickname || profile.name || 'Customer';
                 console.log(`[MessageList] Setting partner name to: ${displayName} for user ${profile.id}`);
                 
@@ -214,12 +197,10 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
               });
               
               // Create placeholders for partners without profiles
-              const foundIds = profilesData.map(p => p.id);
+              const foundIds = individualProfiles.map(p => p.id);
               const missingPartnerIds = uniquePartnerIds.filter(id => !foundIds.includes(id));
               
               if (missingPartnerIds.length > 0) {
-                console.log(`[MessageList] Creating placeholders for ${missingPartnerIds.length} missing profiles:`, missingPartnerIds);
-                
                 const placeholderPartners = missingPartnerIds.map(partnerId => ({
                   id: partnerId,
                   name: `Customer ${partnerId.substring(0, 6)}...`,
@@ -229,129 +210,165 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
                 partners = [...partners, ...placeholderPartners];
               }
             } else {
-              console.log("[MessageList] No customer profiles found in the query");
-              
-              // If no profiles found at all, create placeholders for all
+              // If all individual queries also failed, fall back to placeholders
+              console.log('[MessageList] All individual queries failed, using placeholders');
               partners = uniquePartnerIds.map(partnerId => ({
                 id: partnerId,
                 name: `Customer ${partnerId.substring(0, 6)}...`,
                 image_url: '/placeholder.svg'
               }));
             }
-          } else {
-            console.log("[MessageList] No partner IDs to fetch profiles for");
-          }
-          
-          // If no partners found in profiles, create placeholder partners
-          if (partners.length === 0) {
-            console.log("[MessageList] Creating placeholder partners for missing profiles. This means no matching profiles were found.");
+          } else if (profilesData && profilesData.length > 0) {
+            console.log(`[MessageList] Found ${profilesData.length} profiles:`, profilesData);
             
-            partners = uniquePartnerIds.map(partnerId => {
-              console.log(`[MessageList] Creating placeholder for partner ID: ${partnerId}`);
+            // Process the profiles into partner data
+            partners = profilesData.map(profile => {
+              const displayName = profile.nickname || profile.name || 'Customer';
+              console.log(`[MessageList] Setting partner name to: ${displayName} for user ${profile.id}`);
+              
               return {
+                id: profile.id,
+                name: displayName,
+                image_url: profile.avatar_url || '/placeholder.svg'
+              };
+            });
+            
+            // Create placeholders for partners without profiles
+            const foundIds = profilesData.map(p => p.id);
+            const missingPartnerIds = uniquePartnerIds.filter(id => !foundIds.includes(id));
+            
+            if (missingPartnerIds.length > 0) {
+              console.log(`[MessageList] Creating placeholders for ${missingPartnerIds.length} missing profiles:`, missingPartnerIds);
+              
+              const placeholderPartners = missingPartnerIds.map(partnerId => ({
                 id: partnerId,
                 name: `Customer ${partnerId.substring(0, 6)}...`,
                 image_url: '/placeholder.svg'
-              };
-            });
-          }
-        } else {
-          // For customers, fetch therapist profiles
-          const { data: therapists, error: therapistsError } = await supabase
-            .from('therapists')
-            .select('id, name, image_url')
-            .in('id', uniquePartnerIds);
-            
-          if (therapistsError) {
-            console.error("[MessageList] Error fetching therapists:", therapistsError);
-          } else if (therapists && therapists.length > 0) {
-            console.log("[MessageList] Therapist partners data:", therapists);
-            partners = therapists.map(therapist => ({
-              id: therapist.id,
-              name: therapist.name || 'Therapist',
-              image_url: therapist.image_url || '/placeholder.svg'
-            }));
+              }));
+              
+              partners = [...partners, ...placeholderPartners];
+            }
           } else {
-            // Create placeholder partners for each unique ID if no therapists found
+            console.log("[MessageList] No customer profiles found in the query");
+            
+            // If no profiles found at all, create placeholders for all
             partners = uniquePartnerIds.map(partnerId => ({
               id: partnerId,
-              name: 'Therapist',
+              name: `Customer ${partnerId.substring(0, 6)}...`,
               image_url: '/placeholder.svg'
             }));
           }
+        } else {
+          console.log("[MessageList] No partner IDs to fetch profiles for");
         }
         
-        console.log("[MessageList] Final partners list:", partners);
-        
-        // For each partner, get the most recent message and unread count
-        const conversationsData: Conversation[] = await Promise.all(
-          partners.map(async (partner) => {
-            console.log("[MessageList] Processing conversation with partner:", partner);
-            
-            // Get most recent message
-            const { data: recentMessages, error: recentError } = await supabase
-              .from('messages')
-              .select('*')
-              .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partner.id}),and(sender_id.eq.${partner.id},receiver_id.eq.${user.id})`)
-              .order('timestamp', { ascending: false })
-              .limit(1);
-              
-            if (recentError) {
-              console.error(`[MessageList] Error fetching recent message for partner ${partner.id}:`, recentError);
-              return null;
-            }
-            
-            if (!recentMessages || recentMessages.length === 0) {
-              console.log(`[MessageList] No recent messages found for partner ${partner.id}`);
-              return null;
-            }
-            
-            console.log(`[MessageList] Recent messages with partner ${partner.id}:`, recentMessages);
-            
-            // Get unread count
-            const { count: unreadCount, error: unreadError } = await supabase
-              .from('messages')
-              .select('id', { count: 'exact' })
-              .eq('sender_id', partner.id)
-              .eq('receiver_id', user.id)
-              .eq('is_read', false);
-              
-            if (unreadError) {
-              console.error(`[MessageList] Error fetching unread count for partner ${partner.id}:`, unreadError);
-              return null;
-            }
-            
-            console.log(`[MessageList] Unread count for partner ${partner.id}:`, unreadCount);
-            
+        // If no partners found in profiles, create placeholder partners
+        if (partners.length === 0) {
+          console.log("[MessageList] Creating placeholder partners for missing profiles. This means no matching profiles were found.");
+          
+          partners = uniquePartnerIds.map(partnerId => {
+            console.log(`[MessageList] Creating placeholder for partner ID: ${partnerId}`);
             return {
-              partnerId: partner.id,
-              partnerName: partner.name || 'Unknown Partner',
-              partnerImageUrl: partner.image_url || '/placeholder.svg',
-              lastMessage: recentMessages[0].content || '画像が送信されました',
-              timestamp: recentMessages[0].timestamp,
-              unreadCount: unreadCount || 0
+              id: partnerId,
+              name: `Customer ${partnerId.substring(0, 6)}...`,
+              image_url: '/placeholder.svg'
             };
-          })
-        );
-        
-        const validConversations = conversationsData.filter(c => c !== null) as Conversation[];
-        console.log("[MessageList] Processed conversations:", validConversations);
-        
-        // Sort by timestamp (most recent first)
-        validConversations.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-        
-        setConversations(validConversations);
-      } catch (error) {
-        console.error("[MessageList] Error in fetchConversations:", error);
-      } finally {
-        setIsLoading(false);
+          });
+        }
+      } else {
+        // For customers, fetch therapist profiles
+        const { data: therapists, error: therapistsError } = await supabase
+          .from('therapists')
+          .select('id, name, image_url')
+          .in('id', uniquePartnerIds);
+          
+        if (therapistsError) {
+          console.error("[MessageList] Error fetching therapists:", therapistsError);
+        } else if (therapists && therapists.length > 0) {
+          console.log("[MessageList] Therapist partners data:", therapists);
+          partners = therapists.map(therapist => ({
+            id: therapist.id,
+            name: therapist.name || 'Therapist',
+            image_url: therapist.image_url || '/placeholder.svg'
+          }));
+        } else {
+          // Create placeholder partners for each unique ID if no therapists found
+          partners = uniquePartnerIds.map(partnerId => ({
+            id: partnerId,
+            name: 'Therapist',
+            image_url: '/placeholder.svg'
+          }));
+        }
       }
-    };
-    
-    fetchConversations();
-  }, [activeConversationId]);
+      
+      console.log("[MessageList] Final partners list:", partners);
+      
+      // For each partner, get the most recent message and unread count
+      const conversationsData: Conversation[] = await Promise.all(
+        partners.map(async (partner) => {
+          console.log("[MessageList] Processing conversation with partner:", partner);
+          
+          // Get most recent message
+          const { data: recentMessages, error: recentError } = await supabase
+            .from('messages')
+            .select('*')
+            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${partner.id}),and(sender_id.eq.${partner.id},receiver_id.eq.${user.id})`)
+            .order('timestamp', { ascending: false })
+            .limit(1);
+            
+          if (recentError) {
+            console.error(`[MessageList] Error fetching recent message for partner ${partner.id}:`, recentError);
+            return null;
+          }
+          
+          if (!recentMessages || recentMessages.length === 0) {
+            console.log(`[MessageList] No recent messages found for partner ${partner.id}`);
+            return null;
+          }
+          
+          console.log(`[MessageList] Recent messages with partner ${partner.id}:`, recentMessages);
+          
+          // Get unread count
+          const { count: unreadCount, error: unreadError } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact' })
+            .eq('sender_id', partner.id)
+            .eq('receiver_id', user.id)
+            .eq('is_read', false);
+            
+          if (unreadError) {
+            console.error(`[MessageList] Error fetching unread count for partner ${partner.id}:`, unreadError);
+            return null;
+          }
+          
+          console.log(`[MessageList] Unread count for partner ${partner.id}:`, unreadCount);
+          
+          return {
+            partnerId: partner.id,
+            partnerName: partner.name || 'Unknown Partner',
+            partnerImageUrl: partner.image_url || '/placeholder.svg',
+            lastMessage: recentMessages[0].content || '画像が送信されました',
+            timestamp: recentMessages[0].timestamp,
+            unreadCount: unreadCount || 0
+          };
+        })
+      );
+      
+      const validConversations = conversationsData.filter(c => c !== null) as Conversation[];
+      console.log("[MessageList] Processed conversations:", validConversations);
+      
+      // Sort by timestamp (most recent first)
+      validConversations.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      
+      setConversations(validConversations);
+    } catch (error) {
+      console.error("[MessageList] Error in fetchConversations:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleConversationClick = (partnerId: string) => {
     console.log(`[MessageList] Clicking conversation with ${partnerId}`);

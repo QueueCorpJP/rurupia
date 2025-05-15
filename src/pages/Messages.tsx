@@ -9,6 +9,8 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { sendMessageNotification } from '@/utils/notification-service';
 
 // Updated interface for messages from Supabase
 interface IMessage {
@@ -41,6 +43,8 @@ const Messages = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [session, setSession] = useState<any>(null);
+  const [isSending, setIsSending] = useState(false);
 
   // Set up real-time subscription for new messages
   useEffect(() => {
@@ -56,6 +60,7 @@ const Messages = () => {
       }
       
       setUserId(user.id);
+      setSession(data.session); // Set the session
       
       // Subscribe to new messages
       const subscription = supabase
@@ -108,6 +113,7 @@ const Messages = () => {
         }
         
         setUserId(user.id);
+        setSession(data.session); // Set the session
         
         // Fetch therapist info
         const { data: therapistData, error: therapistError } = await supabase
@@ -190,13 +196,27 @@ const Messages = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newMessage.trim() && !selectedImage) return;
     
-    if ((!newMessage.trim() && !selectedImage) || !therapist || !userId) return;
-    
-    try {
-      let imageUrl = null;
+    // Ensure we have session and user data
+    if (!session || !session.user) {
+      console.error('Session or user data missing, retrieving session again');
+      const { data } = await supabase.auth.getSession();
       
-      // If there's an image, upload it first
+      if (!data.session || !data.session.user) {
+        toast.error('セッションが無効です。再度ログインしてください。');
+        navigate('/login');
+        return;
+      }
+      
+      setSession(data.session);
+    }
+
+    try {
+      setIsSending(true);
+      
+      // Handle file upload if there's an image
+      let imageUrl = null;
       if (selectedImage) {
         const fileExt = selectedImage.name.split('.').pop();
         const fileName = `${uuidv4()}.${fileExt}`;
@@ -209,6 +229,7 @@ const Messages = () => {
         if (uploadError) {
           console.error('Error uploading image:', uploadError);
           toast.error('画像のアップロードに失敗しました');
+          setIsSending(false);
           return;
         }
         
@@ -219,15 +240,17 @@ const Messages = () => {
         imageUrl = urlData.publicUrl;
       }
       
-      // Create a new message in the database
       const newMessageData = {
-        sender_id: userId,
-        receiver_id: therapist.id, // This is a string now
+        id: uuidv4(),
+        sender_id: session.user.id,
+        receiver_id: therapist?.id || '',
         content: newMessage.trim(),
         image_url: imageUrl,
         timestamp: new Date().toISOString(),
         is_read: false
       };
+      
+      console.log('Sending message:', newMessageData);
       
       const { data, error } = await supabase
         .from('messages')
@@ -235,23 +258,40 @@ const Messages = () => {
         .select();
         
       if (error) {
-        console.error('Error sending message:', error);
-        toast.error('メッセージの送信に失敗しました');
-        return;
+        console.error('Error inserting message:', error);
+        throw error;
       }
       
       if (data && data[0]) {
+        console.log('Message sent successfully:', data[0]);
         // Add the new message to the state
         setMessages(prev => [...prev, data[0]]);
       }
       
-      // Clear the input fields
+      // Send notification to therapist
+      if (therapist) {
+        const userName = session.user.user_metadata?.name || 'クライアント';
+        await sendMessageNotification(
+          therapist.id,
+          userName,
+          newMessage.length > 30 ? newMessage.substring(0, 30) + '...' : newMessage
+        );
+      }
+      
+      // Reset message state
       setNewMessage('');
       setSelectedImage(null);
       setImagePreview(null);
+      
+      // Scroll to bottom after a short delay to allow the message to render
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     } catch (error) {
-      console.error('Error in handleSendMessage:', error);
-      toast.error('メッセージの送信中にエラーが発生しました');
+      console.error('Error sending message:', error);
+      toast.error('メッセージの送信に失敗しました');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -284,13 +324,8 @@ const Messages = () => {
   };
 
   const getMessageStatus = (message: IMessage) => {
-    if (message.sender_id !== userId) return null; // Only show status for sent messages
-    
-    return message.is_read ? (
-      <CheckCheck className="h-3.5 w-3.5 text-primary ml-1" />
-    ) : (
-      <Check className="h-3.5 w-3.5 text-muted-foreground ml-1" />
-    );
+    // Removed read receipt functionality as requested
+    return null;
   };
 
   if (isLoading) {
@@ -329,31 +364,34 @@ const Messages = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <button
-          onClick={() => navigate('/messages')}
-          className="inline-flex items-center mb-6 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          メッセージ一覧に戻る
-        </button>
+      <div className="container py-6 space-y-4">
+        <Breadcrumb 
+          items={[
+            { label: 'マイページ', href: '/user-profile' },
+            { label: 'メッセージ', href: '/messages' },
+            { label: therapist?.name || '', href: `/messages/${therapist?.id}`, current: true }
+          ]}
+        />
         
         <div className="bg-card rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100vh-200px)]">
-          <MessageList activeConversationId={id} />
+          {/* Always show MessageList first on mobile and left side on desktop */}
+          <div className="order-2 md:order-1">
+            <MessageList activeConversationId={id} />
+          </div>
           
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col order-1 md:order-2">
             <div className="p-4 border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <img
-                  src={therapist.imageUrl}
-                  alt={therapist.name}
+                  src={therapist?.imageUrl}
+                  alt={therapist?.name}
                   className="h-10 w-10 rounded-full object-cover"
                 />
                 <div>
-                  <h2 className="font-semibold">{therapist.name}</h2>
+                  <h2 className="font-semibold">{therapist?.name}</h2>
                   <div className="flex items-center gap-1.5">
                     <Badge variant="outline" className="px-1.5 py-0 text-xs font-normal bg-muted/50">
-                      {therapist.specialties[0]}
+                      {therapist?.specialties[0]}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       通常2時間以内に返信
@@ -363,7 +401,7 @@ const Messages = () => {
               </div>
               
               <button
-                onClick={() => navigate(`/therapist/${therapist.id}`)}
+                onClick={() => navigate(`/therapist/${therapist?.id}`)}
                 className="text-sm text-primary hover:underline"
               >
                 プロフィールを見る
@@ -457,9 +495,13 @@ const Messages = () => {
                 <button
                   type="submit"
                   className="bg-primary text-primary-foreground p-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!newMessage.trim() && !selectedImage}
+                  disabled={(!newMessage.trim() && !selectedImage) || isSending}
                 >
-                  <Send className="h-5 w-5" />
+                  {isSending ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </form>

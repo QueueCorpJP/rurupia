@@ -58,10 +58,50 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const clearAuthState = () => {
   try {
     if (isBrowser) {
+      // Clear Supabase auth storage
       localStorage.removeItem('therapist-app-auth');
-      console.log('Auth state cleared');
+      
+      // Clear custom user type storage
+      localStorage.removeItem('nokutoru_user_type');
+      
+      // Clear any admin session data
+      localStorage.removeItem('admin_session');
+      localStorage.removeItem('admin_user_id');
+      
+      // Clear any potential session data with different keys
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('auth') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      console.log('Auth state completely cleared');
     }
   } catch (error) {
     console.error('Error clearing auth state:', error);
+  }
+};
+
+// Force sign out and clear all auth state - use this for troubleshooting auth issues
+export const forceSignOut = async () => {
+  try {
+    // First attempt normal sign out
+    await supabase.auth.signOut();
+    
+    // Then clear all storage
+    clearAuthState();
+    
+    // Force reload the page
+    if (isBrowser) {
+      window.location.href = '/';
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Force sign out failed:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
   }
 };

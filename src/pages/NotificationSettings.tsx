@@ -1,50 +1,167 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, MessageSquare, Calendar, Gift, Star } from "lucide-react";
+import { Bell, MessageSquare, Calendar, Gift, Star, Loader2, CheckCircle } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+
+type NotificationSettingsType = {
+  id?: string;
+  user_id?: string;
+  email_notifications: boolean;
+  message_notifications: boolean;
+  booking_notifications: boolean;
+  promotion_notifications: boolean;
+  review_notifications: boolean;
+};
 
 const NotificationSettings = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState({
-    emailNotifications: true,
-    messageNotifications: true,
-    bookingNotifications: true,
-    promotionNotifications: false,
-    reviewNotifications: true
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [settings, setSettings] = useState<NotificationSettingsType>({
+    email_notifications: true,
+    message_notifications: true,
+    booking_notifications: true,
+    promotion_notifications: false,
+    review_notifications: true
   });
+
+  // Test toast notifications
+  const testToastNotifications = () => {
+    console.log("Testing toast notifications");
+    setTimeout(() => {
+      toast.success("テスト成功通知", {
+        position: "top-center",
+        duration: 3000,
+        icon: <CheckCircle className="h-5 w-5" />
+      });
+    }, 1000);
+  };
+
+  // Call when component mounts
+  useEffect(() => {
+    // Uncomment this line to test toast notifications
+    testToastNotifications();
+  }, []);
 
   useEffect(() => {
     const fetchNotificationSettings = async () => {
+      setLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          toast.error("ユーザー情報を取得できませんでした");
+          toast.error("ユーザー情報を取得できませんでした", {
+            position: "top-center",
+            duration: 4000
+          });
           navigate("/login");
           return;
         }
 
-        // In a real app, we would fetch notification settings from the database
-        // For now, we'll use defaults
+        console.log("Fetching notification settings for user:", user.id);
+
+        // Fetch notification settings from the database - using 'any' to bypass TS issues
+        const { data, error } = await (supabase as any)
+          .from('notification_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
         
+        if (error) {
+          console.log("Error response from notification_settings query:", error);
+          
+          // Only consider it an error if it's not simply "no rows found"
+          if (error.code !== 'PGRST116') {
+            console.error("Error fetching notification settings:", error);
+            toast.error("設定の取得に失敗しました", {
+              position: "top-center", 
+              duration: 4000
+            });
+            return;
+          } else {
+            console.log("No existing notification settings found, will create default");
+          }
+        }
+        
+        if (data) {
+          console.log("Found existing notification settings:", data);
+          // We know what fields we expect
+          setSettings({
+            id: data.id,
+            user_id: data.user_id,
+            email_notifications: data.email_notifications,
+            message_notifications: data.message_notifications,
+            booking_notifications: data.booking_notifications,
+            promotion_notifications: data.promotion_notifications,
+            review_notifications: data.review_notifications
+          });
+        } else {
+          console.log("Creating default notification settings for user");
+          // If no settings exist yet, create default settings
+          const defaultSettings = {
+            user_id: user.id,
+            email_notifications: true,
+            message_notifications: true,
+            booking_notifications: true,
+            promotion_notifications: false,
+            review_notifications: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          const { data: insertData, error: insertError } = await (supabase as any)
+            .from('notification_settings')
+            .insert(defaultSettings)
+            .select()
+            .single();
+            
+          if (insertError) {
+            console.error("Error creating default notification settings:", insertError);
+            toast.error("設定の初期化に失敗しました", {
+              position: "top-center",
+              duration: 4000
+            });
+          } else if (insertData) {
+            console.log("Successfully created default notification settings:", insertData);
+            toast.success("デフォルト設定を作成しました", {
+              position: "top-center",
+              duration: 3000
+            });
+            
+            // Update local state with the new settings
+            setSettings({
+              id: insertData.id,
+              user_id: insertData.user_id,
+              email_notifications: insertData.email_notifications,
+              message_notifications: insertData.message_notifications,
+              booking_notifications: insertData.booking_notifications,
+              promotion_notifications: insertData.promotion_notifications,
+              review_notifications: insertData.review_notifications
+            });
+          }
+        }
       } catch (error) {
         console.error("Error fetching notification settings:", error);
-        toast.error("設定の取得に失敗しました");
+        toast.error("設定の取得に失敗しました", {
+          position: "top-center",
+          duration: 4000
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchNotificationSettings();
   }, [navigate]);
 
-  const handleToggle = (key: keyof typeof settings) => {
+  const handleToggle = (key: keyof NotificationSettingsType) => {
     setSettings(prev => ({
       ...prev,
       [key]: !prev[key]
@@ -52,34 +169,118 @@ const NotificationSettings = () => {
   };
 
   const handleSave = async () => {
-    setLoading(true);
+    setIsSaving(true);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast.error("ユーザー情報を取得できませんでした");
+        toast.error("ユーザー情報を取得できませんでした", {
+          position: "top-center",
+          duration: 4000
+        });
         return;
       }
 
-      // In a real implementation, save to the database
-      // await supabase.from('notification_settings').upsert({
-      //   user_id: user.id,
-      //   ...settings
-      // });
+      // Prepare upsert data with all necessary fields
+      const upsertData: any = {
+        user_id: user.id,
+        email_notifications: settings.email_notifications,
+        message_notifications: settings.message_notifications,
+        booking_notifications: settings.booking_notifications,
+        promotion_notifications: settings.promotion_notifications,
+        review_notifications: settings.review_notifications,
+        updated_at: new Date().toISOString()
+      };
 
-      toast.success("通知設定を保存しました");
+      // Include id if it exists (for proper upsert)
+      if (settings.id) {
+        upsertData.id = settings.id;
+      }
+
+      console.log("Saving notification settings:", upsertData);
+
+      // Try to get existing record first to determine if we need update or insert
+      const { data: existingSettings } = await (supabase as any)
+        .from('notification_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      let error;
+      
+      if (existingSettings?.id) {
+        // Update existing record
+        console.log("Updating existing settings with ID:", existingSettings.id);
+        const result = await (supabase as any)
+          .from('notification_settings')
+          .update(upsertData)
+          .eq('id', existingSettings.id);
+        
+        error = result.error;
+      } else {
+        // Insert new record
+        console.log("Creating new notification settings");
+        const result = await (supabase as any)
+          .from('notification_settings')
+          .insert(upsertData);
+        
+        error = result.error;
+      }
+
+      if (error) {
+        console.error("Error saving notification settings:", error);
+        toast.error("設定の保存に失敗しました", {
+          position: "top-center",
+          duration: 4000
+        });
+        throw error;
+      }
+
+      // Show success notification
+      console.log("Notification settings saved successfully");
+      toast.success("通知設定を保存しました", {
+        position: "top-center",
+        duration: 4000,
+        icon: <CheckCircle className="h-5 w-5" />,
+        description: "設定内容が反映されました"
+      });
     } catch (error) {
       console.error("Error saving notification settings:", error);
-      toast.error("設定の保存に失敗しました");
+      toast.error("設定の保存に失敗しました", {
+        position: "top-center",
+        duration: 4000
+      });
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container py-8 flex justify-center items-center min-h-[50vh]">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-lg font-medium">設定を読み込み中...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
+      <Toaster richColors position="top-center" />
+      
       <div className="container py-8">
+        <Breadcrumb 
+          items={[
+            { label: 'マイページ', href: '/user-profile' },
+            { label: '通知設定', href: '/notification-settings', current: true }
+          ]}
+        />
+        
         <h1 className="text-3xl font-bold mb-6">通知設定</h1>
         
         <Card className="mb-6">
@@ -100,8 +301,8 @@ const NotificationSettings = () => {
               </div>
               <Switch
                 id="email-notifications"
-                checked={settings.emailNotifications}
-                onCheckedChange={() => handleToggle('emailNotifications')}
+                checked={settings.email_notifications}
+                onCheckedChange={() => handleToggle('email_notifications')}
               />
             </div>
             
@@ -115,8 +316,8 @@ const NotificationSettings = () => {
               </div>
               <Switch
                 id="message-notifications"
-                checked={settings.messageNotifications}
-                onCheckedChange={() => handleToggle('messageNotifications')}
+                checked={settings.message_notifications}
+                onCheckedChange={() => handleToggle('message_notifications')}
               />
             </div>
             
@@ -130,8 +331,8 @@ const NotificationSettings = () => {
               </div>
               <Switch
                 id="booking-notifications"
-                checked={settings.bookingNotifications}
-                onCheckedChange={() => handleToggle('bookingNotifications')}
+                checked={settings.booking_notifications}
+                onCheckedChange={() => handleToggle('booking_notifications')}
               />
             </div>
             
@@ -145,8 +346,8 @@ const NotificationSettings = () => {
               </div>
               <Switch
                 id="promotion-notifications"
-                checked={settings.promotionNotifications}
-                onCheckedChange={() => handleToggle('promotionNotifications')}
+                checked={settings.promotion_notifications}
+                onCheckedChange={() => handleToggle('promotion_notifications')}
               />
             </div>
             
@@ -160,16 +361,27 @@ const NotificationSettings = () => {
               </div>
               <Switch
                 id="review-notifications"
-                checked={settings.reviewNotifications}
-                onCheckedChange={() => handleToggle('reviewNotifications')}
+                checked={settings.review_notifications}
+                onCheckedChange={() => handleToggle('review_notifications')}
               />
             </div>
           </CardContent>
         </Card>
         
         <div className="flex justify-end mt-6">
-          <Button onClick={handleSave} disabled={loading}>
-            設定を保存
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving}
+            className="inline-flex items-center"
+          >
+            {isSaving ? (
+              <span className="contents">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                保存中...
+              </span>
+            ) : (
+              "設定を保存"
+            )}
           </Button>
         </div>
       </div>

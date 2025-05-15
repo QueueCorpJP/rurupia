@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import { 
   ArrowRight, 
@@ -17,7 +17,8 @@ import {
   Sparkles,
   ArrowUpRight,
   Heart,
-  MessageSquare
+  MessageSquare,
+  X
 } from 'lucide-react';
 import TherapistCard from '../components/TherapistCard';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,16 @@ import { toast } from 'sonner';
 import MBTISelect, { mbtiTypes } from '@/components/MBTISelect';
 import PrefectureSelect, { japanesePrefectures } from '@/components/PrefectureSelect';
 import { useIsMobile } from '@/hooks/use-mobile';
+import Fuse from 'fuse.js';
+
+// For displaying search results
+interface TherapistSearchResult {
+  id: string | number;
+  name: string;
+  description: string;
+  location: string;
+  specialties: string[];
+}
 
 const Index = () => {
   const navigate = useNavigate();
@@ -125,6 +136,12 @@ const Index = () => {
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("指定なし");
+  const [searchSuggestions, setSearchSuggestions] = useState<TherapistSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const [allTherapists, setAllTherapists] = useState<TherapistSearchResult[]>([]);
+  const fuseRef = useRef<Fuse<TherapistSearchResult> | null>(null);
 
   const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState({
@@ -234,6 +251,106 @@ const Index = () => {
   const clearDateSelection = () => {
     setSelectedDate(undefined);
     setSelectedTimeSlot("指定なし");
+  };
+
+  // Fetch all therapists for search suggestions
+  useEffect(() => {
+    const fetchAllTherapists = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('therapists')
+          .select('id, name, specialties, location, description')
+          .limit(100);
+        
+        if (error) {
+          console.error("Error fetching therapist data for search:", error);
+          return;
+        }
+        
+        const mappedTherapists = (data || []).map((therapist: any) => ({
+          id: therapist.id || '',
+          name: therapist.name || "名前なし",
+          description: therapist.description || "詳細情報はありません",
+          location: therapist.location || "場所未設定",
+          specialties: therapist.specialties || []
+        }));
+        
+        setAllTherapists(mappedTherapists);
+        
+        // Initialize Fuse for fuzzy search
+        fuseRef.current = new Fuse(mappedTherapists, {
+          keys: ['name', 'specialties', 'description', 'location'],
+          threshold: 0.3,
+          includeScore: true
+        });
+      } catch (error) {
+        console.error("Error fetching therapist data:", error);
+      }
+    };
+
+    fetchAllTherapists();
+  }, []);
+
+  // Handle search term change and provide suggestions
+  const handleSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (value.length < 1) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    
+    setIsSearching(true);
+    setShowSuggestions(true);
+    
+    // Use Fuse.js for fuzzy search
+    if (fuseRef.current) {
+      const results = fuseRef.current.search(value);
+      setSearchSuggestions(results.slice(0, 5).map(result => result.item));
+    } else {
+      // Fallback to simple includes search
+      const filtered = allTherapists.filter(
+        therapist => 
+          therapist.name.toLowerCase().includes(value.toLowerCase()) || 
+          therapist.description.toLowerCase().includes(value.toLowerCase()) ||
+          (therapist.specialties && 
+            therapist.specialties.some(s => 
+              s.toLowerCase().includes(value.toLowerCase())
+            ))
+      );
+      setSearchSuggestions(filtered.slice(0, 5));
+    }
+    
+    setIsSearching(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const selectSuggestion = (therapist: TherapistSearchResult) => {
+    setSearchTerm(therapist.name);
+    setShowSuggestions(false);
+    // Optional: Navigate directly to the therapist page
+    // navigate(`/therapist/${therapist.id}`);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const renderQuestionStep = () => {
@@ -565,7 +682,7 @@ const Index = () => {
   return (
     <Layout>
       <section className="py-16 md:py-24 bg-gradient-to-br from-pink-50 to-white relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('/lovable-uploads/9b8e3f3a-bf22-4ecc-9f1e-d46c7b403a4a.png')] bg-cover bg-center opacity-10"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_#fff6f8_0%,_transparent_70%)] bg-cover bg-center opacity-10"></div>
         
         <div className="hidden md:block absolute top-20 right-10 w-24 h-24 rounded-full bg-gradient-to-br from-pink-300/20 to-rose-300/20 animate-float"></div>
         <div className="hidden md:block absolute bottom-20 left-10 w-32 h-32 rounded-full bg-gradient-to-br from-pink-300/10 to-rose-300/10 animate-float" style={{animationDelay: "1s"}}></div>
@@ -605,13 +722,54 @@ const Index = () => {
                 
                 <TabsContent value="keyword" className="mt-0">
                   <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="セラピスト名・得意分野など"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="flex-1 border-pink-100 focus:border-pink-300 shadow-sm"
-                      />
+                    <div className="flex gap-2 relative" ref={searchRef}>
+                      <div className="flex-1 relative">
+                        <Input
+                          placeholder="セラピスト名・得意分野など"
+                          value={searchTerm}
+                          onChange={handleSearchTermChange}
+                          className="flex-1 border-pink-100 focus:border-pink-300 shadow-sm pr-8"
+                        />
+                        {searchTerm && (
+                          <button 
+                            onClick={clearSearch}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                        
+                        {/* Suggestions dropdown */}
+                        {showSuggestions && searchSuggestions.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-50 max-h-60 overflow-y-auto">
+                            {isSearching ? (
+                              <div className="p-4 text-center">
+                                <Loader2 className="h-5 w-5 mx-auto animate-spin text-primary mb-2" />
+                                <p className="text-sm text-gray-500">検索中...</p>
+                              </div>
+                            ) : (
+                              <ul className="py-1">
+                                {searchSuggestions.map(therapist => (
+                                  <li 
+                                    key={therapist.id}
+                                    className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                                    onClick={() => selectSuggestion(therapist)}
+                                  >
+                                    <div className="font-medium">{therapist.name}</div>
+                                    <div className="text-xs text-gray-500 truncate">{therapist.description}</div>
+                                    {therapist.location && (
+                                      <div className="text-xs flex items-center mt-1 text-gray-400">
+                                        <MapPin className="h-3 w-3 mr-1" />
+                                        {therapist.location}
+                                      </div>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <Button onClick={handleKeywordSearch} className="bg-gradient-to-r from-pink-500 to-rose-400 hover:from-pink-600 hover:to-rose-500 transition-all">
                         <Search className="h-4 w-4 mr-2" />
                         検索
@@ -636,21 +794,11 @@ const Index = () => {
                               <MapPin className="h-3.5 w-3.5 mr-1.5 text-pink-400" />
                               エリア
                             </label>
-                            <Select 
-                              value={keywordFilters.area} 
+                            <PrefectureSelect
+                              value={keywordFilters.area}
                               onValueChange={(value) => handleFilterChange('area', value)}
-                            >
-                              <SelectTrigger className="border-pink-100 focus:border-pink-300">
-                                <SelectValue placeholder="選択してください" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="tokyo">東京</SelectItem>
-                                <SelectItem value="osaka">大阪</SelectItem>
-                                <SelectItem value="kyoto">京都</SelectItem>
-                                <SelectItem value="yokohama">横浜</SelectItem>
-                                <SelectItem value="sapporo">札幌</SelectItem>
-                              </SelectContent>
-                            </Select>
+                              placeholder="都道府県を選択"
+                            />
                           </div>
                           
                           <div>
@@ -826,7 +974,7 @@ const Index = () => {
 
       <section className="py-16 md:py-24 bg-gradient-to-r from-pink-500 to-rose-400 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[url('/lovable-uploads/9b8e3f3a-bf22-4ecc-9f1e-d46c7b403a4a.png')] bg-cover bg-center"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-50 to-rose-50 bg-cover bg-center"></div>
         </div>
         
         <div className="hidden md:block absolute top-20 right-10 w-32 h-32 rounded-full bg-white/5"></div>

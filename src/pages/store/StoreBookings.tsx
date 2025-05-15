@@ -61,6 +61,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { BellIcon } from "lucide-react";
+import { sendBookingConfirmationToClient } from "@/utils/notification-service";
 
 // Update the BookingData interface to explicitly include column names with spaces
 interface BookingData {
@@ -757,6 +758,33 @@ const StoreBookings = () => {
       setNewTodayBookingsCount(newTodayBookings.length);
       
       applyFiltersAndSorting(updatedBookings);
+      
+      // Check if both therapist and store approved
+      const isFinalConfirmation = bookingToUpdate.storeStatus === 'confirmed' && bookingToUpdate.therapistStatus === 'confirmed';
+      
+      if (isFinalConfirmation) {
+        try {
+          // Get user and therapist details for notification
+          const userId = bookingToUpdate.userId;
+          const therapistName = bookingToUpdate.therapistName;
+          const bookingDate = parseISO(bookingToUpdate.originalDate);
+          
+          // Send confirmation to client
+          await sendBookingConfirmationToClient(
+            userId,
+            therapistName,
+            bookingDate
+          );
+          
+          toast({
+            title: "予約確定の通知を送信しました",
+            description: "お客様へ予約確定の通知が送信されました",
+          });
+        } catch (notifyError) {
+          console.error("Error sending booking confirmation notification:", notifyError);
+          // Continue even if notification fails
+        }
+      }
       
     } catch (error) {
       console.error("Error confirming booking:", error);

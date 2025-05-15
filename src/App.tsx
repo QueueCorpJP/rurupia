@@ -22,6 +22,7 @@ import UserProfile from './pages/UserProfile';
 import UserBookings from './pages/UserBookings';
 import FollowedTherapists from './pages/FollowedTherapists';
 import NotificationSettings from './pages/NotificationSettings';
+import UserNotifications from './pages/UserNotifications';
 import DeleteAccount from './pages/DeleteAccount';
 import StoreSignup from './pages/StoreSignup';
 import StoreLogin from './pages/StoreLogin';
@@ -63,7 +64,7 @@ import AllTherapistPosts from './pages/AllTherapistPosts';
 // Create a wrapper component that applies scroll restoration
 function ScrollToTop({ children }: { children: React.ReactNode }) {
   useScrollToTop();
-  return <>{children}</>;
+  return <span className="contents">{children}</span>;
 }
 
 function App() {
@@ -96,6 +97,7 @@ function App() {
             <Route path="/user-bookings" element={<UserBookings />} />
             <Route path="/followed-therapists" element={<FollowedTherapists />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
+            <Route path="/notifications" element={<UserNotifications />} />
             <Route path="/delete-account" element={<DeleteAccount />} />
             
             {/* Store Admin Routes */}

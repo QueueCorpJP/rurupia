@@ -1,8 +1,9 @@
 import { ReactNode, useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings, FileText, Bell, ChevronDown } from 'lucide-react';
+import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings, FileText, Bell, ChevronDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseAdmin } from '@/integrations/supabase/admin-client';
 import { 
   NavigationMenu,
   NavigationMenuContent,
@@ -14,7 +15,6 @@ import {
 import { usePageViewTracking } from '@/hooks/usePageViewTracking';
 
 // Constants
-const AUTH_TIMEOUT = 1000; // Reduced from 3000ms to 1000ms for better UX
 const LOCAL_STORAGE_USER_TYPE_KEY = 'nokutoru_user_type';
 const SUPABASE_INIT_DELAY = 50; // Small delay to ensure Supabase is ready
 
@@ -33,8 +33,8 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
   });
   // Initialize loading to false if we already have cached userType
   const [loading, setLoading] = useState(!localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY));
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const authTimeoutRef = useRef<number | null>(null);
   const authCheckRunningRef = useRef(false);
 
   // Add page view tracking
@@ -61,20 +61,10 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
       try {
         // Only clear state if we don't have cached data
         if (!localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY)) {
-        setUser(null);
+          setUser(null);
           setUserType(null);
           setLoading(true);
         }
-        
-        // Set a timeout to ensure we don't get stuck in loading state
-        if (authTimeoutRef.current) {
-          window.clearTimeout(authTimeoutRef.current);
-        }
-        
-        authTimeoutRef.current = window.setTimeout(() => {
-          console.log("Auth timeout triggered, forcing loading to false");
-          setLoading(false);
-        }, AUTH_TIMEOUT);
         
         console.log("Starting auth check");
         const { data: { session } } = await supabase.auth.getSession();
@@ -83,6 +73,27 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
         if (session?.user) {
           setUser(session.user);
           console.log("User ID from session:", session.user.id);
+          
+          // Try to use admin client first to bypass RLS issues
+          try {
+            const { data: adminProfileData } = await supabaseAdmin
+              .from('profiles')
+              .select('user_type')
+              .eq('id', session.user.id)
+              .maybeSingle();
+              
+            if (adminProfileData?.user_type) {
+              console.log("Setting user type from admin client (checkAuth):", adminProfileData.user_type);
+              setUserType(adminProfileData.user_type);
+              localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, adminProfileData.user_type);
+              setLoading(false);
+              authCheckRunningRef.current = false;
+              return;
+            }
+          } catch (adminError) {
+            console.error("Admin client profile check failed (checkAuth):", adminError);
+            // Continue with regular flow if this fails
+          }
           
           // Try to get cached user type first as a fallback
           const cachedUserType = localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY);
@@ -206,11 +217,6 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
       } finally {
         console.log("Auth check completed, setting loading to false");
         setLoading(false);
-        // Clear the timeout since we're done
-        if (authTimeoutRef.current) {
-          window.clearTimeout(authTimeoutRef.current);
-          authTimeoutRef.current = null;
-        }
         authCheckRunningRef.current = false;
       }
     };
@@ -241,7 +247,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
             
           if (!data) {
             console.log("Cached therapist type may be incorrect, running full auth check");
-    checkAuth();
+            checkAuth();
           }
         } else {
           // For regular users or unknown types, verify against profiles
@@ -271,19 +277,31 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log("Auth state changed:", _event, session ? "Session exists" : "No session");
       
-      // Set a timeout for auth state change as well
-      if (authTimeoutRef.current) {
-        window.clearTimeout(authTimeoutRef.current);
-      }
-      
-      authTimeoutRef.current = window.setTimeout(() => {
-        console.log("Auth state change timeout triggered, forcing loading to false");
-        setLoading(false);
-      }, AUTH_TIMEOUT);
-      
       if (session?.user) {
         setUser(session.user);
         console.log("User ID from auth state change:", session.user.id);
+        
+        // Enhanced profile checking logic - try a direct check first to avoid RLS issues
+        try {
+          // Direct database query using admin client, bypassing RLS
+          // This is a fallback in case the normal query fails
+          const { data: adminProfileData } = await supabaseAdmin
+            .from('profiles')
+            .select('user_type')
+            .eq('id', session.user.id)
+            .maybeSingle();
+            
+          if (adminProfileData?.user_type) {
+            console.log("Setting user type from admin client:", adminProfileData.user_type);
+            setUserType(adminProfileData.user_type);
+            localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, adminProfileData.user_type);
+            setLoading(false);
+            return;
+          }
+        } catch (adminError) {
+          console.error("Admin client profile check failed:", adminError);
+          // Continue with normal flow if this fails
+        }
         
         // Try to get cached user type first as a fallback
         const cachedUserType = localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY);
@@ -389,10 +407,42 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
         
         // Final fallback: If we couldn't determine the user type from any source
         if (!userTypeFound && !userType) {
-          console.log("Defaulting to user type after all checks failed (auth change)");
-          setUserType('user');
-          localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, 'user');
+          // Check if this is the first login after registration
+          const isNewUser = session.user.app_metadata?.provider === 'email' && 
+                          new Date(session.user.created_at).getTime() > Date.now() - 5 * 60 * 1000; // registered in last 5 minutes
+          
+          // For new users, let's default to customer instead of just 'user'
+          const defaultType = isNewUser ? 'customer' : 'user';
+          console.log(`Defaulting to user type '${defaultType}' after all checks failed (auth change)`);
+          setUserType(defaultType);
+          localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, defaultType);
+          
+          // For new users, also create their profile
+          if (isNewUser) {
+            try {
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .upsert({ 
+                  id: session.user.id,
+                  user_type: defaultType,
+                  email: session.user.email,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                });
+                
+              if (profileError) {
+                console.error("Error creating default profile:", profileError);
+              } else {
+                console.log("Created default profile with type:", defaultType);
+              }
+            } catch (e) {
+              console.error("Exception creating default profile:", e);
+            }
+          }
         }
+        
+        // Always ensure loading is set to false after auth change
+        setLoading(false);
       } else {
         console.log("No session in auth change, clearing user state");
         setUser(null);
@@ -400,34 +450,48 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
         localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
         setLoading(false);
       }
-      
-      // Clear the timeout since we're done with auth state change
-      if (authTimeoutRef.current) {
-        window.clearTimeout(authTimeoutRef.current);
-        authTimeoutRef.current = null;
-      }
     });
 
     return () => {
       subscription.unsubscribe();
-      // Clear any remaining timeout on unmount
-      if (authTimeoutRef.current) {
-        window.clearTimeout(authTimeoutRef.current);
-        authTimeoutRef.current = null;
-      }
       clearTimeout(initTimeout);
     };
   }, []);
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log("Starting sign out process");
+      setIsSigningOut(true);
+      
+      // Clear localStorage first to prevent UI flicker
+      localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
+      
+      // Additional clear of any potential stale data
+      localStorage.removeItem('therapist-app-auth');
+      
+      // Update state before async operation
       setUser(null);
       setUserType(null);
-      localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
+      
+      // Then perform Supabase signout
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        throw error;
+      }
+      
+      console.log("Sign out successful, redirecting to home");
       navigate("/");
     } catch (error) {
       console.error("Sign out error:", error);
+      // Even if there's an error, clear the UI state
+      setUser(null);
+      setUserType(null);
+      
+      // Force page reload as last resort if sign out fails
+      window.location.href = "/";
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -448,9 +512,21 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // For debugging
+  // Enhanced debug logging for auth state changes
   useEffect(() => {
-    console.log("Auth state:", { user, userType, loading });
+    const authStateStr = JSON.stringify({ 
+      user: user ? { id: user.id } : null, 
+      userType,
+      loading 
+    });
+    console.log(`Auth state changed: ${authStateStr}`);
+    
+    // Safety check: if no user but userType exists in localStorage, clear it
+    if (!user && localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY)) {
+      console.log("Found stale userType in localStorage, clearing it");
+      localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
+      setUserType(null);
+    }
   }, [user, userType, loading]);
 
   return (
@@ -496,8 +572,11 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
             <div className="h-6 w-px bg-border mx-1"></div>
             
             {loading ? (
-              <div className="h-8 w-20 bg-gray-100 animate-pulse rounded-md"></div>
-            ) : user ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm">読み込み中...</span>
+              </div>
+            ) : user && userType ? (
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
@@ -508,14 +587,14 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                     <NavigationMenuContent>
                       <div className="grid w-[200px] gap-2 p-4">
                         {userType === 'store' ? (
-                          <>
+                          <span className="contents">
                             <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
                               <Store className="h-4 w-4 inline mr-2" />
                               店舗管理
                             </Link>
-                          </>
+                          </span>
                         ) : userType === 'therapist' ? (
-                          <>
+                          <span className="contents">
                             <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
                               <User className="h-4 w-4 inline mr-2" />
                               セラピストダッシュボード
@@ -524,9 +603,9 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                               <FileText className="h-4 w-4 inline mr-2" />
                               投稿管理
                             </Link>
-                          </>
+                          </span>
                         ) : (
-                          <>
+                          <span className="contents">
                             <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
                               <User className="h-4 w-4 inline mr-2" />
                               プロフィール
@@ -543,7 +622,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                               <Heart className="h-4 w-4 inline mr-2" />
                               お気に入りセラピスト
                             </Link>
-                          </>
+                          </span>
                         )}
                         <Link to="/notification-settings" className="block p-2 hover:bg-muted rounded-md">
                           <Settings className="h-4 w-4 inline mr-2" />
@@ -551,10 +630,20 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                         </Link>
                         <button
                           onClick={handleSignOut}
-                          className="w-full text-left p-2 hover:bg-muted rounded-md text-red-500"
+                          disabled={isSigningOut}
+                          className="w-full text-left p-2 hover:bg-muted rounded-md text-red-500 disabled:opacity-50 flex items-center"
                         >
-                          <LogOut className="h-4 w-4 inline mr-2" />
-                          ログアウト
+                          {isSigningOut ? (
+                            <span className="contents">
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ログアウト中...
+                            </span>
+                          ) : (
+                            <span className="contents">
+                              <LogOut className="h-4 w-4 inline mr-2" />
+                              ログアウト
+                            </span>
+                          )}
                         </button>
                       </div>
                     </NavigationMenuContent>
@@ -650,9 +739,12 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                 <div className="h-px w-full bg-gray-200"></div>
                 
                 {loading ? (
-                  <div className="h-8 w-20 bg-gray-100 animate-pulse rounded-md"></div>
-                ) : user ? (
-                  <>
+                  <div className="flex items-center gap-2 py-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm">読み込み中...</span>
+                  </div>
+                ) : user && userType ? (
+                  <span className="contents">
                     <Link 
                       to={getUserDashboardLink()} 
                       className="block py-2 text-sm font-medium"
@@ -666,14 +758,24 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                         handleSignOut();
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full text-left py-2 text-sm font-medium text-red-500"
+                      disabled={isSigningOut}
+                      className="w-full text-left py-2 text-sm font-medium text-red-500 flex items-center disabled:opacity-50"
                     >
-                      <LogOut className="h-4 w-4 inline mr-2" />
-                      ログアウト
+                      {isSigningOut ? (
+                        <span className="contents">
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ログアウト中...
+                        </span>
+                      ) : (
+                        <span className="contents">
+                          <LogOut className="h-4 w-4 inline mr-2" />
+                          ログアウト
+                        </span>
+                      )}
                     </button>
-                  </>
+                  </span>
                 ) : (
-                  <>
+                  <span className="contents">
                     <Link 
                       to="/login" 
                       className="block py-2 text-sm font-medium"
@@ -688,7 +790,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                     >
                       新規登録
                     </Link>
-                  </>
+                  </span>
                 )}
               </div>
             </div>
@@ -697,7 +799,16 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
       </header>
       
       <main className="flex-grow py-8">
-        {children}
+        {loading && location.pathname.includes('profile') ? (
+          <div className="container flex justify-center items-center py-16">
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+              <p className="text-lg font-medium">ページを読み込み中...</p>
+            </div>
+          </div>
+        ) : (
+          children
+        )}
       </main>
       
       <footer className="bg-gray-100 dark:bg-gray-900 mt-12">

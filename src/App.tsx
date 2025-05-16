@@ -107,7 +107,9 @@ function App() {
               <Route index element={<StoreAdminDashboard />} />
               <Route path="bookings" element={<StoreBookings />} />
               <Route path="therapists" element={<StoreTherapists />} />
+              {/* Courses page is temporarily disabled
               <Route path="courses" element={<StoreCourses />} />
+              */}
               <Route path="blog" element={<StoreBlog />} />
               <Route path="analytics" element={<StoreAnalytics />} />
               <Route path="inquiries" element={<StoreInquiries />} />

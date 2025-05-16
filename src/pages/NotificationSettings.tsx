@@ -71,81 +71,45 @@ const NotificationSettings = () => {
         const { data, error } = await (supabase as any)
           .from('notification_settings')
           .select('*')
-          .eq('user_id', user.id)
-          .single();
+          .eq('user_id', user.id);
         
         if (error) {
-          console.log("Error response from notification_settings query:", error);
-          
-          // Only consider it an error if it's not simply "no rows found"
-          if (error.code !== 'PGRST116') {
-            console.error("Error fetching notification settings:", error);
-            toast.error("設定の取得に失敗しました", {
-              position: "top-center", 
-              duration: 4000
-            });
-            return;
-          } else {
-            console.log("No existing notification settings found, will create default");
-          }
+          console.error("Error fetching notification settings:", error);
+          toast.error("設定の取得に失敗しました", {
+            position: "top-center", 
+            duration: 4000
+          });
+          return;
         }
         
-        if (data) {
-          console.log("Found existing notification settings:", data);
+        // Check if we have any settings records
+        if (data && data.length > 0) {
+          console.log(`Found ${data.length} notification settings records`);
+          
+          // Use the first record if multiple exist (we'll fix the duplicates when saving)
+          const firstRecord = data[0];
+          console.log("Using settings record:", firstRecord);
+          
           // We know what fields we expect
           setSettings({
-            id: data.id,
-            user_id: data.user_id,
-            email_notifications: data.email_notifications,
-            message_notifications: data.message_notifications,
-            booking_notifications: data.booking_notifications,
-            promotion_notifications: data.promotion_notifications,
-            review_notifications: data.review_notifications
+            id: firstRecord.id,
+            user_id: firstRecord.user_id,
+            email_notifications: firstRecord.email_notifications,
+            message_notifications: firstRecord.message_notifications,
+            booking_notifications: firstRecord.booking_notifications,
+            promotion_notifications: firstRecord.promotion_notifications,
+            review_notifications: firstRecord.review_notifications
           });
         } else {
-          console.log("Creating default notification settings for user");
-          // If no settings exist yet, create default settings
-          const defaultSettings = {
-            user_id: user.id,
+          console.log("No notification settings found, using defaults but not creating them");
+          // Just use default settings in UI without creating in database
+          setSettings({
             email_notifications: true,
             message_notifications: true,
             booking_notifications: true,
             promotion_notifications: false,
             review_notifications: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-          
-          const { data: insertData, error: insertError } = await (supabase as any)
-            .from('notification_settings')
-            .insert(defaultSettings)
-            .select()
-            .single();
-            
-          if (insertError) {
-            console.error("Error creating default notification settings:", insertError);
-            toast.error("設定の初期化に失敗しました", {
-              position: "top-center",
-              duration: 4000
-            });
-          } else if (insertData) {
-            console.log("Successfully created default notification settings:", insertData);
-            toast.success("デフォルト設定を作成しました", {
-              position: "top-center",
-              duration: 3000
-            });
-            
-            // Update local state with the new settings
-            setSettings({
-              id: insertData.id,
-              user_id: insertData.user_id,
-              email_notifications: insertData.email_notifications,
-              message_notifications: insertData.message_notifications,
-              booking_notifications: insertData.booking_notifications,
-              promotion_notifications: insertData.promotion_notifications,
-              review_notifications: insertData.review_notifications
-            });
-          }
+          });
         }
       } catch (error) {
         console.error("Error fetching notification settings:", error);
@@ -204,18 +168,41 @@ const NotificationSettings = () => {
       const { data: existingSettings } = await (supabase as any)
         .from('notification_settings')
         .select('id')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
       let error;
       
-      if (existingSettings?.id) {
-        // Update existing record
-        console.log("Updating existing settings with ID:", existingSettings.id);
+      if (existingSettings && existingSettings.length > 0) {
+        // Update existing record - use the first one if multiple exist
+        const firstSettingId = existingSettings[0].id;
+        console.log("Updating existing settings with ID:", firstSettingId);
+        
+        // If there are multiple settings for this user, delete the extras
+        if (existingSettings.length > 1) {
+          console.log(`Found ${existingSettings.length} settings records, cleaning up duplicates`);
+          
+          // Get all IDs except the first one
+          const idsToDelete = existingSettings
+            .slice(1)
+            .map(setting => setting.id);
+            
+          // Delete the duplicate settings
+          const { error: deleteError } = await (supabase as any)
+            .from('notification_settings')
+            .delete()
+            .in('id', idsToDelete);
+            
+          if (deleteError) {
+            console.error("Error cleaning up duplicate settings:", deleteError);
+          } else {
+            console.log(`Successfully deleted ${idsToDelete.length} duplicate settings`);
+          }
+        }
+        
         const result = await (supabase as any)
           .from('notification_settings')
           .update(upsertData)
-          .eq('id', existingSettings.id);
+          .eq('id', firstSettingId);
         
         error = result.error;
       } else {

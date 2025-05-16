@@ -320,4 +320,37 @@ export const sendLikeNotification = (userId: string, likerName: string, postTitl
     type: 'like',
     data: { likerName, postTitle }
   });
+};
+
+// Notification for therapist when their application is approved
+export const sendTherapistApprovalNotification = (therapistId: string, storeName: string) => {
+  return sendNotification({
+    userId: therapistId,
+    title: 'セラピスト申請が承認されました',
+    message: `${storeName}があなたのセラピスト申請を承認しました。ログインして詳細を確認してください。`,
+    type: 'system',
+    data: { storeName, status: 'approved' }
+  });
+};
+
+// Notification for therapist when their application is rejected
+export const sendTherapistRejectionNotification = (therapistId: string, storeName: string) => {
+  return sendNotification({
+    userId: therapistId,
+    title: 'セラピスト申請が却下されました',
+    message: `${storeName}があなたのセラピスト申請を却下しました。詳細については店舗にお問い合わせください。`,
+    type: 'system',
+    data: { storeName, status: 'rejected' }
+  });
+};
+
+// Notification for when a therapist is deactivated
+export const sendTherapistDeactivationNotification = (therapistId: string, storeName: string) => {
+  return sendNotification({
+    userId: therapistId,
+    title: 'アカウントが無効化されました',
+    message: `${storeName}があなたのアカウントを無効化しました。詳細については店舗にお問い合わせください。`,
+    type: 'system',
+    data: { storeName, status: 'deactivated' }
+  });
 }; 

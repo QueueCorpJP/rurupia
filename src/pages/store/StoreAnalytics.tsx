@@ -27,6 +27,11 @@ interface AgeDistribution {
   value: number;
 }
 
+interface AgeDistributionResponse {
+  age_group: string;
+  count: number;
+}
+
 interface MonthlyCustomerData {
   month: string;
   new_customers: number;
@@ -44,6 +49,14 @@ interface TherapistPerformance {
   bookings_count: number;
   rating: number;
   hasRating: boolean;
+}
+
+interface TherapistPerformanceResponse {
+  therapist_id: string;
+  therapist_name: string;
+  bookings_count: number;
+  rating: number;
+  has_rating: boolean;
 }
 
 // Mock data for development until the database tables are created
@@ -88,6 +101,21 @@ const mockTherapistData: TherapistPerformance[] = [
   { therapist_id: '5', therapist_name: '高橋 直人', bookings_count: 33, rating: 4.7, hasRating: true }
 ];
 
+// Add these type declarations to fix TypeScript errors
+// Declare the RPC functions so TypeScript recognizes them
+declare module '@supabase/supabase-js' {
+  interface SupabaseClient {
+    rpc<T = any>(
+      fn: string,
+      params?: object,
+      options?: {
+        head?: boolean;
+        count?: null | 'exact' | 'planned' | 'estimated';
+      }
+    ): PromiseLike<{ data: T; error: Error | null }>;
+  }
+}
+
 const StoreAnalytics = () => {
   const [period, setPeriod] = useState<string>('month');
   const [loading, setLoading] = useState<boolean>(true);
@@ -112,32 +140,19 @@ const StoreAnalytics = () => {
       
       setStoreId(user.id);
 
-      // Try to fetch real data, but fall back to mock data if tables don't exist yet
+      // Try to fetch real data using RPC functions, but fall back to mock data if any errors
       try {
-        // Check if the required tables exist
-        const { data: tables, error: tableError } = await supabase
-          .from('information_schema.tables')
-          .select('table_name')
-          .in('table_name', ['customer_age_distribution', 'monthly_customer_data', 'popular_booking_times', 'therapist_performance'])
-          .eq('table_schema', 'public');
-          
-        if (tableError || !tables || tables.length < 4) {
-          // Tables don't exist yet, use mock data
-          console.log("Analytics tables not found, using mock data");
-          setAgeData(mockAgeData);
-          setMonthlyCustomerData(mockMonthlyData);
-          setPopularTimesData(mockPopularTimesData);
-          setTherapistPerformanceData(mockTherapistData);
-          return;
-        }
-          
-        // Fetch age distribution data
-        const { data: ageDistribution, error: ageError } = await supabase
-          .from('customer_age_distribution')
-          .select('*')
-          .eq('store_id', user.id);
+        // Use RPC to call the functions instead of querying tables directly
+        // This avoids RLS permission issues
+        
+        // 1. Fetch age distribution data using RPC function
+        const { data: ageDistributionRaw, error: ageError } = await supabase
+          .rpc('get_customer_age_distribution', { input_store_id: user.id });
 
-        if (!ageError && ageDistribution) {
+        if (!ageError && ageDistributionRaw && Array.isArray(ageDistributionRaw) && ageDistributionRaw.length > 0) {
+          // Safely cast the data and validate it has the expected structure
+          const ageDistribution = ageDistributionRaw as unknown as AgeDistributionResponse[];
+          
           // Format data for chart
           const formattedAgeData = ageDistribution.map(item => ({
             name: item.age_group,
@@ -146,78 +161,59 @@ const StoreAnalytics = () => {
           
           setAgeData(formattedAgeData);
         } else {
+          console.log("No age distribution data, using mock data", ageError);
           setAgeData(mockAgeData);
         }
 
-        // Fetch monthly customer data
-        const { data: monthlyData, error: monthlyError } = await supabase
-          .from('monthly_customer_data')
-          .select('*')
-          .eq('store_id', user.id)
-          .order('year', { ascending: true })
-          .order('month', { ascending: true });
-
-        if (!monthlyError && monthlyData) {
+        // 2. Fetch monthly customer data using RPC function
+        const { data: monthlyDataRaw, error: monthlyError } = await supabase
+          .rpc('get_monthly_customer_data', { input_store_id: user.id });
+          
+        if (!monthlyError && monthlyDataRaw && Array.isArray(monthlyDataRaw) && monthlyDataRaw.length > 0) {
+          // Safely cast the data
+          const monthlyData = monthlyDataRaw as unknown as MonthlyCustomerData[];
           setMonthlyCustomerData(monthlyData);
         } else {
+          console.log("No monthly customer data, using mock data", monthlyError);
           setMonthlyCustomerData(mockMonthlyData);
         }
 
-        // Fetch popular booking times
-        const { data: popularTimes, error: timesError } = await supabase
-          .from('popular_booking_times')
-          .select('*')
-          .eq('store_id', user.id)
-          .order('time_slot', { ascending: true });
-
-        if (!timesError && popularTimes) {
+        // 3. Fetch popular booking times using RPC function
+        const { data: popularTimesRaw, error: timesError } = await supabase
+          .rpc('get_popular_booking_times', { input_store_id: user.id });
+          
+        if (!timesError && popularTimesRaw && Array.isArray(popularTimesRaw) && popularTimesRaw.length > 0) {
+          // Safely cast the data
+          const popularTimes = popularTimesRaw as unknown as PopularBookingTime[];
           setPopularTimesData(popularTimes);
         } else {
+          console.log("No popular times data, using mock data", timesError);
           setPopularTimesData(mockPopularTimesData);
         }
 
-        // Fetch therapist performance data
-        const { data: therapistPerf, error: therapistError } = await supabase
-          .from('therapist_performance')
-          .select(`
-            id,
-            therapist_id,
-            bookings_count,
-            rating
-          `)
-          .eq('store_id', user.id);
-
-        if (!therapistError && therapistPerf && therapistPerf.length > 0) {
-          // Get therapist profiles to get names
-          const therapistIds = therapistPerf.map(t => t.therapist_id);
+        // 4. Fetch therapist performance data using RPC function
+        const { data: therapistPerfRaw, error: therapistError } = await supabase
+          .rpc('get_therapist_performance', { input_store_id: user.id });
           
-          const { data: therapistProfiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, name')
-            .in('id', therapistIds);
-            
-          if (!profilesError && therapistProfiles) {
-            // Combine data
-            const formattedTherapistData = therapistPerf.map(perf => {
-              const profile = therapistProfiles.find(p => p.id === perf.therapist_id);
-              return {
-                therapist_id: perf.therapist_id,
-                therapist_name: profile?.name || '名前なし',
-                bookings_count: perf.bookings_count,
-                rating: perf.rating,
-                hasRating: Number(perf.rating) > 0
-              };
-            });
-            
-            setTherapistPerformanceData(formattedTherapistData);
-          } else {
-            setTherapistPerformanceData(mockTherapistData);
-          }
+        if (!therapistError && therapistPerfRaw && Array.isArray(therapistPerfRaw) && therapistPerfRaw.length > 0) {
+          // Safely cast the data
+          const therapistPerf = therapistPerfRaw as unknown as TherapistPerformanceResponse[];
+          
+          // Convert from API format to component format
+          const formattedPerformance = therapistPerf.map(perf => ({
+            therapist_id: perf.therapist_id,
+            therapist_name: perf.therapist_name,
+            bookings_count: perf.bookings_count,
+            rating: perf.rating,
+            hasRating: perf.has_rating
+          }));
+          setTherapistPerformanceData(formattedPerformance);
         } else {
+          console.log("No therapist performance data, using mock data", therapistError);
           setTherapistPerformanceData(mockTherapistData);
         }
       } catch (error) {
-        console.error("Error checking tables or fetching data:", error);
+        console.error("Error calling RPC functions:", error);
         // If there's any error, fall back to mock data
         setAgeData(mockAgeData);
         setMonthlyCustomerData(mockMonthlyData);

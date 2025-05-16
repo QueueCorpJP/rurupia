@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,16 +7,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+interface StoreSettings {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  description?: string;
+}
+
 const StoreSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [storeData, setStoreData] = useState<any>(null);
   const [storeDescription, setStoreDescription] = useState('');
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<StoreSettings>({
     name: '',
     email: '',
     phone: '',
     address: '',
+    description: '',
   });
 
   useEffect(() => {
@@ -27,8 +36,12 @@ const StoreSettings = () => {
         
         const { data: { user } } = await supabase.auth.getUser();
         
-        if (!user) return;
+        if (!user) {
+          toast.error('ユーザー情報が見つかりません');
+          return;
+        }
         
+        // Fetch profile data
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -36,29 +49,72 @@ const StoreSettings = () => {
           .single();
           
         if (profileError) {
+          console.error('Profile fetch error:', profileError);
           throw profileError;
         }
         
         setProfile(profileData);
-        setFormData({
-          name: profileData.name || '',
-          email: profileData.email || '',
-          phone: profileData.phone || '',
-          address: profileData.address || '',
-        });
         
-        const { data: storeData, error: storeError } = await supabase
+        // Fetch store data
+        const { data: storeDataResult, error: storeError } = await supabase
           .from('stores')
-          .select('description')
+          .select('*')
           .eq('id', user.id)
           .single();
           
-        if (!storeError && storeData) {
-          setStoreDescription(storeData.description || '');
+        if (storeError) {
+          console.error('Store fetch error:', storeError);
+          // If store doesn't exist yet, create a new record
+          if (storeError.code === 'PGRST116') {
+            const { data: newStore, error: createError } = await supabase
+              .from('stores')
+              .insert([{
+                id: user.id,
+                name: profileData?.name || '',
+                email: profileData?.email || '',
+                phone: profileData?.phone || '',
+                address: profileData?.address || '',
+                description: '',
+              }])
+              .select();
+              
+            if (createError) {
+              console.error('Store creation error:', createError);
+              throw createError;
+            }
+            
+            setStoreData(newStore?.[0] || null);
+            
+            // Set form data from new store
+            setFormData({
+              name: newStore?.[0]?.name || profileData?.name || '',
+              email: newStore?.[0]?.email || profileData?.email || '',
+              phone: newStore?.[0]?.phone || profileData?.phone || '',
+              address: newStore?.[0]?.address || profileData?.address || '',
+              description: newStore?.[0]?.description || '',
+            });
+            
+            setStoreDescription(newStore?.[0]?.description || '');
+          } else {
+            throw storeError;
+          }
+        } else {
+          setStoreData(storeDataResult);
+          
+          // Set form data from existing store
+          setFormData({
+            name: storeDataResult?.name || profileData?.name || '',
+            email: storeDataResult?.email || profileData?.email || '',
+            phone: storeDataResult?.phone || profileData?.phone || '',
+            address: storeDataResult?.address || profileData?.address || '',
+            description: storeDataResult?.description || '',
+          });
+          
+          setStoreDescription(storeDataResult?.description || '');
         }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        toast.error('プロフィールの取得に失敗しました');
+      } catch (error: any) {
+        console.error('Error fetching store data:', error);
+        toast.error(`データの取得に失敗しました: ${error.message}`);
       } finally {
         setIsLoading(false);
       }
@@ -85,6 +141,8 @@ const StoreSettings = () => {
         return;
       }
       
+      console.log('Saving store settings:', formData);
+      
       // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
@@ -98,29 +156,78 @@ const StoreSettings = () => {
         .eq('id', user.id);
         
       if (profileError) {
+        console.error('Profile update error:', profileError);
         throw profileError;
       }
       
-      // Update store
-      const { error: storeError } = await supabase
+      // Check if store exists
+      const { data: existingStore, error: checkError } = await supabase
         .from('stores')
-        .update({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          description: storeDescription,
-        })
-        .eq('id', user.id);
-        
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Store check error:', checkError);
+        throw checkError;
+      }
+      
+      let storeOp;
+      if (!existingStore) {
+        // Insert if doesn't exist
+        storeOp = supabase
+          .from('stores')
+          .insert([{
+            id: user.id,
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            description: storeDescription,
+          }]);
+      } else {
+        // Update if exists
+        storeOp = supabase
+          .from('stores')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            description: storeDescription,
+          })
+          .eq('id', user.id);
+      }
+      
+      const { error: storeError } = await storeOp;
+      
       if (storeError) {
+        console.error('Store update error:', storeError);
         throw storeError;
       }
       
+      // Update local state
+      setProfile({
+        ...profile,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+      });
+      
+      setStoreData({
+        ...storeData,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        description: storeDescription,
+      });
+      
       toast.success('設定が保存されました');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
-      toast.error('設定の保存に失敗しました');
+      toast.error(`設定の保存に失敗しました: ${error.message}`);
     } finally {
       setIsSaving(false);
     }

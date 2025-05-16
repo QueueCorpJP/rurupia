@@ -199,23 +199,209 @@ const StoreAdminDashboard = () => {
       let fromDate = null;
       const currentDate = new Date();
       
-      if (timeRange === "month") {
-        fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, currentDate.getDate());
-      } else if (timeRange === "week") {
-        fromDate = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-      } else if (timeRange === "day") {
-        fromDate = new Date(currentDate.setHours(0, 0, 0, 0));
-      }
-      
-      // Update the query to use simpler approach
+      // Function to fetch bookings and calculate sales
       const fetchBookings = async (therapistIds: string[]) => {
-        const { data, error } = await supabase
+        // Set time filter based on selected range
+        switch(timeRange) {
+          case "week":
+            fromDate = new Date();
+            fromDate.setDate(fromDate.getDate() - 7);
+            break;
+          case "month":
+            fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            break;
+          case "day":
+            fromDate = new Date();
+            fromDate.setHours(0, 0, 0, 0);
+            break;
+          case "all":
+          default:
+            fromDate = null;
+            break;
+        }
+        
+        // Get bookings with a wider date range to ensure we have past week data
+        // Always include at least past 7 days for the day-of-week chart
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        
+        // Use the earlier of fromDate or oneWeekAgo
+        const queryFromDate = fromDate && fromDate < oneWeekAgo ? fromDate : oneWeekAgo;
+        
+        // Get bookings for therapists
+        const bookingsQuery = supabase
           .from('bookings')
           .select('*')
           .in('therapist_id', therapistIds);
           
-        if (error) throw error;
-        return data as BookingData[];
+        // Apply date filter if specified
+        if (queryFromDate) {
+          bookingsQuery.gte('date', queryFromDate.toISOString());
+        }
+        
+        const { data: bookings, error: bookingsError } = await bookingsQuery;
+        
+        if (bookingsError) {
+          console.error("Error fetching bookings:", bookingsError);
+          throw bookingsError;
+        }
+        
+        // Calculate booking metrics from fetched data
+        if (bookings) {
+          const currentDate = new Date();
+          let pendingCount = 0;
+          let todayCount = 0;
+          let upcomingCount = 0;
+          let totalRevenue = 0;
+          let currentMonthRevenue = 0;
+          let previousMonthRevenue = 0;
+          let currentMonthBookings = 0;
+          let previousMonthBookings = 0;
+          
+          // Format booking data and calculate metrics
+          const formattedBookings = bookings.map(booking => {
+            const bookingDate = parseISO(booking.date);
+            
+            // Determine booking status - check both status fields or use combined status
+            const bookingStatus = booking.status || 
+                                (booking["status store"] === "completed" && booking["status therapist"] === "completed" ? 
+                                "完了" : "pending");
+                                
+            const isToday = new Date(booking.date).toDateString() === currentDate.toDateString();
+            const isUpcoming = new Date(booking.date) > currentDate;
+            const isPending = bookingStatus === 'pending';
+            const isCurrentMonth = bookingDate >= monthStart && bookingDate <= monthEnd;
+            const isPreviousMonth = bookingDate >= prevMonthStart && bookingDate <= prevMonthEnd;
+            
+            // FIXED: Better check for completed bookings
+            // Check if booking is completed using both combined status and individual status fields
+            const isCompleted = 
+              bookingStatus === '完了' || 
+              bookingStatus === 'completed' ||
+              (booking["status store"] === "completed" && booking["status therapist"] === "completed");
+            
+            // Count bookings by status
+            if (isPending) pendingCount++;
+            if (isToday) todayCount++;
+            if (isUpcoming) upcomingCount++;
+            
+            // Calculate revenue from completed bookings
+            if (isCompleted) {
+              const price = booking.price || 0;
+              totalRevenue += price;
+              
+              // Track monthly revenues for comparison
+              if (isCurrentMonth) {
+                currentMonthRevenue += price;
+                currentMonthBookings++;
+              } else if (isPreviousMonth) {
+                previousMonthRevenue += price;
+                previousMonthBookings++;
+              }
+            }
+            
+            // Calculate combined status for UI display
+            const combinedStatus = calculateCombinedStatus(
+              booking["status therapist"] || 'pending',
+              booking["status store"] || 'pending'
+            );
+            
+            return {
+              ...booking,
+              formattedDate: format(bookingDate, 'yyyy/MM/dd', { locale: ja }),
+              dayOfWeek: dayOfWeekMap[getDay(bookingDate)],
+              status: bookingStatus,
+              combined_status: combinedStatus,
+              isToday,
+              isUpcoming,
+              isPending,
+              isCompleted // Add isCompleted to the booking object
+            };
+          });
+          
+          // Update state with calculated metrics
+          setMonthlySales(currentMonthRevenue);
+          setMonthlyBookings(currentMonthBookings);
+          
+          // Calculate percent changes
+          const salesPercentChange = previousMonthRevenue > 0 
+            ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
+            : 0;
+          const bookingsPercentChange = previousMonthBookings > 0 
+            ? ((currentMonthBookings - previousMonthBookings) / previousMonthBookings) * 100 
+            : 0;
+            
+          setSalesChange(salesPercentChange);
+          setBookingsChange(bookingsPercentChange);
+          
+          // Generate data for revenue chart
+          const dailySales = {};
+          formattedBookings.forEach(booking => {
+            // Only include completed bookings in sales chart
+            if (booking.isCompleted) {
+              const date = booking.formattedDate;
+              dailySales[date] = (dailySales[date] || 0) + (booking.price || 0);
+            }
+          });
+          
+          const revenueChartData = Object.keys(dailySales).map(date => ({
+            date,
+            revenue: dailySales[date]
+          })).sort((a, b) => a.date.localeCompare(b.date));
+          
+          setRevenueData(revenueChartData);
+          
+          // FIXED: Generate data for day-of-week booking chart
+          // Initialize data for all days of the week
+          const dayOfWeekData = {
+            '日': 0,
+            '月': 0,
+            '火': 0,
+            '水': 0,
+            '木': 0,
+            '金': 0,
+            '土': 0
+          };
+          
+          // Count bookings by day of week for the past week
+          formattedBookings.forEach(booking => {
+            const bookingDate = parseISO(booking.date);
+            // Only include bookings from the past week
+            if (bookingDate >= oneWeekAgo && bookingDate <= currentDate) {
+              const dayOfWeek = dayOfWeekMap[getDay(bookingDate)];
+              dayOfWeekData[dayOfWeek] = (dayOfWeekData[dayOfWeek] || 0) + 1;
+            }
+          });
+          
+          // Convert to array format for chart
+          const bookingChartData = Object.keys(dayOfWeekData).map(day => ({
+            day,
+            bookings: dayOfWeekData[day]
+          }));
+          
+          // Sort by day of week (starting with Monday)
+          const dayOrder = ['月', '火', '水', '木', '金', '土', '日'];
+          bookingChartData.sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+          
+          setBookingData(bookingChartData);
+          
+          // Update dashboard data
+          setDashboardData({
+            pendingBookingsCount: pendingCount,
+            todayBookingsCount: todayCount,
+            upcomingBookingsCount: upcomingCount,
+            totalBookingsCount: bookings.length,
+            totalRevenue: totalRevenue,
+            therapistsCount: therapistIds.length,
+            recentBookings: formattedBookings
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .slice(0, 5)
+          });
+          
+          return formattedBookings;
+        }
+        
+        return [];
       };
 
       // Get bookings
@@ -238,61 +424,6 @@ const StoreAdminDashboard = () => {
         setLoading(false);
         return;
       }
-      
-      // Calculate monthly sales and bookings
-      setMonthlyBookings(bookingsData.length);
-      const calculatedMonthlySales = bookingsData
-        .reduce((sum, booking) => sum + (booking.price || 0), 0);
-      setMonthlySales(calculatedMonthlySales);
-      
-      // Calculate dashboard metrics
-      const getStatus = (booking: BookingData) => {
-        return calculateCombinedStatus(booking["status therapist"], booking["status store"]);
-      };
-      
-      const pendingBookings = bookingsData.filter(booking => getStatus(booking) === "pending");
-      const confirmedBookings = bookingsData.filter(booking => getStatus(booking) === "confirmed");
-      const completedBookings = bookingsData.filter(booking => getStatus(booking) === "completed");
-      
-      const todayBookings = bookingsData.filter(booking => {
-        const bookingDate = new Date(booking.date);
-        return isToday(bookingDate);
-      });
-      
-      const upcomingBookings = bookingsData.filter(booking => {
-        const bookingDate = new Date(booking.date);
-        return isFuture(bookingDate) && !isToday(bookingDate);
-      });
-      
-      const totalRevenue = bookingsData
-        .filter(booking => {
-          const status = getStatus(booking);
-          return status === "completed" || status === "confirmed";
-        })
-        .reduce((sum, booking) => sum + (booking.price || 0), 0);
-        
-      // Get bookings by day of week
-      const bookingsByDay = [0, 0, 0, 0, 0, 0, 0]; // Sunday to Saturday
-      
-      bookingsData.forEach(booking => {
-        if (booking.date) {
-          try {
-            const date = parseISO(booking.date);
-            const dayOfWeek = getDay(date); // 0 is Sunday, 6 is Saturday
-            bookingsByDay[dayOfWeek] += 1;
-          } catch (e) {
-            console.error("Error parsing booking date:", e);
-          }
-        }
-      });
-      
-      // Format for chart
-      const formattedBookingData = bookingsByDay.map((count, index) => ({
-        day: dayOfWeekMap[index],
-        bookings: count || 0 // Ensure no undefined values
-      }));
-      
-      setBookingData(formattedBookingData);
       
       // Get user profiles to get client names
       const userIds = bookingsData.map(booking => booking.user_id).filter(Boolean);
@@ -357,7 +488,7 @@ const StoreAdminDashboard = () => {
             serviceName: service?.name || "未定",
             date: format(bookingDate, "yyyy/MM/dd", { locale: ja }),
             time: format(bookingDate, "HH:mm", { locale: ja }),
-            status: getStatus(booking),
+            status: booking.status,
             price: booking.price || 0,
             location: booking.location || "未定",
           };
@@ -410,13 +541,13 @@ const StoreAdminDashboard = () => {
 
       // Set dashboard data
       setDashboardData({
-        pendingBookingsCount: pendingBookings.length,
-        todayBookingsCount: todayBookings.length,
-        upcomingBookingsCount: upcomingBookings.length,
+        pendingBookingsCount: bookingsData.filter(b => b.status === "pending").length,
+        todayBookingsCount: bookingsData.filter(b => b.isToday).length,
+        upcomingBookingsCount: bookingsData.filter(b => b.isUpcoming).length,
         totalBookingsCount: bookingsData.length,
-        totalRevenue,
+        totalRevenue: bookingsData.reduce((sum, b) => sum + (b.price || 0), 0),
         therapistsCount: therapistIds.length,
-        recentBookings,
+        recentBookings: recentBookings,
       });
       
       console.log("Dashboard data fetched successfully");

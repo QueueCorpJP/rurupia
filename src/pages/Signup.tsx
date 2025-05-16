@@ -42,6 +42,7 @@ const Signup = () => {
       setIsLoading(true);
       
       // 1. Register the user with Supabase Auth
+      // No need to handle profile creation manually - it's done by a database trigger
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -49,54 +50,29 @@ const Signup = () => {
           data: {
             name: name
           },
-          // Add emailRedirectTo to ensure proper redirect after email verification
           emailRedirectTo: `${window.location.origin}/login`
         }
       });
       
       if (authError) {
         console.error("Auth error:", authError);
-        toast.error(authError.message);
+        toast.error(`登録エラー: ${authError.message}`);
+        setIsLoading(false);
         return;
       }
       
       if (!authData.user) {
         toast.error("ユーザーの登録に失敗しました");
+        setIsLoading(false);
         return;
       }
       
       console.log("User registered successfully:", authData.user.id);
-
-      // Check if a profile already exists before creating one
-      const { data: existingProfile, error: checkProfileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', authData.user.id)
-        .single();
-        
-      if (checkProfileError && checkProfileError.code !== 'PGRST116') {
-        console.error("Error checking for existing profile:", checkProfileError);
-      }
       
-      // Only create a new profile if one doesn't exist yet
-      if (!existingProfile) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              name: name,
-              email: email
-            }
-          ]);
-
-        if (profileError) {
-          console.error("Profile creation error:", profileError);
-          // Continue even if profile creation fails
-        }
-      }
-
-      // 2. Upload the ID document with proper path structure
+      // Wait a bit to allow triggers to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Only handle the ID document upload, no profile creation
       const fileExt = idDocument.name.split('.').pop();
       const userId = authData.user.id;
       const filePath = `${userId}/${userId}-verification-document.${fileExt}`;
@@ -113,119 +89,46 @@ const Signup = () => {
       if (uploadError) {
         console.error("Error uploading file:", uploadError);
         toast.error("ファイルのアップロードに失敗しました");
+        setIsLoading(false);
         return;
       }
       
       console.log("File uploaded successfully:", uploadData);
       
-      // Get the public URL for the uploaded file
-      const { data: urlData } = await supabase
-        .storage
-        .from('verification')
-        .getPublicUrl(filePath);
+      // Just update the verification document path in the profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          verification_document: filePath,
+        })
+        .eq('id', userId);
       
-      console.log("File public URL:", urlData);
-      
-      // Update the user profile with additional information
-      if (authData.session) {
-        const { error: profileUpdateError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: userId,
-            nickname: name,
-            email: email,
-            verification_document: filePath,
-            status: 'pending',
-            updated_at: new Date().toISOString()
-          }, { 
-            onConflict: 'id',
-            ignoreDuplicates: false
-          });
-          
-        if (profileUpdateError) {
-          console.error("Error updating profile:", profileUpdateError);
-        }
+      if (updateError) {
+        console.error("Error updating verification document:", updateError);
+        // Don't fail the signup because of this
       }
       
-      // Immediately sign in after registration for better UX
-      // This is crucial to ensure proper redirection
-      if (!authData.session) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (signInError) {
-          console.error("Sign in error after registration:", signInError);
-          toast.error("ログインに失敗しました");
-          navigate('/login');
-        } else {
-          // Successful login, check user type for proper redirection
-          toast.success("登録が完了しました！");
-          
-          // Check user type by querying specific tables instead of profiles
-          // First check if user is a store
-          const { data: storeData } = await supabase
-            .from('stores')
-            .select('id')
-            .eq('id', signInData.user.id)
-            .maybeSingle();
-            
-          if (storeData) {
-            navigate("/store-admin");
-            return;
-          }
-          
-          // Then check if user is a therapist
-          const { data: therapistData } = await supabase
-            .from('therapists')
-            .select('id')
-            .eq('id', signInData.user.id)
-            .maybeSingle();
-            
-          if (therapistData) {
-            navigate("/therapist-dashboard");
-            return;
-          }
-          
-          // Default to regular user
-          navigate("/user-profile");
-        }
+      // All steps completed successfully
+      console.log("Signup process completed successfully");
+      toast.success("登録が完了しました！");
+      
+      // Sign in the user with the credentials they just used for signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (signInError) {
+        console.error("Error signing in after signup:", signInError);
+        // If there's an error signing in, still redirect to login
+        navigate("/login");
       } else {
-        // Already have a session from sign up
-        toast.success("登録が完了しました！");
-        
-        // Check user type by querying specific tables instead of profiles
-        // First check if user is a store
-        const { data: storeData } = await supabase
-          .from('stores')
-          .select('id')
-          .eq('id', authData.user.id)
-          .maybeSingle();
-          
-        if (storeData) {
-          navigate("/store-admin");
-          return;
-        }
-        
-        // Then check if user is a therapist
-        const { data: therapistData } = await supabase
-          .from('therapists')
-          .select('id')
-          .eq('id', authData.user.id)
-          .maybeSingle();
-          
-        if (therapistData) {
-          navigate("/therapist-dashboard");
-          return;
-        }
-        
-        // Default to regular user
+        // Successfully signed in, redirect to user profile
         navigate("/user-profile");
       }
       
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("Signup process error:", error);
       toast.error("登録中にエラーが発生しました");
     } finally {
       setIsLoading(false);

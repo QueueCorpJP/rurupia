@@ -50,8 +50,8 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
   const [availableDays, setAvailableDays] = useState<Date[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [therapistData, setTherapistData] = useState<any>(null);
-  const [debugInfo, setDebugInfo] = useState<string>("");
+  const [therapistData, setTherapistData] = useState<DatabaseTherapist | null>(null);
+  const [hasAnyAvailability, setHasAnyAvailability] = useState<boolean>(false);
   
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -70,28 +70,22 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
         
         const { data, error } = await supabase
           .from('therapists')
-          .select('*')  // Select all columns to ensure we get what's available
+          .select('*')
           .eq('id', String(therapistId))
           .single();
         
         if (error) {
           console.error('Error fetching therapist availability:', error);
-          setDebugInfo(`Error: ${error.message}`);
           setIsLoading(false);
           return;
         }
         
         // Log the fetched data to debug
         console.log('Therapist data fetched:', data);
-        setTherapistData(data);
         
         // Type cast to our expected database structure
         const therapistData = data as DatabaseTherapist;
-        
-        setDebugInfo(`Data fetched: ${JSON.stringify({
-          availability: therapistData.availability, 
-          working_days: therapistData.working_days
-        })}`);
+        setTherapistData(therapistData);
         
         // Process the available days
         const today = new Date();
@@ -99,10 +93,12 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
         
         // Create an array of available dates
         let availableDates: Date[] = [];
+        let hasAvailabilityInfo = false;
         
         // Process specific working days if they exist
-        if (therapistData && therapistData.working_days && Array.isArray(therapistData.working_days) && therapistData.working_days.length > 0) {
+        if (therapistData.working_days && Array.isArray(therapistData.working_days) && therapistData.working_days.length > 0) {
           console.log('Processing working_days:', therapistData.working_days);
+          hasAvailabilityInfo = true;
           
           therapistData.working_days.forEach((dateStr: string) => {
             try {
@@ -119,15 +115,16 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
         }
         
         // Process recurring availability (day of week)
-        if (therapistData && therapistData.availability && Array.isArray(therapistData.availability) && therapistData.availability.length > 0) {
+        if (therapistData.availability && Array.isArray(therapistData.availability) && therapistData.availability.length > 0) {
           console.log('Processing availability:', therapistData.availability);
+          hasAvailabilityInfo = true;
           
           // For each day in the next month, check if the day of week is in the availability array
           const checkDays = eachDayOfInterval({ start: today, end: endDate });
           
           checkDays.forEach(day => {
             const dayOfWeek = dayOfWeekMap[getDay(day)];
-            if (therapistData.availability.includes(dayOfWeek)) {
+            if (therapistData.availability && therapistData.availability.includes(dayOfWeek)) {
               // Check if this date isn't already in availableDates from working_days
               if (!availableDates.some(d => isSameDay(d, day))) {
                 availableDates.push(day);
@@ -138,12 +135,13 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
           console.log('No availability found or it is empty');
         }
         
-        console.log('Final available dates:', availableDates);
+        // Only set hasAnyAvailability to true if we have actual available dates
+        setHasAnyAvailability(availableDates.length > 0 && hasAvailabilityInfo);
+        console.log('Final available dates:', availableDates, 'hasAnyAvailability:', availableDates.length > 0 && hasAvailabilityInfo);
         setAvailableDays(availableDates);
         
       } catch (error: any) {
         console.error('Error in fetchTherapistAvailability:', error);
-        setDebugInfo(`Fetch error: ${error.message || 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
@@ -212,17 +210,14 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
     }
     
     try {
-      // Cast to the correct type
-      const typedData = therapistData as DatabaseTherapist;
-      
-      if (!typedData.working_hours) {
+      if (!therapistData.working_hours) {
         return [];
       }
       
       // Parse working_hours
-      const workingHours = typeof typedData.working_hours === 'string' 
-        ? JSON.parse(typedData.working_hours) 
-        : typedData.working_hours;
+      const workingHours = typeof therapistData.working_hours === 'string' 
+        ? JSON.parse(therapistData.working_hours) 
+        : therapistData.working_hours;
       
       // First, check day-specific format
       const dayOfWeek = dayOfWeekMap[getDay(date)].toLowerCase();
@@ -235,10 +230,19 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
       if (workingHours.start && workingHours.end) {
         console.log(`Found working hours range: ${workingHours.start} - ${workingHours.end}`);
         
-        // Check if the selected day is in working_days
-        const isWorkingDay = !typedData.working_days || 
-          typedData.working_days.includes(dayOfWeek) ||
-          (typedData.availability && typedData.availability.includes(dayOfWeek));
+        // Check if the selected day is in working_days or availability
+        const isWorkingDay = 
+          (therapistData.working_days && therapistData.working_days.some(day => {
+            try {
+              // Check if it's a date string that matches the selected date
+              const dateObj = new Date(day);
+              return !isNaN(dateObj.getTime()) && isSameDay(dateObj, date);
+            } catch (e) {
+              // Not a valid date, might be a day name
+              return false;
+            }
+          })) ||
+          (therapistData.availability && therapistData.availability.includes(dayOfWeekMap[getDay(date)]));
         
         if (isWorkingDay) {
           // Generate time slots from the start-end range
@@ -352,8 +356,8 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
         </div>
       )}
       
-      {availableDays.length === 0 && !isLoading && (
-        <div className="text-center p-4 text-sm text-muted-foreground">
+      {!isLoading && !hasAnyAvailability && (
+        <div className="text-center p-4 text-sm text-red-500">
           このセラピストは現在予約を受け付けていません
         </div>
       )}

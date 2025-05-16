@@ -39,6 +39,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { sendTherapistApprovalNotification, sendTherapistRejectionNotification, sendTherapistDeactivationNotification } from '@/utils/notification-service';
 
 // Define the Therapist interface
 interface Therapist {
@@ -292,6 +293,18 @@ const StoreTherapists = () => {
 
       console.log("Therapist approval process completed");
       
+      // 6. Get the store name for the notification
+      const { data: storeData, error: storeError } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", storeId)
+        .single();
+        
+      if (!storeError && storeData) {
+        // 7. Send notification to the therapist
+        await sendTherapistApprovalNotification(therapistId, storeData.name || "店舗");
+      }
+      
       // Update the UI by removing the approved therapist from pending list
       setPendingTherapists(prevTherapists => 
         prevTherapists.filter(t => t.id !== therapistId)
@@ -339,6 +352,18 @@ const StoreTherapists = () => {
         
       if (error) throw error;
 
+      // Get store name for notification
+      const { data: storeData, error: storeError } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", storeId)
+        .single();
+        
+      if (!storeError && storeData) {
+        // Send notification to the therapist
+        await sendTherapistRejectionNotification(therapistId, storeData.name || "店舗");
+      }
+
       // Update the UI by removing the rejected therapist from pending list
       setPendingTherapists(prevTherapists => 
         prevTherapists.filter(t => t.id !== therapistId)
@@ -370,6 +395,18 @@ const StoreTherapists = () => {
         return;
       }
       
+      // Get store name for notification
+      const { data: storeData, error: storeError } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", storeId)
+        .single();
+        
+      if (!storeError && storeData) {
+        // Send notification to the therapist
+        await sendTherapistDeactivationNotification(therapistId, storeData.name || "店舗");
+      }
+      
       // Update the local state to reflect the change
       setTherapists(prevTherapists => 
         prevTherapists.map(t => 
@@ -386,20 +423,26 @@ const StoreTherapists = () => {
     }
   };
 
+  // View therapist details
+  const viewTherapistDetails = (therapistId: string) => {
+    // Redirect to therapist details page
+    window.location.href = `/therapists/${therapistId}`;
+  };
+
   // For the dropdown menu actions
   const handleDropdownAction = (action: string, therapistId: string) => {
     switch (action) {
       case "view":
         // Handle view therapist details
-        toast.info("セラピスト詳細機能は開発中です");
+        viewTherapistDetails(therapistId);
         break;
       case "message":
-        // Handle sending message
-        toast.info("メッセージ機能は開発中です");
+        // Redirect to messaging with this therapist
+        window.location.href = `/messages/${therapistId}`;
         break;
       case "schedule":
-        // Handle scheduling
-        toast.info("スケジュール設定機能は開発中です");
+        // Redirect to schedule management for this therapist
+        window.location.href = `/store/therapists/${therapistId}/schedule`;
         break;
       case "deactivate":
         deactivateTherapist(therapistId);
@@ -429,7 +472,7 @@ const StoreTherapists = () => {
             <DialogHeader>
               <DialogTitle>セラピストを招待</DialogTitle>
               <DialogDescription>
-                招待リンクをコピーして共有するか、メールで直接招待を送信できます
+                招待リンクをコピーして共有してください
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -443,20 +486,6 @@ const StoreTherapists = () => {
                   >
                     <Copy className="h-4 w-4 mr-2" />
                     {inviteCopied ? "コピーしました" : "招待リンクをコピー"}
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>メールで招待</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="メールアドレスを入力"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
-                  <Button onClick={sendInviteEmail}>
-                    <Mail className="h-4 w-4 mr-2" />
-                    送信
                   </Button>
                 </div>
               </div>

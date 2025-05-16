@@ -122,6 +122,29 @@
 * Improved the mobile layout with consistent container styling
 
 **Recent Updates:**
+- Fixed 400 Bad Request errors in analytics by updating PostgreSQL RPC functions with consistent parameter naming (input_store_id)
+- Fixed TypeScript errors in StoreAnalytics.tsx by adding proper module declarations for Supabase RPC functions
+- Improved error handling in analytics data fetching with better error logging and type safety checks
+- Created PostgreSQL functions (get_customer_age_distribution, get_monthly_customer_data, get_popular_booking_times, get_therapist_performance) to generate analytics data on-the-fly, solving the 403 Forbidden error in StoreAnalytics
+- Updated StoreAnalytics.tsx to use RPC function calls instead of direct table queries, falling back to mock data when needed
+- Fixed monthly sales calculation in the StoreAdminDashboard to correctly count revenue from completed bookings
+- Fixed the booking status detection to properly handle both "完了" (completed) status and the combination of store and therapist statuses
+- Updated all booking date references to use booking.date instead of booking.booking_date to match the database schema
+- Fixed the save functionality in TherapistSettings page for all tabs (account, privacy, notifications, security)
+- Added proper TypeScript type definitions for therapist settings columns in the database
+- Fixed therapist record creation with required fields (name, description, location) when settings are first saved
+- Improved error handling with specific error messages for each settings operation
+- Fixed the data fetching issues in therapist settings by adding proper type assertions
+- Added local state updates after each successful settings change to update the UI immediately
+- Fixed password change functionality by adding current password verification
+- Fixed the calendar UI in therapist detail page to properly display availability
+- Enhanced availability checking logic for therapists to provide more accurate results
+- Fixed error message "このセラピストは現在予約を受け付けていません" to only show when a therapist truly has no availability
+- Added more robust availability detection that checks for valid future dates, working hours, and availability data
+- Improved the visual indication of unavailable therapists with red text alerts
+- Fixed availability date checking by properly handling both date strings and day names
+- Added a new hasAnyAvailability state in AvailabilityCalendar to prevent false error messages
+- Fixed the working day matching logic to properly check for specific dates rather than just day names
 - Fixed the availability calendar in therapist detail and booking pages to strictly use real therapist working days/hours from the database without fallback mock data
 - Added clear messaging when a therapist has no availability instead of showing mock calendar data
 - Added fuzzy search functionality to the Index page search field, showing real-time suggestions as users type
@@ -135,6 +158,14 @@
 - Fixed messaging system by properly maintaining session context and improving error handling
 - Created new therapist messaging interface with improved UX and notification support
 - Added support for image attachments in messages with proper error handling and feedback
+- Improved the hobbies input field in UserProfile to match the TherapistProfileForm using a badge-based interface
+- Added account deletion functionality to the TherapistSettings page
+- Removed the language setting dropdown from the TherapistSettings page
+- Added security settings to allow therapists to change their passwords
+- Added privacy settings to TherapistSettings to control profile visibility and messaging restrictions
+- Extended the therapists table with columns for privacy and notification settings
+- Fixed the issue with database settings not being reflected correctly in the UI
+- Fixed several type errors in the settings form by adding proper typings
 
 **Discrepancies & Potential Issues:**
 *   **Documentation Mismatch:** `README.md` tech stack mentions Next.js, but the project is Vite-based.
@@ -184,3 +215,26 @@ The project is quite extensive with many features and user roles, indicating a c
 - Fixed persistent login issues by removing auth timeout
 - Added admin client fallback for retrieving user profiles when normal queries fail
 - Added auth debugging utilities in auth-debug.ts for state checking and recovery 
+
+### Analytics System Improvements
+- Fixed 403 Forbidden errors in StoreAnalytics.tsx by creating PostgreSQL functions with SECURITY DEFINER to bypass Row Level Security
+- Created four functions to generate analytics data on-the-fly:
+  - get_customer_age_distribution
+  - get_monthly_customer_data
+  - get_popular_booking_times
+  - get_therapist_performance
+- Fixed 400 Bad Request errors by resolving ambiguous column references in SQL queries
+- Added explicit type casts (::INTEGER) to fix "structure of query does not match function result type" errors
+- Created TypeScript interface declarations to resolve type errors
+- Implemented better error handling with console logging for analytics data fetching
+
+### Booking and Sales Data Fixes
+- Fixed the "今月の売上" (monthly sales) calculation:
+  - Enhanced the logic to properly count revenue from bookings with completed status
+  - Added better status detection to include all variations of "完了" (completed) status
+  - Fixed status checking to handle both combined status and individual status fields
+- Enhanced the "曜日別予約数" (day-of-week bookings) graph:
+  - Modified the data retrieval to always include bookings from the past 7 days
+  - Changed the chart from showing daily data to showing aggregated day-of-week data
+  - Created a complete day-of-week representation with all days initialized
+  - Added proper sorting of days (Monday through Sunday) 

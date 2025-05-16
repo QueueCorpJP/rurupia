@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -71,7 +70,8 @@ const StoreSignup = () => {
           email: formData.email,
           phone: formData.phone,
           address: formData.address,
-          user_type: 'store'
+          user_type: 'store',
+          user_id: authData.user.id
         }, {
           onConflict: 'id',
           ignoreDuplicates: false

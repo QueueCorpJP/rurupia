@@ -119,12 +119,14 @@ export const StoreSidebarNav = ({ isOpen, toggleSidebar }: StoreSidebarNavProps)
             label="予約管理" 
             isOpen={isOpen} 
           />
+          {/* Temporarily disabled
           <NavItem 
             to="/store-admin/courses" 
             icon={<BookOpen className="h-5 w-5" />} 
             label="コース管理" 
             isOpen={isOpen} 
           />
+          */}
           <NavItem 
             to="/store-admin/inquiries" 
             icon={<MessageSquare className="h-5 w-5" />} 

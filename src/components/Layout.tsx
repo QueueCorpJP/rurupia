@@ -27,477 +27,55 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
-  const [userType, setUserType] = useState<string | null>(() => {
-    // Initialize userType from localStorage if available
-    return localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY);
-  });
-  // Initialize loading to false if we already have cached userType
-  const [loading, setLoading] = useState(!localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY));
+  // Simple approach - just store as string, not state
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const authCheckRunningRef = useRef(false);
 
   // Add page view tracking
   usePageViewTracking();
 
+  // Ultra-simple auth check - just set up the listener and don't overthink it
   useEffect(() => {
-    // Initialize session from existing data first
-    const cachedUserType = localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY);
-    if (cachedUserType) {
-      console.log("Using cached user type on initial render:", cachedUserType);
-      setUserType(cachedUserType);
-      setLoading(false);
-    }
-
-    const checkAuth = async () => {
-      // Prevent multiple simultaneous auth checks
-      if (authCheckRunningRef.current) {
-        console.log("Auth check already running, skipping");
-        return;
-      }
-      
-      authCheckRunningRef.current = true;
-      
-      try {
-        // Only clear state if we don't have cached data
-        if (!localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY)) {
-          setUser(null);
-          setUserType(null);
-          setLoading(true);
-        }
-        
-        console.log("Starting auth check");
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log("Session check result:", session ? "Session exists" : "No session");
-        
-        if (session?.user) {
-          setUser(session.user);
-          console.log("User ID from session:", session.user.id);
-          
-          // Try to use admin client first to bypass RLS issues
-          try {
-            const { data: adminProfileData } = await supabaseAdmin
-              .from('profiles')
-              .select('user_type')
-              .eq('id', session.user.id)
-              .maybeSingle();
-              
-            if (adminProfileData?.user_type) {
-              console.log("Setting user type from admin client (checkAuth):", adminProfileData.user_type);
-              setUserType(adminProfileData.user_type);
-              localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, adminProfileData.user_type);
-              setLoading(false);
-              authCheckRunningRef.current = false;
-              return;
-            }
-          } catch (adminError) {
-            console.error("Admin client profile check failed (checkAuth):", adminError);
-            // Continue with regular flow if this fails
-          }
-          
-          // Try to get cached user type first as a fallback
-          const cachedUserType = localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY);
-          if (cachedUserType) {
-            console.log("Using cached user type:", cachedUserType);
-            setUserType(cachedUserType);
-            setLoading(false);
-            
-            // Still verify in the background but don't show loading state
-            verifyUserTypeInBackground(session.user.id, cachedUserType);
-            return;
-          }
-          
-          // If no cached data, proceed with regular checks
-          let userTypeFound = false;
-          
-          try {
-            // First check if user is a store
-            const { data: storeData, error: storeError } = await supabase
-              .from('stores')
-              .select('id')
-              .eq('id', session.user.id)
-              .maybeSingle();
-            
-            // Check if there's an infinite recursion error
-            if (storeError && storeError.message.includes('infinite recursion')) {
-              console.error("RLS infinite recursion error on stores check, using fallback");
-              if (cachedUserType) {
-                userTypeFound = true;
-                // Already set from cache above
-              }
-            } else {
-              console.log("Store check result:", storeData ? "Is store" : "Not store", storeError ? `Error: ${storeError.message}` : "");
-                
-              if (storeData) {
-                console.log("Setting user type to store");
-                setUserType('store');
-                localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, 'store');
-                userTypeFound = true;
-              } else {
-                // Then check if user is a therapist
-                try {
-                  const { data: therapistData, error: therapistError } = await supabase
-                    .from('therapists')
-                    .select('id')
-                    .eq('id', session.user.id)
-                    .maybeSingle();
-                  
-                  // Check if there's an infinite recursion error
-                  if (therapistError && therapistError.message.includes('infinite recursion')) {
-                    console.error("RLS infinite recursion error on therapists check, using fallback");
-                    if (cachedUserType) {
-                      userTypeFound = true;
-                      // Already set from cache above
-                    }
-                  } else {
-                    console.log("Therapist check result:", therapistData ? "Is therapist" : "Not therapist", therapistError ? `Error: ${therapistError.message}` : "");
-                      
-                    if (therapistData) {
-                      console.log("Setting user type to therapist");
-                      setUserType('therapist');
-                      localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, 'therapist');
-                      userTypeFound = true;
-                    } else {
-                      // If we couldn't determine from tables, try the profiles table as fallback
-                      try {
-                        const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-                          .select('user_type')
-            .eq('id', session.user.id)
-                          .maybeSingle();
-                          
-                        // Check if there's an infinite recursion error
-                        if (profileError && profileError.message.includes('infinite recursion')) {
-                          console.error("RLS infinite recursion error on profiles check, using fallback");
-                          if (cachedUserType) {
-                            userTypeFound = true;
-                            // Already set from cache above
-                          }
-                        } else {
-                          console.log("Profile check result:", profileData ? `Type: ${profileData.user_type}` : "No profile data", profileError ? `Error: ${profileError.message}` : "");
-                          
-                          if (profileData?.user_type) {
-                            console.log("Setting user type from profile:", profileData.user_type);
-                            setUserType(profileData.user_type);
-                            localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, profileData.user_type);
-                            userTypeFound = true;
-                          }
-                        }
-                      } catch (profileError) {
-                        console.error("Error checking profiles table:", profileError);
-                      }
-                    }
-                  }
-                } catch (therapistError) {
-                  console.error("Error checking therapists table:", therapistError);
-                }
-              }
-            }
-          } catch (storeError) {
-            console.error("Error checking stores table:", storeError);
-          }
-          
-          // Final fallback: If we couldn't determine the user type from any source
-          if (!userTypeFound && !userType) {
-            console.log("Defaulting to user type after all checks failed");
-            setUserType('user');
-            localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, 'user');
-          }
-        } else {
-          // No session, clear user data
-          setUser(null);
-          setUserType(null);
-          localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-        // Ensure user is logged out if there's an error
-        setUser(null);
-        setUserType(null);
-      } finally {
-        console.log("Auth check completed, setting loading to false");
-        setLoading(false);
-        authCheckRunningRef.current = false;
-      }
-    };
-
-    // Verify user type in background without showing loading state
-    const verifyUserTypeInBackground = async (userId: string, cachedType: string) => {
-      try {
-        console.log("Verifying user type in background");
-        
-        // Check the appropriate table based on cached type
-        if (cachedType === 'store') {
-          const { data } = await supabase
-            .from('stores')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle();
-            
-          if (!data) {
-            console.log("Cached store type may be incorrect, running full auth check");
-            checkAuth();
-          }
-        } else if (cachedType === 'therapist') {
-          const { data } = await supabase
-            .from('therapists')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle();
-            
-          if (!data) {
-            console.log("Cached therapist type may be incorrect, running full auth check");
-            checkAuth();
-          }
-        } else {
-          // For regular users or unknown types, verify against profiles
-          const { data } = await supabase
-            .from('profiles')
-            .select('user_type')
-            .eq('id', userId)
-            .maybeSingle();
-            
-          if (data?.user_type && data.user_type !== cachedType) {
-            console.log("User type changed in database, updating");
-            setUserType(data.user_type);
-            localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, data.user_type);
-          }
-        }
-      } catch (error) {
-        console.error("Background verification error:", error);
-        // No need to update state on background check errors
-      }
-    };
-
-    // Add a small delay before first auth check to ensure Supabase is initialized
-    const initTimeout = setTimeout(() => {
-      checkAuth();
-    }, SUPABASE_INIT_DELAY);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log("Auth state changed:", _event, session ? "Session exists" : "No session");
-      
-      if (session?.user) {
-        setUser(session.user);
-        console.log("User ID from auth state change:", session.user.id);
-        
-        // Enhanced profile checking logic - try a direct check first to avoid RLS issues
-        try {
-          // Direct database query using admin client, bypassing RLS
-          // This is a fallback in case the normal query fails
-          const { data: adminProfileData } = await supabaseAdmin
-            .from('profiles')
-            .select('user_type')
-            .eq('id', session.user.id)
-            .maybeSingle();
-            
-          if (adminProfileData?.user_type) {
-            console.log("Setting user type from admin client:", adminProfileData.user_type);
-            setUserType(adminProfileData.user_type);
-            localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, adminProfileData.user_type);
-            setLoading(false);
-            return;
-          }
-        } catch (adminError) {
-          console.error("Admin client profile check failed:", adminError);
-          // Continue with normal flow if this fails
-        }
-        
-        // Try to get cached user type first as a fallback
-        const cachedUserType = localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY);
-        if (cachedUserType) {
-          console.log("Using cached user type for auth change:", cachedUserType);
-          setUserType(cachedUserType);
-          setLoading(false);
-          
-          // Verify in background but don't show loading state
-          verifyUserTypeInBackground(session.user.id, cachedUserType);
-          return;
-        }
-        
-        // Similar to checkAuth, but for auth state changes
-        let userTypeFound = false;
-        
-        try {
-          // First check if user is a store
-          const { data: storeData, error: storeError } = await supabase
-            .from('stores')
-            .select('id')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          
-          // Check if there's an infinite recursion error
-          if (storeError && storeError.message.includes('infinite recursion')) {
-            console.error("RLS infinite recursion error on stores check (auth change), using fallback");
-            if (cachedUserType) {
-              userTypeFound = true;
-              // Already set from cache above
-            }
-          } else {
-            console.log("Store check (auth change):", storeData ? "Is store" : "Not store", storeError ? `Error: ${storeError.message}` : "");
-            
-            if (storeData) {
-              console.log("Setting user type to store (auth change)");
-              setUserType('store');
-              localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, 'store');
-              userTypeFound = true;
-            } else {
-              // Then check if user is a therapist
-              try {
-                const { data: therapistData, error: therapistError } = await supabase
-                  .from('therapists')
-                  .select('id')
-                  .eq('id', session.user.id)
-                  .maybeSingle();
-                
-                // Check if there's an infinite recursion error
-                if (therapistError && therapistError.message.includes('infinite recursion')) {
-                  console.error("RLS infinite recursion error on therapists check (auth change), using fallback");
-                  if (cachedUserType) {
-                    userTypeFound = true;
-                    // Already set from cache above
-                  }
-                } else {
-                  console.log("Therapist check (auth change):", therapistData ? "Is therapist" : "Not therapist", therapistError ? `Error: ${therapistError.message}` : "");
-                  
-                  if (therapistData) {
-                    console.log("Setting user type to therapist (auth change)");
-                    setUserType('therapist');
-                    localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, 'therapist');
-                    userTypeFound = true;
-                  } else {
-                    // If we couldn't determine from tables, try the profiles table as fallback
-                    try {
-                      const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-                        .select('user_type')
-          .eq('id', session.user.id)
-                        .maybeSingle();
-                      
-                      // Check if there's an infinite recursion error
-                      if (profileError && profileError.message.includes('infinite recursion')) {
-                        console.error("RLS infinite recursion error on profiles check (auth change), using fallback");
-                        if (cachedUserType) {
-                          userTypeFound = true;
-                          // Already set from cache above
-                        }
-                      } else {
-                        console.log("Profile check (auth change):", profileData ? `Type: ${profileData.user_type}` : "No profile data", profileError ? `Error: ${profileError.message}` : "");
-                        
-                        if (profileData?.user_type) {
-                          console.log("Setting user type from profile (auth change):", profileData.user_type);
-                          setUserType(profileData.user_type);
-                          localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, profileData.user_type);
-                          userTypeFound = true;
-                        }
-                      }
-                    } catch (profileError) {
-                      console.error("Error checking profiles table (auth change):", profileError);
-                    }
-                  }
-                }
-              } catch (therapistError) {
-                console.error("Error checking therapists table (auth change):", therapistError);
-              }
-            }
-          }
-        } catch (storeError) {
-          console.error("Error checking stores table (auth change):", storeError);
-        }
-        
-        // Final fallback: If we couldn't determine the user type from any source
-        if (!userTypeFound && !userType) {
-          // Check if this is the first login after registration
-          const isNewUser = session.user.app_metadata?.provider === 'email' && 
-                          new Date(session.user.created_at).getTime() > Date.now() - 5 * 60 * 1000; // registered in last 5 minutes
-          
-          // For new users, let's default to customer instead of just 'user'
-          const defaultType = isNewUser ? 'customer' : 'user';
-          console.log(`Defaulting to user type '${defaultType}' after all checks failed (auth change)`);
-          setUserType(defaultType);
-          localStorage.setItem(LOCAL_STORAGE_USER_TYPE_KEY, defaultType);
-          
-          // For new users, also create their profile
-          if (isNewUser) {
-            try {
-              const { error: profileError } = await supabase
-                .from('profiles')
-                .upsert({ 
-                  id: session.user.id,
-                  user_type: defaultType,
-                  email: session.user.email,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                });
-                
-              if (profileError) {
-                console.error("Error creating default profile:", profileError);
-              } else {
-                console.log("Created default profile with type:", defaultType);
-              }
-            } catch (e) {
-              console.error("Exception creating default profile:", e);
-            }
-          }
-        }
-        
-        // Always ensure loading is set to false after auth change
-        setLoading(false);
-      } else {
-        console.log("No session in auth change, clearing user state");
-        setUser(null);
-        setUserType(null);
-        localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
-        setLoading(false);
-      }
+    // Set up auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Just update the user state, nothing fancy
+      setUser(session?.user || null);
     });
+
+    // Initial check
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user || null);
+    };
+    
+    checkSession();
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(initTimeout);
     };
   }, []);
 
   const handleSignOut = async () => {
     try {
-      console.log("Starting sign out process");
       setIsSigningOut(true);
-      
-      // Clear localStorage first to prevent UI flicker
       localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
-      
-      // Additional clear of any potential stale data
-      localStorage.removeItem('therapist-app-auth');
-      
-      // Update state before async operation
-      setUser(null);
-      setUserType(null);
-      
-      // Then perform Supabase signout
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Sign out error:", error);
-        throw error;
-      }
-      
-      console.log("Sign out successful, redirecting to home");
+      await supabase.auth.signOut();
       navigate("/");
     } catch (error) {
       console.error("Sign out error:", error);
-      // Even if there's an error, clear the UI state
-      setUser(null);
-      setUserType(null);
-      
-      // Force page reload as last resort if sign out fails
       window.location.href = "/";
     } finally {
       setIsSigningOut(false);
     }
   };
 
+  // Simple function to get user type from localStorage
+  const getUserType = () => {
+    return localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY) || 'customer';
+  };
+
   const getUserDashboardLink = () => {
-    if (!userType) return "/user-profile";
-    
+    const userType = getUserType();
     switch (userType) {
       case 'store':
         return "/store-admin";
@@ -511,23 +89,6 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
-
-  // Enhanced debug logging for auth state changes
-  useEffect(() => {
-    const authStateStr = JSON.stringify({ 
-      user: user ? { id: user.id } : null, 
-      userType,
-      loading 
-    });
-    console.log(`Auth state changed: ${authStateStr}`);
-    
-    // Safety check: if no user but userType exists in localStorage, clear it
-    if (!user && localStorage.getItem(LOCAL_STORAGE_USER_TYPE_KEY)) {
-      console.log("Found stale userType in localStorage, clearing it");
-      localStorage.removeItem(LOCAL_STORAGE_USER_TYPE_KEY);
-      setUserType(null);
-    }
-  }, [user, userType, loading]);
 
   return (
     <div className="flex flex-col min-h-screen" lang={lang}>
@@ -571,12 +132,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
             
             <div className="h-6 w-px bg-border mx-1"></div>
             
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-sm">読み込み中...</span>
-              </div>
-            ) : user && userType ? (
+            {user ? (
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
@@ -586,44 +142,10 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="grid w-[200px] gap-2 p-4">
-                        {userType === 'store' ? (
-                          <span className="contents">
-                            <Link to="/store-admin" className="block p-2 hover:bg-muted rounded-md">
-                              <Store className="h-4 w-4 inline mr-2" />
-                              店舗管理
-                            </Link>
-                          </span>
-                        ) : userType === 'therapist' ? (
-                          <span className="contents">
-                            <Link to="/therapist-dashboard" className="block p-2 hover:bg-muted rounded-md">
-                              <User className="h-4 w-4 inline mr-2" />
-                              セラピストダッシュボード
-                            </Link>
-                            <Link to="/therapist-posts" className="block p-2 hover:bg-muted rounded-md">
-                              <FileText className="h-4 w-4 inline mr-2" />
-                              投稿管理
-                            </Link>
-                          </span>
-                        ) : (
-                          <span className="contents">
-                            <Link to="/user-profile" className="block p-2 hover:bg-muted rounded-md">
+                        <Link to={getUserDashboardLink()} className="block p-2 hover:bg-muted rounded-md">
                               <User className="h-4 w-4 inline mr-2" />
                               プロフィール
                             </Link>
-                            <Link to="/user-bookings" className="block p-2 hover:bg-muted rounded-md">
-                              <Calendar className="h-4 w-4 inline mr-2" />
-                              予約履歴
-                            </Link>
-                            <Link to="/messages" className="block p-2 hover:bg-muted rounded-md">
-                              <MessageSquare className="h-4 w-4 inline mr-2" />
-                              メッセージ
-                            </Link>
-                            <Link to="/followed-therapists" className="block p-2 hover:bg-muted rounded-md">
-                              <Heart className="h-4 w-4 inline mr-2" />
-                              お気に入りセラピスト
-                            </Link>
-                          </span>
-                        )}
                         <Link to="/notification-settings" className="block p-2 hover:bg-muted rounded-md">
                           <Settings className="h-4 w-4 inline mr-2" />
                           通知設定
@@ -738,12 +260,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                 
                 <div className="h-px w-full bg-gray-200"></div>
                 
-                {loading ? (
-                  <div className="flex items-center gap-2 py-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-sm">読み込み中...</span>
-                  </div>
-                ) : user && userType ? (
+                {user ? (
                   <span className="contents">
                     <Link 
                       to={getUserDashboardLink()} 
@@ -799,16 +316,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
       </header>
       
       <main className="flex-grow py-8">
-        {loading && location.pathname.includes('profile') ? (
-          <div className="container flex justify-center items-center py-16">
-            <div className="flex flex-col items-center">
-              <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-              <p className="text-lg font-medium">ページを読み込み中...</p>
-            </div>
-          </div>
-        ) : (
-          children
-        )}
+        {children}
       </main>
       
       <footer className="bg-gray-100 dark:bg-gray-900 mt-12">

@@ -40,14 +40,60 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
-import { CircleUser, Lock, Bell, Eye, Shield } from 'lucide-react';
-import { TherapistSettings as TherapistSettingsType } from '@/types/therapist';
+import { CircleUser, Lock, Bell, Eye, Shield, AlertTriangle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+// Define a more complete Therapist type that includes required database fields
+interface TherapistDB {
+  id: string;
+  name: string;
+  description: string;
+  location: string;
+  working_days?: string[];
+  working_hours?: any;
+  availability?: string[];
+  // Settings fields
+  is_profile_public?: boolean;
+  show_follower_count?: boolean;
+  show_availability?: boolean;
+  restrict_messaging?: boolean;
+  email_notifications?: boolean;
+  booking_notifications?: boolean;
+  message_notifications?: boolean;
+  marketing_notifications?: boolean;
+  // Other fields can be added as needed
+}
+
+// Settings interface for updates
+interface TherapistSettings {
+  id?: string;
+  name?: string;
+  description?: string;
+  location?: string;
+  is_profile_public?: boolean;
+  show_follower_count?: boolean;
+  show_availability?: boolean;
+  restrict_messaging?: boolean;
+  email_notifications?: boolean;
+  booking_notifications?: boolean;
+  message_notifications?: boolean;
+  marketing_notifications?: boolean;
+}
 
 // Validation schema for account form
 const accountFormSchema = z.object({
   email: z.string().email({ message: "有効なメールアドレスを入力してください" }),
   name: z.string().min(1, { message: "名前を入力してください" }),
-  language: z.string(),
 });
 
 // Validation schema for privacy form
@@ -92,6 +138,8 @@ const TherapistSettings = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("account");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [dataInitialized, setDataInitialized] = useState(false);
 
   // Initialize the forms
   const accountForm = useForm<z.infer<typeof accountFormSchema>>({
@@ -99,16 +147,27 @@ const TherapistSettings = () => {
     defaultValues: {
       email: "",
       name: "",
-      language: "ja",
     },
   });
 
   const privacyForm = useForm<z.infer<typeof privacyFormSchema>>({
     resolver: zodResolver(privacyFormSchema),
+    defaultValues: {
+      isProfilePublic: true,
+      showFollowerCount: true,
+      showAvailability: true,
+      restrictMessaging: false,
+    }
   });
 
   const notificationForm = useForm<z.infer<typeof notificationFormSchema>>({
     resolver: zodResolver(notificationFormSchema),
+    defaultValues: {
+      emailNotifications: true,
+      bookingNotifications: true,
+      messageNotifications: true,
+      marketingNotifications: false,
+    }
   });
 
   const securityForm = useForm<z.infer<typeof securityFormSchema>>({
@@ -128,9 +187,13 @@ const TherapistSettings = () => {
         
         // Get current user
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          toast.error("ユーザー情報を取得できませんでした");
+          return;
+        }
         
         setUserId(user.id);
+        console.log("Fetching data for user ID:", user.id);
         
         // Fetch user profile
         const { data: profile, error: profileError } = await supabase
@@ -141,11 +204,14 @@ const TherapistSettings = () => {
           
         if (profileError && !profileError.message.includes('No rows found')) {
           console.error('Error fetching profile:', profileError);
+          toast.error("プロフィール情報の取得に失敗しました");
           return;
         }
         
+        console.log("Profile data:", profile);
+        
         // Fetch therapist data
-        const { data: therapist, error: therapistError } = await supabase
+        const { data: therapistData, error: therapistError } = await supabase
           .from('therapists')
           .select('*')
           .eq('id', user.id)
@@ -153,42 +219,60 @@ const TherapistSettings = () => {
           
         if (therapistError && !therapistError.message.includes('No rows found')) {
           console.error('Error fetching therapist data:', therapistError);
+          toast.error("セラピスト情報の取得に失敗しました");
           return;
         }
         
-        // Merge profile and therapist data
+        console.log("Therapist data:", therapistData);
+        
+        // Safely handle therapist data with proper type assertion
+        const therapist = therapistData as TherapistDB | null;
+        
+        // Create a merged object with safer type handling
         const combinedData = {
           ...profile,
-          ...therapist,
+          ...(therapist || {}),
           email: user.email,
+          // Ensure settings fields exist with defaults using optional chaining
+          is_profile_public: therapist?.is_profile_public ?? true,
+          show_follower_count: therapist?.show_follower_count ?? true,
+          show_availability: therapist?.show_availability ?? true,
+          restrict_messaging: therapist?.restrict_messaging ?? false,
+          email_notifications: therapist?.email_notifications ?? true,
+          booking_notifications: therapist?.booking_notifications ?? true,
+          message_notifications: therapist?.message_notifications ?? true,
+          marketing_notifications: therapist?.marketing_notifications ?? false
         };
         
+        console.log("Combined data:", combinedData);
         setUserData(combinedData);
         
         // Reset form values with fetched data
         accountForm.reset({
           email: user.email || "",
           name: combinedData.name || "",
-          language: combinedData.language || "ja",
         });
         
-        // Reset privacy form with safe type assertions
+        // Reset privacy form
         privacyForm.reset({
-          isProfilePublic: combinedData.is_profile_public !== false,
-          showFollowerCount: combinedData.show_follower_count !== false,
-          showAvailability: combinedData.show_availability !== false,
-          restrictMessaging: combinedData.restrict_messaging === true,
+          isProfilePublic: Boolean(combinedData.is_profile_public),
+          showFollowerCount: Boolean(combinedData.show_follower_count),
+          showAvailability: Boolean(combinedData.show_availability),
+          restrictMessaging: Boolean(combinedData.restrict_messaging),
         });
         
-        // Reset notification form with safe type assertions
+        // Reset notification form
         notificationForm.reset({
-          emailNotifications: combinedData.email_notifications !== false,
-          bookingNotifications: combinedData.booking_notifications !== false,
-          messageNotifications: combinedData.message_notifications !== false,
-          marketingNotifications: combinedData.marketing_notifications === true,
+          emailNotifications: Boolean(combinedData.email_notifications),
+          bookingNotifications: Boolean(combinedData.booking_notifications),
+          messageNotifications: Boolean(combinedData.message_notifications),
+          marketingNotifications: Boolean(combinedData.marketing_notifications),
         });
+        
+        setDataInitialized(true);
       } catch (error) {
         console.error('Error fetching user data:', error);
+        toast.error("ユーザーデータの取得中にエラーが発生しました");
       } finally {
         setLoading(false);
       }
@@ -199,10 +283,14 @@ const TherapistSettings = () => {
 
   // Handle account form submission
   const onSubmitAccountForm = async (data: z.infer<typeof accountFormSchema>) => {
-    if (!userId) return;
+    if (!userId) {
+      toast.error("ユーザーIDが見つかりません");
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log("Updating account settings:", data);
       
       // Update profile
       const { error: profileError } = await supabase
@@ -213,14 +301,14 @@ const TherapistSettings = () => {
         .eq('id', userId);
       
       if (profileError) {
+        console.error("Profile update error:", profileError);
         toast.error("プロフィール更新エラー", { description: profileError.message });
         return;
       }
       
-      // Update therapist name and language
-      const updateData: TherapistSettingsType = {
+      // Update therapist name
+      const updateData: TherapistSettings = {
         name: data.name,
-        language: data.language
       };
       
       const { error: therapistError } = await supabase
@@ -229,16 +317,19 @@ const TherapistSettings = () => {
         .eq('id', userId);
       
       if (therapistError) {
-        console.warn("Some therapist fields might not have been updated:", therapistError.message);
+        console.error("Therapist update error:", therapistError);
+        toast.warning("一部の設定が更新されませんでした", { description: therapistError.message });
       }
       
       // Update email if changed
       if (data.email !== userData.email) {
+        console.log("Updating email from", userData.email, "to", data.email);
         const { error: emailError } = await supabase.auth.updateUser({
           email: data.email,
         });
         
         if (emailError) {
+          console.error("Email update error:", emailError);
           toast.error("メールアドレス更新エラー", { description: emailError.message });
           return;
         }
@@ -247,6 +338,13 @@ const TherapistSettings = () => {
           description: "新しいメールアドレスの確認のため、確認メールを送信しました。"
         });
       }
+      
+      // Update the local userData state
+      setUserData(prev => ({
+        ...prev,
+        name: data.name,
+        email: data.email
+      }));
       
       toast.success("アカウント設定を更新しました");
     } catch (error) {
@@ -259,29 +357,80 @@ const TherapistSettings = () => {
 
   // Handle privacy form submission
   const onSubmitPrivacyForm = async (data: z.infer<typeof privacyFormSchema>) => {
-    if (!userId) return;
+    if (!userId) {
+      toast.error("ユーザーIDが見つかりません");
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log("Updating privacy settings:", data);
       
       // Create an update object with snake_case keys
-      const updateData: TherapistSettingsType = {
+      const updateData: TherapistSettings = {
         is_profile_public: data.isProfilePublic,
         show_follower_count: data.showFollowerCount,
         show_availability: data.showAvailability,
         restrict_messaging: data.restrictMessaging,
       };
       
-      // Update privacy settings
-      const { error } = await supabase
+      // First check if therapist record exists
+      const { data: existingTherapist, error: checkError } = await supabase
         .from('therapists')
-        .update(updateData)
-        .eq('id', userId);
-      
-      if (error) {
-        console.warn("Privacy settings update warning:", error.message);
-        // Continue anyway as these fields might be added in the future
+        .select('id, description, location')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (checkError && !checkError.message.includes('No rows found')) {
+        console.error("Error checking therapist:", checkError);
+        toast.error("セラピスト情報の確認に失敗しました");
+        return;
       }
+        
+      // If no therapist record, create one
+      if (!existingTherapist) {
+        console.log("No therapist record found, creating one");
+        
+        // Create a minimal valid therapist record
+        const therapistRecord: any = {
+          id: userId,
+          name: userData?.name || "セラピスト",
+          description: "セラピストの紹介文",
+          location: "東京都",
+          ...updateData
+        };
+        
+        const { error: createError } = await supabase
+          .from('therapists')
+          .insert(therapistRecord);
+          
+        if (createError) {
+          console.error("Error creating therapist:", createError);
+          toast.error("セラピスト情報の作成に失敗しました");
+          return;
+        }
+      } else {
+        // Update privacy settings
+        const { error: updateError } = await supabase
+          .from('therapists')
+          .update(updateData)
+          .eq('id', userId);
+        
+        if (updateError) {
+          console.error("Privacy settings update error:", updateError);
+          toast.error("プライバシー設定の更新に失敗しました");
+          return;
+        }
+      }
+      
+      // Update the local userData state
+      setUserData(prev => ({
+        ...prev,
+        is_profile_public: data.isProfilePublic,
+        show_follower_count: data.showFollowerCount,
+        show_availability: data.showAvailability,
+        restrict_messaging: data.restrictMessaging,
+      }));
       
       toast.success("プライバシー設定を更新しました");
     } catch (error) {
@@ -294,29 +443,80 @@ const TherapistSettings = () => {
 
   // Handle notification form submission
   const onSubmitNotificationForm = async (data: z.infer<typeof notificationFormSchema>) => {
-    if (!userId) return;
+    if (!userId) {
+      toast.error("ユーザーIDが見つかりません");
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log("Updating notification settings:", data);
       
       // Create an update object with snake_case keys
-      const updateData: TherapistSettingsType = {
+      const updateData: TherapistSettings = {
         email_notifications: data.emailNotifications,
         booking_notifications: data.bookingNotifications,
         message_notifications: data.messageNotifications,
         marketing_notifications: data.marketingNotifications,
       };
       
-      // Update notification settings
-      const { error } = await supabase
+      // First check if therapist record exists
+      const { data: existingTherapist, error: checkError } = await supabase
         .from('therapists')
-        .update(updateData)
-        .eq('id', userId);
-      
-      if (error) {
-        console.warn("Notification settings update warning:", error.message);
-        // Continue anyway as these fields might be added in the future
+        .select('id, description, location')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (checkError && !checkError.message.includes('No rows found')) {
+        console.error("Error checking therapist:", checkError);
+        toast.error("セラピスト情報の確認に失敗しました");
+        return;
       }
+        
+      // If no therapist record, create one
+      if (!existingTherapist) {
+        console.log("No therapist record found, creating one");
+        
+        // Create a minimal valid therapist record
+        const therapistRecord: any = {
+          id: userId,
+          name: userData?.name || "セラピスト",
+          description: "セラピストの紹介文",
+          location: "東京都",
+          ...updateData
+        };
+        
+        const { error: createError } = await supabase
+          .from('therapists')
+          .insert(therapistRecord);
+          
+        if (createError) {
+          console.error("Error creating therapist:", createError);
+          toast.error("セラピスト情報の作成に失敗しました");
+          return;
+        }
+      } else {
+        // Update notification settings
+        const { error: updateError } = await supabase
+          .from('therapists')
+          .update(updateData)
+          .eq('id', userId);
+        
+        if (updateError) {
+          console.error("Notification settings update error:", updateError);
+          toast.error("通知設定の更新に失敗しました");
+          return;
+        }
+      }
+      
+      // Update the local userData state
+      setUserData(prev => ({
+        ...prev,
+        email_notifications: data.emailNotifications,
+        booking_notifications: data.bookingNotifications,
+        message_notifications: data.messageNotifications,
+        marketing_notifications: data.marketingNotifications,
+      }));
       
       toast.success("通知設定を更新しました");
     } catch (error) {
@@ -329,10 +529,26 @@ const TherapistSettings = () => {
 
   // Handle security form submission
   const onSubmitSecurityForm = async (data: z.infer<typeof securityFormSchema>) => {
-    if (!userId || !data.currentPassword || !data.newPassword) return;
+    if (!userId || !data.currentPassword || !data.newPassword) {
+      toast.error("全てのパスワードフィールドを入力してください");
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log("Updating password");
+      
+      // First check current password by signing in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userData.email,
+        password: data.currentPassword,
+      });
+      
+      if (signInError) {
+        console.error("Current password verification failed:", signInError);
+        toast.error("現在のパスワードが正しくありません");
+        return;
+      }
       
       // Update password
       const { error } = await supabase.auth.updateUser({
@@ -340,6 +556,7 @@ const TherapistSettings = () => {
       });
       
       if (error) {
+        console.error("Password update error:", error);
         toast.error("パスワード更新エラー", { description: error.message });
         return;
       }
@@ -357,6 +574,55 @@ const TherapistSettings = () => {
       toast.error("エラーが発生しました", { description: "パスワードの更新中にエラーが発生しました。" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle account deletion
+  const handleDeleteAccount = async () => {
+    if (!userId) {
+      toast.error("ユーザーIDが見つかりません");
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      console.log("Deleting account for user ID:", userId);
+      
+      // Delete therapist data
+      const { error: therapistError } = await supabase
+        .from('therapists')
+        .delete()
+        .eq('id', userId);
+      
+      if (therapistError) {
+        console.error('Error deleting therapist data:', therapistError);
+        toast.error("アカウント削除エラー", { description: therapistError.message });
+        return;
+      }
+      
+      // Delete profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+      
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+        toast.error("アカウント削除エラー", { description: profileError.message });
+        return;
+      }
+      
+      // Delete auth user (this is normally done server-side)
+      toast.success("アカウントを削除しました");
+      
+      // Sign out and redirect to home
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error("エラーが発生しました", { description: "アカウントの削除中にエラーが発生しました。" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -438,31 +704,6 @@ const TherapistSettings = () => {
                           </FormControl>
                           <FormDescription>
                             公開プロフィールに表示される名前です
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={accountForm.control}
-                      name="language"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>言語設定</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="言語を選択" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="ja">日本語</SelectItem>
-                              <SelectItem value="en">English</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            アプリの表示言語を設定します
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -756,9 +997,31 @@ const TherapistSettings = () => {
                   <p className="text-sm text-muted-foreground mb-4">
                     アカウントを削除すると、すべてのデータが完全に削除され、復元できなくなります。
                   </p>
-                  <Button variant="destructive">
-                    アカウントを削除
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">
+                        アカウントを削除
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>本当にアカウントを削除しますか？</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          この操作は取り消せません。アカウントとすべての関連データが永久に削除されます。
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeleteAccount}
+                          disabled={isDeleting}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {isDeleting ? "削除中..." : "アカウントを削除する"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>

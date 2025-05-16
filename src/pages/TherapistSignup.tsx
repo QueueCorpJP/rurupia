@@ -132,7 +132,8 @@ const TherapistSignup = () => {
           user_type: 'therapist',
           name: userData.name,
           invited_by_store_id: storeId,
-          status: 'pending_therapist_approval'  // Use status field to indicate pending approval
+          status: 'pending_therapist_approval',  // Use status field to indicate pending approval
+          user_id: userId  // Add the user_id field
         })
         .eq('id', userId);
       

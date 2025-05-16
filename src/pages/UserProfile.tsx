@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,9 +29,12 @@ import {
   Clock,
   Bell,
   UserX,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import type { UserProfile as UserProfileType } from "@/utils/types";
+import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -40,6 +43,7 @@ const UserProfile = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [verificationFile, setVerificationFile] = useState<File | null>(null);
+  const [hobbyInput, setHobbyInput] = useState('');
   
   const [profile, setProfile] = useState<UserProfileType>({
     id: "",
@@ -306,6 +310,35 @@ const UserProfile = () => {
     "ISTP", "ISFP", "ESTP", "ESFP"
   ];
 
+  const handleAddHobby = () => {
+    if (hobbyInput.trim()) {
+      // Split by commas or spaces to allow multiple entries at once
+      const newHobbies = hobbyInput.split(/[,、]/).map(h => h.trim()).filter(h => h);
+      
+      // Filter out duplicates
+      const uniqueNewHobbies = newHobbies.filter(
+        hobby => !profile.hobbies?.includes(hobby)
+      );
+      
+      if (uniqueNewHobbies.length > 0) {
+        setProfile({
+          ...profile,
+          hobbies: [...(Array.isArray(profile.hobbies) ? profile.hobbies : []), ...uniqueNewHobbies]
+        });
+      }
+      setHobbyInput('');
+    }
+  };
+  
+  const handleRemoveHobby = (hobbyToRemove: string) => {
+    setProfile({
+      ...profile,
+      hobbies: Array.isArray(profile.hobbies) 
+        ? profile.hobbies.filter(hobby => hobby !== hobbyToRemove)
+        : []
+    });
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -532,17 +565,44 @@ const UserProfile = () => {
               <div>
                 <Label htmlFor="hobbies" className="block text-sm font-medium text-gray-700">趣味</Label>
                 <div className="mt-1">
-                  <Textarea
-                    id="hobbies"
-                    placeholder="趣味を入力（改行で複数入力可能）"
-                    value={Array.isArray(profile.hobbies) ? profile.hobbies.join("\n") : ""}
-                    onChange={(e) => {
-                      const hobbies = e.target.value.split("\n").map(h => h.trim()).filter(Boolean);
-                      setProfile({ ...profile, hobbies });
-                    }}
-                    rows={4}
-                  />
-                  <p className="text-sm text-gray-500 mt-1">Enterキーで改行して複数の趣味を入力できます</p>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="hobbies-input"
+                      value={hobbyInput}
+                      onChange={(e) => setHobbyInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddHobby();
+                        }
+                      }}
+                      placeholder="趣味を入力してEnterキーを押してください"
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleAddHobby} 
+                      size="sm">追加</Button>
+                  </div>
+                  
+                  {profile.hobbies && profile.hobbies.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {profile.hobbies.map((hobby, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {hobby}
+                          <X 
+                            size={14} 
+                            className="cursor-pointer" 
+                            onClick={() => handleRemoveHobby(hobby)} 
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-500 mt-1">
+                    複数の趣味を追加するには、一つずつ入力してEnterを押すか、カンマ区切りで複数入力できます
+                  </p>
                 </div>
               </div>
             </div>

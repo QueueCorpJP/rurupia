@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Layout from '../components/Layout';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { MapPin, Phone, Mail, Send } from 'lucide-react';
+import { MapPin, Mail, Send } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from 'sonner';
 
@@ -88,22 +87,9 @@ const Contact = () => {
                 <div>
                   <h3 className="text-sm font-medium">住所</h3>
                   <p className="text-sm text-muted-foreground">
-                    〒106-0032<br />
-                    東京都港区六本木6-10-1<br />
-                    六本木ヒルズ森タワー
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-4">
-                <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium">電話番号</h3>
-                  <p className="text-sm text-muted-foreground">
-                    03-1234-5678
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    平日 10:00〜19:00
+                    〒130-0022<br />
+                    東京都墨田区江東橋4丁目27番14号<br />
+                    楽天地ビル3F
                   </p>
                 </div>
               </div>
@@ -113,7 +99,7 @@ const Contact = () => {
                 <div>
                   <h3 className="text-sm font-medium">メールアドレス</h3>
                   <p className="text-sm text-muted-foreground">
-                    info@example.com
+                  info@noctle.com
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     24時間受付中

@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import BlogSidebar from '../components/BlogSidebar';
 import BlogCard from '../components/BlogCard';
 import { BlogPost } from '../utils/types';
-import { ArrowLeft, Heart, Share, MessageSquare, CalendarDays, Clock, Link2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Heart, Share, MessageSquare, CalendarDays, Clock, Link2, TrendingUp, Search } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { toast } from '../components/ui/use-toast';
@@ -23,6 +23,9 @@ const BlogDetail = () => {
   const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [allBlogPosts, setAllBlogPosts] = useState<BlogPost[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   useEffect(() => {
     const fetchPostAndRelated = async () => {
@@ -204,11 +207,11 @@ const BlogDetail = () => {
       "image": post.coverImage,
       "author": {
         "@type": "Person",
-        "name": post.author_name || "SerenitySage"
+        "name": post.author_name || "るるぴあ"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "SerenitySage",
+        "name": "るるぴあ",
         "logo": {
           "@type": "ImageObject",
           "url": `${window.location.origin}/logo.png`
@@ -247,6 +250,72 @@ const BlogDetail = () => {
         title: "投稿をいいねしました",
         description: "この記事をお気に入りとして保存しました。",
       });
+    }
+  };
+  
+  // Filter posts based on search term
+  const filteredPosts = () => {
+    if (!searchTerm) return [];
+    
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return allBlogPosts.filter(post => 
+      post.title.toLowerCase().includes(lowerSearchTerm) ||
+      post.excerpt.toLowerCase().includes(lowerSearchTerm) ||
+      post.content.toLowerCase().includes(lowerSearchTerm) ||
+      post.tags.some(tag => tag.toLowerCase().includes(lowerSearchTerm)) ||
+      post.category.toLowerCase().includes(lowerSearchTerm)
+    );
+  };
+  
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setIsSearching(true);
+    
+    // If we don't have all blog posts yet, fetch them
+    if (allBlogPosts.length === 0) {
+      fetchAllBlogPosts();
+    }
+  };
+  
+  const fetchAllBlogPosts = async () => {
+    try {
+      // Get current date in ISO format for filtering scheduled posts
+      const now = new Date().toISOString();
+      
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('published', true)
+        .or(`scheduled_for.is.null,scheduled_for.lte.${now}`)
+        .order('published_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching all blog posts:', error);
+        return;
+      }
+      
+      // Transform data to match BlogPost type
+      if (data) {
+        const transformedPosts: BlogPost[] = data.map(post => ({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          excerpt: post.excerpt,
+          content: post.content,
+          publishedAt: new Date(post.published_at).toLocaleDateString('ja-JP'),
+          category: post.category,
+          tags: post.tags || [],
+          coverImage: post.cover_image || 'https://placehold.co/600x400/png',
+          readTime: post.read_time,
+          views: post.views,
+          author_name: post.author_name,
+          author_avatar: post.author_avatar
+        }));
+        
+        setAllBlogPosts(transformedPosts);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching all blog posts:', err);
     }
   };
   
@@ -304,127 +373,174 @@ const BlogDetail = () => {
         schemaJson={getBlogPostSchema()}
         keywords={post.tags.join(', ')}
       />
-      <button
-        onClick={() => navigate('/blog')}
-        className="inline-flex items-center mb-6 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        ブログ一覧に戻る
-      </button>
-      
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <article className="space-y-6">
-            <div className="relative h-64 sm:h-80 md:h-96 overflow-hidden rounded-lg">
-              <img 
-                src={post.coverImage} 
-                alt={post.title} 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 px-3 py-1">
-                {post.category}
-              </Badge>
-              <div className="flex items-center gap-1">
-                <CalendarDays className="h-4 w-4" />
-                <span>{post.publishedAt}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>{post.readTime}分で読めます</span>
-              </div>
-            </div>
-            
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
-              {post.title}
-            </h1>
-            
-            <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
-            
-            <div className="flex flex-wrap gap-2 pt-4">
-              {post.tags.map((tag, idx) => (
-                <Link 
-                  key={idx} 
-                  to={`/blog/tag/${encodeURIComponent(tag)}`}
-                  className="inline-flex items-center rounded-full bg-gray-100 border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200"
-                >
-                  {tag}
-                </Link>
-              ))}
-            </div>
-            
-            <div className="flex gap-2 pt-4 border-t">
-              <Button variant="outline" size="sm" onClick={handleLike}>
-                <Heart className={`mr-1 h-4 w-4 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
-                いいね
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShare}>
-                <Share className="mr-1 h-4 w-4" />
-                シェア
-              </Button>
-              <Button variant="outline" size="sm">
-                <MessageSquare className="mr-1 h-4 w-4" />
-                コメント
-              </Button>
-            </div>
-          </article>
-          
-          {/* Popular Posts Section */}
-          {popularPosts.length > 0 && (
-            <div className="mt-12 border-t pt-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <TrendingUp className="mr-2 h-5 w-5 text-primary" />
-                人気の記事
-              </h2>
-              <div className="grid gap-6 sm:grid-cols-2">
-                {popularPosts.map(popularPost => (
-                  <Card key={popularPost.id} className="overflow-hidden">
-                    <div className="h-40 overflow-hidden">
-                      <img 
-                        src={popularPost.coverImage} 
-                        alt={popularPost.title} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <Badge className="mb-2">{popularPost.views || 0} 閲覧</Badge>
-                      <h3 className="font-semibold line-clamp-2">
-                        <Link to={`/blog/${popularPost.slug}`} className="hover:underline">{popularPost.title}</Link>
-                      </h3>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Related Posts Section */}
-          {relatedPosts.length > 0 && (
-            <div className="mt-12 border-t pt-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <Link2 className="mr-2 h-5 w-5 text-primary" />
-                関連記事
-              </h2>
-              <div className="grid gap-6 sm:grid-cols-2">
-                {relatedPosts.map(relatedPost => (
-                  <BlogCard 
-                    key={relatedPost.id} 
-                    post={relatedPost} 
-                    isRelated={true}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="px-4 sm:px-6 md:px-8 lg:px-12">
+        <button
+          onClick={() => navigate('/blog')}
+          className="inline-flex items-center mb-6 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          ブログ一覧に戻る
+        </button>
         
-        <BlogSidebar 
-          recentPosts={recentPosts}
-          categories={categories}
-          tags={tags}
-        />
+        <div className="grid gap-8 lg:grid-cols-3">
+          {isSearching ? (
+            <div className="lg:col-span-2">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-2 flex items-center">
+                  <Search className="mr-2 h-5 w-5" />
+                  "{searchTerm}" の検索結果: {filteredPosts().length}件
+                </h2>
+                <button 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setIsSearching(false);
+                  }}
+                  className="text-sm text-primary hover:underline"
+                >
+                  検索をクリア
+                </button>
+              </div>
+              
+              {filteredPosts().length === 0 ? (
+                <div className="text-center py-12 border rounded-lg">
+                  <h3 className="text-lg font-medium mb-2">検索結果が見つかりませんでした</h3>
+                  <p className="text-muted-foreground mb-4">
+                    別のキーワードで検索するか、以下のカテゴリやタグを参照してください。
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setIsSearching(false);
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    記事に戻る
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {filteredPosts().map(post => (
+                    <BlogCard key={post.id} post={post} />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="lg:col-span-2">
+              <article className="space-y-6">
+                <div className="relative h-64 sm:h-80 md:h-96 overflow-hidden rounded-lg">
+                  <img 
+                    src={post.coverImage} 
+                    alt={post.title} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 px-3 py-1">
+                    {post.category}
+                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>{post.publishedAt}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>{post.readTime}分で読めます</span>
+                  </div>
+                </div>
+                
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
+                  {post.title}
+                </h1>
+                
+                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
+                
+                <div className="flex flex-wrap gap-2 pt-4">
+                  {post.tags.map((tag, idx) => (
+                    <Link 
+                      key={idx} 
+                      to={`/blog/tag/${encodeURIComponent(tag)}`}
+                      className="inline-flex items-center rounded-full bg-gray-100 border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                    >
+                      {tag}
+                    </Link>
+                  ))}
+                </div>
+                
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button variant="outline" size="sm" onClick={handleLike}>
+                    <Heart className={`mr-1 h-4 w-4 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
+                    いいね
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleShare}>
+                    <Share className="mr-1 h-4 w-4" />
+                    シェア
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <MessageSquare className="mr-1 h-4 w-4" />
+                    コメント
+                  </Button>
+                </div>
+              </article>
+              
+              {/* Popular Posts Section */}
+              {popularPosts.length > 0 && (
+                <div className="mt-12 border-t pt-8">
+                  <h2 className="text-xl font-semibold mb-4 flex items-center">
+                    <TrendingUp className="mr-2 h-5 w-5 text-primary" />
+                    人気の記事
+                  </h2>
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    {popularPosts.map(popularPost => (
+                      <Card key={popularPost.id} className="overflow-hidden">
+                        <div className="h-40 overflow-hidden">
+                          <img 
+                            src={popularPost.coverImage} 
+                            alt={popularPost.title} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <Badge className="mb-2">{popularPost.views || 0} 閲覧</Badge>
+                          <h3 className="font-semibold line-clamp-2">
+                            <Link to={`/blog/${popularPost.slug}`} className="hover:underline">{popularPost.title}</Link>
+                          </h3>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Related Posts Section */}
+              {relatedPosts.length > 0 && (
+                <div className="mt-12 border-t pt-8">
+                  <h2 className="text-xl font-semibold mb-4 flex items-center">
+                    <Link2 className="mr-2 h-5 w-5 text-primary" />
+                    関連記事
+                  </h2>
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    {relatedPosts.map(relatedPost => (
+                      <BlogCard 
+                        key={relatedPost.id} 
+                        post={relatedPost} 
+                        isRelated={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <BlogSidebar 
+            recentPosts={recentPosts}
+            categories={categories}
+            tags={tags}
+            onSearch={handleSearch}
+          />
+        </div>
       </div>
     </Layout>
   );

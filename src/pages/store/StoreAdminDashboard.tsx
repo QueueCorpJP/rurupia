@@ -166,32 +166,20 @@ const StoreAdminDashboard = () => {
         setTherapistChange(0);
       }
       
-      // Get services/courses for this store
+      // Get services/courses for this store using direct SQL for better performance and to avoid type issues
       try {
-        const { data: services, error: servicesError } = await supabase
-          .from('services')
-          .select('id')
-          .eq('store_id', user.id);
-          
-        if (!servicesError && services) {
-          setCourseCount(services.length || 0);
+        const { data, error } = await supabase.rpc('count_store_services', { 
+          input_store_id: user.id 
+        });
+        
+        if (!error && data !== null) {
+          setCourseCount(data);
         } else {
-          // Fall back to getting services via therapist_services
-          const { data: therapistServices, error: tsError } = await supabase
-            .from('therapist_services')
-            .select('service_id')
-            .in('therapist_id', therapistIds);
-            
-          if (!tsError && therapistServices) {
-            // Get unique service IDs
-            const uniqueServiceIds = [...new Set(therapistServices.map(ts => ts.service_id))];
-            setCourseCount(uniqueServiceIds.length || 0);
-          } else {
-            setCourseCount(0);
-          }
+          console.error("Error counting services:", error);
+          setCourseCount(0);
         }
       } catch (error) {
-        console.error("Error fetching services:", error);
+        console.error("Error fetching service count:", error);
         setCourseCount(0);
       }
       
@@ -263,15 +251,75 @@ const StoreAdminDashboard = () => {
             const bookingDate = parseISO(booking.date);
             
             // Determine booking status - check both status fields or use combined status
-            const bookingStatus = booking.status || 
-                                (booking["status store"] === "completed" && booking["status therapist"] === "completed" ? 
-                                "完了" : "pending");
-                                
+            const bookingStatus = 
+              // Handle the case where status might not exist on some bookings
+              'status' in booking && booking.status ? 
+                booking.status : 
+                (booking["status store"] === "completed" && booking["status therapist"] === "completed" ? 
+                  "完了" : "pending");
+            
             const isToday = new Date(booking.date).toDateString() === currentDate.toDateString();
             const isUpcoming = new Date(booking.date) > currentDate;
             const isPending = bookingStatus === 'pending';
-            const isCurrentMonth = bookingDate >= monthStart && bookingDate <= monthEnd;
-            const isPreviousMonth = bookingDate >= prevMonthStart && bookingDate <= prevMonthEnd;
+            
+            // Only include in current/previous month counts if appropriate for the selected time range
+            let isCurrentPeriod = false;
+            let isPreviousPeriod = false;
+            
+            if (timeRange === "month") {
+              // Monthly view (current month vs previous month)
+              const currentMonthStart = startOfMonth(currentDate);
+              const currentMonthEnd = endOfMonth(currentDate);
+              const prevMonthStart = startOfMonth(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+              const prevMonthEnd = endOfMonth(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+              
+              isCurrentPeriod = bookingDate >= currentMonthStart && bookingDate <= currentMonthEnd;
+              isPreviousPeriod = bookingDate >= prevMonthStart && bookingDate <= prevMonthEnd;
+            } else if (timeRange === "week") {
+              // Weekly view (this week vs last week)
+              const thisWeekStart = new Date(currentDate);
+              thisWeekStart.setDate(currentDate.getDate() - currentDate.getDay());
+              thisWeekStart.setHours(0, 0, 0, 0);
+              
+              const thisWeekEnd = new Date(thisWeekStart);
+              thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+              thisWeekEnd.setHours(23, 59, 59, 999);
+              
+              const lastWeekStart = new Date(thisWeekStart);
+              lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+              
+              const lastWeekEnd = new Date(thisWeekEnd);
+              lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
+              
+              isCurrentPeriod = bookingDate >= thisWeekStart && bookingDate <= thisWeekEnd;
+              isPreviousPeriod = bookingDate >= lastWeekStart && bookingDate <= lastWeekEnd;
+            } else if (timeRange === "day") {
+              // Daily view (today vs yesterday)
+              const todayStart = new Date(currentDate);
+              todayStart.setHours(0, 0, 0, 0);
+              
+              const todayEnd = new Date(currentDate);
+              todayEnd.setHours(23, 59, 59, 999);
+              
+              const yesterdayStart = new Date(todayStart);
+              yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+              
+              const yesterdayEnd = new Date(todayEnd);
+              yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+              
+              isCurrentPeriod = bookingDate >= todayStart && bookingDate <= todayEnd;
+              isPreviousPeriod = bookingDate >= yesterdayStart && bookingDate <= yesterdayEnd;
+            } else {
+              // All time - compare last 30 days with previous 30 days
+              const thirtyDaysAgo = new Date(currentDate);
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              
+              const sixtyDaysAgo = new Date(currentDate);
+              sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+              
+              isCurrentPeriod = bookingDate >= thirtyDaysAgo && bookingDate <= currentDate;
+              isPreviousPeriod = bookingDate >= sixtyDaysAgo && bookingDate < thirtyDaysAgo;
+            }
             
             // FIXED: Better check for completed bookings
             // Check if booking is completed using both combined status and individual status fields
@@ -290,11 +338,11 @@ const StoreAdminDashboard = () => {
               const price = booking.price || 0;
               totalRevenue += price;
               
-              // Track monthly revenues for comparison
-              if (isCurrentMonth) {
+              // Track period revenues for comparison
+              if (isCurrentPeriod) {
                 currentMonthRevenue += price;
                 currentMonthBookings++;
-              } else if (isPreviousMonth) {
+              } else if (isPreviousPeriod) {
                 previousMonthRevenue += price;
                 previousMonthBookings++;
               }
@@ -344,10 +392,28 @@ const StoreAdminDashboard = () => {
             }
           });
           
-          const revenueChartData = Object.keys(dailySales).map(date => ({
-            date,
-            revenue: dailySales[date]
-          })).sort((a, b) => a.date.localeCompare(b.date));
+          // Format based on selected time range
+          let revenueChartData;
+          if (timeRange === "day") {
+            // For day view, use hourly data
+            const hourlyData = {};
+            formattedBookings.forEach(booking => {
+              if (booking.isCompleted && isToday(parseISO(booking.date))) {
+                const bookingHour = format(parseISO(booking.date), 'HH:00');
+                hourlyData[bookingHour] = (hourlyData[bookingHour] || 0) + (booking.price || 0);
+              }
+            });
+            
+            revenueChartData = Object.keys(hourlyData).map(hour => ({
+              date: hour,
+              revenue: hourlyData[hour]
+            })).sort((a, b) => a.date.localeCompare(b.date));
+          } else {
+            revenueChartData = Object.keys(dailySales).map(date => ({
+              date,
+              revenue: dailySales[date]
+            })).sort((a, b) => a.date.localeCompare(b.date));
+          }
           
           setRevenueData(revenueChartData);
           
@@ -363,14 +429,41 @@ const StoreAdminDashboard = () => {
             '土': 0
           };
           
-          // Count bookings by day of week for the past week
-          formattedBookings.forEach(booking => {
+          // Count bookings by day of week based on timeRange
+          let bookingsToInclude = formattedBookings;
+          
+          // Filter bookings based on time range
+          if (timeRange === "day") {
+            // For day view, include only last 7 days
+            const sevenDaysAgo = new Date(currentDate);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            bookingsToInclude = formattedBookings.filter(booking => {
+              const bookingDate = parseISO(booking.date);
+              return bookingDate >= sevenDaysAgo;
+            });
+          } else if (timeRange === "week") {
+            // For week view, include only this week
+            const weekStart = new Date(currentDate);
+            weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+            weekStart.setHours(0, 0, 0, 0);
+            bookingsToInclude = formattedBookings.filter(booking => {
+              const bookingDate = parseISO(booking.date);
+              return bookingDate >= weekStart;
+            });
+          } else if (timeRange === "month") {
+            // For month view, include only this month
+            const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            bookingsToInclude = formattedBookings.filter(booking => {
+              const bookingDate = parseISO(booking.date);
+              return bookingDate >= monthStart;
+            });
+          }
+          
+          // Count by day of week
+          bookingsToInclude.forEach(booking => {
             const bookingDate = parseISO(booking.date);
-            // Only include bookings from the past week
-            if (bookingDate >= oneWeekAgo && bookingDate <= currentDate) {
-              const dayOfWeek = dayOfWeekMap[getDay(bookingDate)];
-              dayOfWeekData[dayOfWeek] = (dayOfWeekData[dayOfWeek] || 0) + 1;
-            }
+            const dayOfWeek = dayOfWeekMap[getDay(bookingDate)];
+            dayOfWeekData[dayOfWeek] = (dayOfWeekData[dayOfWeek] || 0) + 1;
           });
           
           // Convert to array format for chart

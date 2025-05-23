@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PieChart, LineChart, BarChart, Loader2 } from 'lucide-react';
+import { PieChart, LineChart, BarChart, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   ResponsiveContainer, 
@@ -18,7 +18,17 @@ import {
   Pie,
   Cell,
   Legend,
+  Sector
 } from 'recharts';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+
+// Type for Tooltip Props
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#FF6B6B'];
 
@@ -59,48 +69,6 @@ interface TherapistPerformanceResponse {
   has_rating: boolean;
 }
 
-// Mock data for development until the database tables are created
-const mockAgeData: AgeDistribution[] = [
-  { name: '10代', value: 5 },
-  { name: '20代', value: 30 },
-  { name: '30代', value: 35 },
-  { name: '40代', value: 20 },
-  { name: '50代', value: 8 },
-  { name: '60代以上', value: 2 }
-];
-
-const mockMonthlyData: MonthlyCustomerData[] = [
-  { month: '1月', new_customers: 28, returning_customers: 42 },
-  { month: '2月', new_customers: 32, returning_customers: 45 },
-  { month: '3月', new_customers: 35, returning_customers: 50 },
-  { month: '4月', new_customers: 30, returning_customers: 55 },
-  { month: '5月', new_customers: 38, returning_customers: 58 },
-  { month: '6月', new_customers: 42, returning_customers: 60 }
-];
-
-const mockPopularTimesData: PopularBookingTime[] = [
-  { time_slot: '9:00', bookings_count: 5 },
-  { time_slot: '10:00', bookings_count: 8 },
-  { time_slot: '11:00', bookings_count: 12 },
-  { time_slot: '12:00', bookings_count: 10 },
-  { time_slot: '13:00', bookings_count: 7 },
-  { time_slot: '14:00', bookings_count: 9 },
-  { time_slot: '15:00', bookings_count: 14 },
-  { time_slot: '16:00', bookings_count: 18 },
-  { time_slot: '17:00', bookings_count: 15 },
-  { time_slot: '18:00', bookings_count: 12 },
-  { time_slot: '19:00', bookings_count: 8 },
-  { time_slot: '20:00', bookings_count: 6 }
-];
-
-const mockTherapistData: TherapistPerformance[] = [
-  { therapist_id: '1', therapist_name: '山田 花子', bookings_count: 45, rating: 4.8, hasRating: true },
-  { therapist_id: '2', therapist_name: '田中 優子', bookings_count: 38, rating: 4.9, hasRating: true },
-  { therapist_id: '3', therapist_name: '佐藤 美咲', bookings_count: 42, rating: 4.7, hasRating: true },
-  { therapist_id: '4', therapist_name: '鈴木 健太', bookings_count: 25, rating: 4.6, hasRating: true },
-  { therapist_id: '5', therapist_name: '高橋 直人', bookings_count: 33, rating: 4.7, hasRating: true }
-];
-
 // Add these type declarations to fix TypeScript errors
 // Declare the RPC functions so TypeScript recognizes them
 declare module '@supabase/supabase-js' {
@@ -116,10 +84,84 @@ declare module '@supabase/supabase-js' {
   }
 }
 
+// Custom Pie Chart Active Shape for better visualization
+const renderActiveShape = (props: any) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
+  const RADIAN = Math.PI / 180;
+  const sin = Math.sin(-RADIAN * midAngle);
+  const cos = Math.cos(-RADIAN * midAngle);
+  const sx = cx + (outerRadius + 10) * cos;
+  const sy = cy + (outerRadius + 10) * sin;
+  const mx = cx + (outerRadius + 30) * cos;
+  const my = cy + (outerRadius + 30) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
+
+  return (
+    <g>
+      <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill}>
+        {payload.name}
+      </text>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        innerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 10}
+        fill={fill}
+      />
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333">{`${payload.name}`}</text>
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999">
+        {`${value}人 (${(percent * 100).toFixed(0)}%)`}
+      </text>
+    </g>
+  );
+};
+
+// Custom tooltip for pie chart
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-2 border border-gray-200 shadow-sm rounded-md text-sm">
+        <p className="font-medium">{`${payload[0].name}`}</p>
+        <p className="text-gray-700">{`人数: ${payload[0].value}人`}</p>
+        <p className="text-gray-700">{`割合: ${(payload[0].payload.percent * 100).toFixed(0)}%`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Empty data display component
+const NoDataDisplay = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
+  <div className="h-[300px] flex flex-col items-center justify-center">
+    <Alert className="max-w-md mb-4">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>データはありません</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+    <Button onClick={onRetry} variant="outline" size="sm">再試行</Button>
+  </div>
+);
+
 const StoreAnalytics = () => {
   const [period, setPeriod] = useState<string>('month');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [apiErrors, setApiErrors] = useState<{[key: string]: string}>({});
   const [storeId, setStoreId] = useState<string | null>(null);
   
   const [ageData, setAgeData] = useState<AgeDistribution[]>([]);
@@ -127,10 +169,26 @@ const StoreAnalytics = () => {
   const [popularTimesData, setPopularTimesData] = useState<PopularBookingTime[]>([]);
   const [therapistPerformanceData, setTherapistPerformanceData] = useState<TherapistPerformance[]>([]);
   
+  // Track the active section in the pie chart
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+
+  // Convert period to days for SQL queries
+  const getPeriodDays = (periodValue: string): number => {
+    switch(periodValue) {
+      case 'week': return 7;
+      case 'month': return 30;
+      case 'quarter': return 90;
+      case 'year': return 365;
+      default: return 30;
+    }
+  };
+  
   // Fetch analytics data
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
+      setError(null);
+      setApiErrors({});
 
       // Get current user (store)
       const { data: { user } } = await supabase.auth.getUser();
@@ -140,85 +198,102 @@ const StoreAnalytics = () => {
       
       setStoreId(user.id);
 
-      // Try to fetch real data using RPC functions, but fall back to mock data if any errors
-      try {
-        // Use RPC to call the functions instead of querying tables directly
-        // This avoids RLS permission issues
+      // Calculate days for SQL queries based on selected period
+      const periodDays = getPeriodDays(period);
+      
+      // Use RPC to call the functions instead of querying tables directly
+      // This avoids RLS permission issues
+      
+      // 1. Fetch age distribution data using RPC function
+      const { data: ageDistributionRaw, error: ageError } = await supabase
+        .rpc('get_customer_age_distribution', { 
+          input_store_id: user.id,
+          days_back: periodDays
+        });
+
+      if (ageError) {
+        console.error("Error fetching age distribution data:", ageError);
+        setApiErrors(prev => ({ ...prev, ageData: ageError.message }));
+        setAgeData([]);
+      } else if (ageDistributionRaw && Array.isArray(ageDistributionRaw)) {
+        // Safely cast the data and validate it has the expected structure
+        const ageDistribution = ageDistributionRaw as unknown as AgeDistributionResponse[];
         
-        // 1. Fetch age distribution data using RPC function
-        const { data: ageDistributionRaw, error: ageError } = await supabase
-          .rpc('get_customer_age_distribution', { input_store_id: user.id });
+        // Format data for chart
+        const formattedAgeData = ageDistribution.map(item => ({
+          name: item.age_group,
+          value: item.count
+        }));
+        
+        setAgeData(formattedAgeData);
+      } else {
+        setAgeData([]);
+      }
 
-        if (!ageError && ageDistributionRaw && Array.isArray(ageDistributionRaw) && ageDistributionRaw.length > 0) {
-          // Safely cast the data and validate it has the expected structure
-          const ageDistribution = ageDistributionRaw as unknown as AgeDistributionResponse[];
-          
-          // Format data for chart
-          const formattedAgeData = ageDistribution.map(item => ({
-            name: item.age_group,
-            value: item.count
-          }));
-          
-          setAgeData(formattedAgeData);
-        } else {
-          console.log("No age distribution data, using mock data", ageError);
-          setAgeData(mockAgeData);
-        }
+      // 2. Fetch monthly customer data using RPC function
+      const { data: monthlyDataRaw, error: monthlyError } = await supabase
+        .rpc('get_monthly_customer_data', { 
+          input_store_id: user.id,
+          days_back: periodDays
+        });
+        
+      if (monthlyError) {
+        console.error("Error fetching monthly customer data:", monthlyError);
+        setApiErrors(prev => ({ ...prev, monthlyData: monthlyError.message }));
+        setMonthlyCustomerData([]);
+      } else if (monthlyDataRaw && Array.isArray(monthlyDataRaw)) {
+        // Safely cast the data
+        const monthlyData = monthlyDataRaw as unknown as MonthlyCustomerData[];
+        setMonthlyCustomerData(monthlyData);
+      } else {
+        setMonthlyCustomerData([]);
+      }
 
-        // 2. Fetch monthly customer data using RPC function
-        const { data: monthlyDataRaw, error: monthlyError } = await supabase
-          .rpc('get_monthly_customer_data', { input_store_id: user.id });
-          
-        if (!monthlyError && monthlyDataRaw && Array.isArray(monthlyDataRaw) && monthlyDataRaw.length > 0) {
-          // Safely cast the data
-          const monthlyData = monthlyDataRaw as unknown as MonthlyCustomerData[];
-          setMonthlyCustomerData(monthlyData);
-        } else {
-          console.log("No monthly customer data, using mock data", monthlyError);
-          setMonthlyCustomerData(mockMonthlyData);
-        }
+      // 3. Fetch popular booking times using RPC function
+      const { data: popularTimesRaw, error: timesError } = await supabase
+        .rpc('get_popular_booking_times', { 
+          input_store_id: user.id,
+          days_back: periodDays
+        });
+        
+      if (timesError) {
+        console.error("Error fetching popular booking times data:", timesError);
+        setApiErrors(prev => ({ ...prev, popularTimes: timesError.message }));
+        setPopularTimesData([]);
+      } else if (popularTimesRaw && Array.isArray(popularTimesRaw)) {
+        // Safely cast the data
+        const popularTimes = popularTimesRaw as unknown as PopularBookingTime[];
+        setPopularTimesData(popularTimes);
+      } else {
+        setPopularTimesData([]);
+      }
 
-        // 3. Fetch popular booking times using RPC function
-        const { data: popularTimesRaw, error: timesError } = await supabase
-          .rpc('get_popular_booking_times', { input_store_id: user.id });
-          
-        if (!timesError && popularTimesRaw && Array.isArray(popularTimesRaw) && popularTimesRaw.length > 0) {
-          // Safely cast the data
-          const popularTimes = popularTimesRaw as unknown as PopularBookingTime[];
-          setPopularTimesData(popularTimes);
-        } else {
-          console.log("No popular times data, using mock data", timesError);
-          setPopularTimesData(mockPopularTimesData);
-        }
-
-        // 4. Fetch therapist performance data using RPC function
-        const { data: therapistPerfRaw, error: therapistError } = await supabase
-          .rpc('get_therapist_performance', { input_store_id: user.id });
-          
-        if (!therapistError && therapistPerfRaw && Array.isArray(therapistPerfRaw) && therapistPerfRaw.length > 0) {
-          // Safely cast the data
-          const therapistPerf = therapistPerfRaw as unknown as TherapistPerformanceResponse[];
-          
-          // Convert from API format to component format
-          const formattedPerformance = therapistPerf.map(perf => ({
-            therapist_id: perf.therapist_id,
-            therapist_name: perf.therapist_name,
-            bookings_count: perf.bookings_count,
-            rating: perf.rating,
-            hasRating: perf.has_rating
-          }));
-          setTherapistPerformanceData(formattedPerformance);
-        } else {
-          console.log("No therapist performance data, using mock data", therapistError);
-          setTherapistPerformanceData(mockTherapistData);
-        }
-      } catch (error) {
-        console.error("Error calling RPC functions:", error);
-        // If there's any error, fall back to mock data
-        setAgeData(mockAgeData);
-        setMonthlyCustomerData(mockMonthlyData);
-        setPopularTimesData(mockPopularTimesData);
-        setTherapistPerformanceData(mockTherapistData);
+      // 4. Fetch therapist performance data using RPC function
+      const { data: therapistPerfRaw, error: therapistError } = await supabase
+        .rpc('get_therapist_performance', { 
+          input_store_id: user.id,
+          days_back: periodDays
+        });
+        
+      if (therapistError) {
+        console.error("Error fetching therapist performance data:", therapistError);
+        setApiErrors(prev => ({ ...prev, therapistPerf: therapistError.message }));
+        setTherapistPerformanceData([]);
+      } else if (therapistPerfRaw && Array.isArray(therapistPerfRaw)) {
+        // Safely cast the data
+        const therapistPerf = therapistPerfRaw as unknown as TherapistPerformanceResponse[];
+        
+        // Convert from API format to component format
+        const formattedPerformance = therapistPerf.map(perf => ({
+          therapist_id: perf.therapist_id,
+          therapist_name: perf.therapist_name,
+          bookings_count: perf.bookings_count,
+          rating: perf.rating,
+          hasRating: perf.has_rating
+        }));
+        setTherapistPerformanceData(formattedPerformance);
+      } else {
+        setTherapistPerformanceData([]);
       }
     } catch (error) {
       console.error("Error fetching analytics data:", error);
@@ -233,19 +308,31 @@ const StoreAnalytics = () => {
     fetchAnalyticsData();
   }, [period]);
 
+  // Pie chart event handlers
+  const onPieEnter = (_: any, index: number) => {
+    setActiveIndex(index);
+  };
+
   if (error) {
     return (
       <div className="p-4">
         <div className="bg-red-100 text-red-800 p-4 rounded-md">
           <h3 className="font-bold">エラーが発生しました</h3>
           <p>{error}</p>
-          <p className="mt-2 text-sm">
-            Note: この機能は現在開発中です。
-          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2" 
+            onClick={() => fetchAnalyticsData()}
+          >
+            再試行
+          </Button>
         </div>
       </div>
     );
   }
+
+  const hasApiErrors = Object.keys(apiErrors).length > 0;
 
   return (
     <div className="space-y-6">
@@ -266,6 +353,16 @@ const StoreAnalytics = () => {
           </SelectContent>
         </Select>
       </div>
+
+      {hasApiErrors && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>データ取得エラー</AlertTitle>
+          <AlertDescription>
+            一部のデータが正しく取得できませんでした。詳細はコンソールをご確認ください。
+          </AlertDescription>
+        </Alert>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -295,9 +392,14 @@ const StoreAnalytics = () => {
                   <PieChart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  {ageData.length === 0 ? (
+                  {apiErrors.ageData ? (
+                    <NoDataDisplay 
+                      message="データの取得中にエラーが発生しました。後ほど再度お試しください。" 
+                      onRetry={fetchAnalyticsData} 
+                    />
+                  ) : ageData.length === 0 ? (
                     <div className="h-[300px] flex items-center justify-center">
-                      <p className="text-muted-foreground">データがありません</p>
+                      <p className="text-muted-foreground">この期間のデータがありません</p>
                     </div>
                   ) : (
                     <div className="h-[300px]">
@@ -312,12 +414,15 @@ const StoreAnalytics = () => {
                             fill="#8884d8"
                             dataKey="value"
                             nameKey="name"
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            activeIndex={activeIndex}
+                            activeShape={renderActiveShape}
+                            onMouseEnter={onPieEnter}
                           >
                             {ageData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
+                          <Tooltip content={<CustomTooltip />} />
                           <Legend />
                         </RePieChart>
                       </ResponsiveContainer>
@@ -337,9 +442,14 @@ const StoreAnalytics = () => {
                   <BarChart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  {monthlyCustomerData.length === 0 ? (
+                  {apiErrors.monthlyData ? (
+                    <NoDataDisplay 
+                      message="データの取得中にエラーが発生しました。後ほど再度お試しください。" 
+                      onRetry={fetchAnalyticsData} 
+                    />
+                  ) : monthlyCustomerData.length === 0 ? (
                     <div className="h-[300px] flex items-center justify-center">
-                      <p className="text-muted-foreground">データがありません</p>
+                      <p className="text-muted-foreground">この期間のデータがありません</p>
                     </div>
                   ) : (
                     <div className="h-[300px]">
@@ -376,9 +486,14 @@ const StoreAnalytics = () => {
                 <LineChart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {popularTimesData.length === 0 ? (
+                {apiErrors.popularTimes ? (
+                  <NoDataDisplay 
+                    message="データの取得中にエラーが発生しました。後ほど再度お試しください。" 
+                    onRetry={fetchAnalyticsData} 
+                  />
+                ) : popularTimesData.length === 0 ? (
                   <div className="h-[300px] flex items-center justify-center">
-                    <p className="text-muted-foreground">データがありません</p>
+                    <p className="text-muted-foreground">この期間のデータがありません</p>
                   </div>
                 ) : (
                   <div className="h-[300px]">
@@ -415,9 +530,14 @@ const StoreAnalytics = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {therapistPerformanceData.length === 0 ? (
+                {apiErrors.therapistPerf ? (
+                  <NoDataDisplay 
+                    message="データの取得中にエラーが発生しました。後ほど再度お試しください。" 
+                    onRetry={fetchAnalyticsData} 
+                  />
+                ) : therapistPerformanceData.length === 0 ? (
                   <div className="h-[200px] flex items-center justify-center">
-                    <p className="text-muted-foreground">データがありません</p>
+                    <p className="text-muted-foreground">この期間のデータがありません</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">

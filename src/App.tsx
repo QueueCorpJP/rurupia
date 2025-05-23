@@ -18,6 +18,8 @@ import Privacy from './pages/Privacy';
 import About from './pages/About';
 import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
+import BlogCategory from './pages/BlogCategory';
+import BlogTag from './pages/BlogTag';
 import UserProfile from './pages/UserProfile';
 import UserBookings from './pages/UserBookings';
 import FollowedTherapists from './pages/FollowedTherapists';
@@ -92,6 +94,8 @@ function App() {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/about" element={<About />} />
             <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/category/:category" element={<BlogCategory />} />
+            <Route path="/blog/tag/:tag" element={<BlogTag />} />
             <Route path="/blog/:slug" element={<BlogDetail />} />
             <Route path="/user-profile" element={<UserProfile />} />
             <Route path="/user-bookings" element={<UserBookings />} />

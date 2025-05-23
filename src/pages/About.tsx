@@ -23,7 +23,7 @@ const About = () => {
             <div className="h-1 w-20 bg-primary mx-auto"></div>
             
             <p className="text-muted-foreground text-center mt-6 mb-12">
-              のくとるは、質の高い男性セラピストによるリラクゼーションサービスを
+              るるぴあは、質の高い男性セラピストによるリラクゼーションサービスを
               <br className="hidden md:inline" />
               安心して利用できるマッチングプラットフォームです
             </p>
@@ -109,7 +109,7 @@ const About = () => {
                   <p className="text-center mb-6 font-medium text-lg text-primary">「心と体の健康をサポートする、信頼できるリラクゼーションサービスを全ての人に」</p>
                   
                   <p className="mb-4">
-                    のくとるは、お客様と専門的なセラピストを結ぶプラットフォームとして、高品質なリラクゼーションサービスへのアクセスを提供します。
+                    るるぴあは、お客様と専門的なセラピストを結ぶプラットフォームとして、高品質なリラクゼーションサービスへのアクセスを提供します。
                   </p>
                   
                   <p className="mb-4">

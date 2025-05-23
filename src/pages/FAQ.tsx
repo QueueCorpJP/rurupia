@@ -10,9 +10,9 @@ const FAQ = () => {
         
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="item-1">
-            <AccordionTrigger>のくとるはどのようなサービスですか？</AccordionTrigger>
+            <AccordionTrigger>るるぴあはどのようなサービスですか？</AccordionTrigger>
             <AccordionContent>
-              のくとるは、男性セラピストによるリラクゼーションサービスのマッチングプラットフォームです。信頼できるセラピストと簡単に予約ができ、心と体のリラクゼーションをサポートします。
+              るるぴあは、男性セラピストによるリラクゼーションサービスのマッチングプラットフォームです。信頼できるセラピストと簡単に予約ができ、心と体のリラクゼーションをサポートします。
             </AccordionContent>
           </AccordionItem>
           

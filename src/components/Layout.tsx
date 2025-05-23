@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, Phone, MapPin, LogOut, Store, Settings, FileText, Bell, ChevronDown, Loader2 } from 'lucide-react';
+import { MessageSquare, User, BookOpen, Search, Heart, Calendar, Instagram, Facebook, Twitter, Mail, MapPin, LogOut, Store, Settings, FileText, Bell, ChevronDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseAdmin } from '@/integrations/supabase/admin-client';
@@ -95,10 +95,8 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
       <header className="sticky top-0 w-full bg-white border-b z-40">
         <div className="container flex h-16 items-center">
           <Link to="/" className="flex items-center gap-2">
-            <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
-              <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
-            </div>
-            <span className="font-semibold text-lg text-foreground">のくとる</span>
+            <img src="/logo/rurupia_logo.png" alt="るるぴあ" className="h-14 w-auto" />
+          
           </Link>
           
           <nav className="hidden md:flex ml-auto items-center gap-1 md:gap-6">
@@ -323,7 +321,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h2 className="text-lg font-bold mb-4">SerenitySage</h2>
+              <h2 className="text-lg font-bold mb-4">るるぴあ</h2>
               <p className="text-muted-foreground mb-4">
                 リラクゼーションと癒やしの空間を提供し、あなたの心と体のバランスを整えるお手伝いをします。
               </p>
@@ -399,15 +397,11 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
               <address className="not-italic">
                 <div className="flex items-center text-muted-foreground mb-2">
                   <MapPin size={16} className="mr-2" aria-hidden="true" />
-                  <span>東京都渋谷区〇〇町1-2-3</span>
-                </div>
-                <div className="flex items-center text-muted-foreground mb-2">
-                  <Phone size={16} className="mr-2" aria-hidden="true" />
-                  <a href="tel:03-1234-5678" className="hover:text-foreground transition-colors">03-1234-5678</a>
+                  <span>東京都墨田区江東橋4丁目27番14号 楽天地ビル3F</span>
                 </div>
                 <div className="flex items-center text-muted-foreground">
                   <Mail size={16} className="mr-2" aria-hidden="true" />
-                  <a href="mailto:info@example.com" className="hover:text-foreground transition-colors">info@example.com</a>
+                  <a href="mailto:info@noctle.com" className="hover:text-foreground transition-colors">info@noctle.com</a>
                 </div>
               </address>
             </div>
@@ -415,7 +409,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
           
           <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-              &copy; {new Date().getFullYear()} SerenitySage. All rights reserved.
+              &copy; {new Date().getFullYear()} るるぴあ. All rights reserved.
             </p>
             
             <div className="flex space-x-4">

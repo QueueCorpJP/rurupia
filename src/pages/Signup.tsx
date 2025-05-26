@@ -141,7 +141,7 @@ const Signup = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/verify-identity`,
+          redirectTo: 'https://rupipia.jp/auth/callback',
         },
       });
 
@@ -161,9 +161,9 @@ const Signup = () => {
       setIsLoading(true);
       
       // Use environment variable for the LINE client ID
-      const LINE_CLIENT_ID = process.env.REACT_APP_LINE_CLIENT_ID || "2007106410";
+      const LINE_CLIENT_ID = process.env.VITE_LINE_CLIENT_ID || "2007106410";
       // Use a fixed redirect URI that matches your LINE developer console configuration
-      const REDIRECT_URI = "http://localhost:8080/line-callback";
+      const REDIRECT_URI = process.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
       
       // Store the intent in sessionStorage for the callback handling
       sessionStorage.setItem("line_auth_intent", "signup");

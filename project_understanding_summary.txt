@@ -238,3 +238,51 @@ The project is quite extensive with many features and user roles, indicating a c
   - Changed the chart from showing daily data to showing aggregated day-of-week data
   - Created a complete day-of-week representation with all days initialized
   - Added proper sorting of days (Monday through Sunday) 
+
+### Google OAuth Configuration
+- Configured Google OAuth to use the redirect URI: https://rupipia.jp/auth/callback. 
+
+The project is a web application, likely a platform for therapists and clients to connect. It uses Supabase for its backend, including authentication and database storage. The frontend is built with React and TypeScript.
+
+Key features implemented or in progress:
+- User roles: admin, therapist, client, store.
+- Authentication: Email/password, Google OAuth (configured with specific redirect URI: https://rupipia.jp/auth/callback), LINE login (manual OAuth flow via client-side and planned Edge Function for Supabase integration).
+- Profile management.
+- Content management (blog with TinyMCE).
+- Page view analytics (admin only).
+
+Recent changes:
+- Configured Google OAuth redirect URI.
+- Initiated LINE login setup:
+    - Client ID and Redirect URI environment variables configured for login/signup pages.
+    - LineCallback.tsx updated to use environment variables and to call a Supabase Edge Function ('line-auth-handler') for processing the LINE callback and integrating with Supabase user management.
+    - Database migration for 'line_id' in 'profiles' table identified.
+    - Conceptual Supabase Edge Function 'line-auth-handler' outlined for LINE ID token verification, Supabase user creation/linking, and session management (session token generation part is complex and needs further refinement).
+
+This summary reflects the current understanding of the project based on the interactions and file analysis.
+
+### AWS Deployment (Frontend Only) - As of 2024-10-22
+- **Strategy**: Static frontend hosting on AWS, Supabase remains the backend.
+- **Services Used**:
+    - **AWS S3**: Stores the static built assets of the React application (output of `npm run build`).
+        - Bucket Name: `therapist-connectivity-frontend-93b9faa0` (in `ap-northeast-1` - Tokyo).
+        - Bucket is private.
+    - **AWS CloudFront**: CDN to serve the S3 content, provide HTTPS, and improve performance.
+        - Distribution ID: `E2P3Q41GY0N3CJ`
+        - Domain Name: `dqv3ckdbgwb1i.cloudfront.net`
+        - Configured with Origin Access Control (OAC ID: `E3CJMWQPFVBULW`) to securely access the private S3 bucket.
+    - **AWS Certificate Manager**: SSL certificate for custom domain (rupipia.jp)
+        - Certificate ARN: `arn:aws:acm:us-east-1:536697269239:certificate/a7a75270-922d-4506-921e-d37143a91ff1`
+        - DNS Validation Record: `_9a689ffbd47df0f833e3dcb0d742c029.rupipia.jp` → `_ca8dbb7f5b87f13819f0f5bcd230052e.xlfgrmvvlj.acm-validations.aws`
+    - **AWS CLI**: Used for creating and configuring S3, OAC, and CloudFront.
+- **Deployment Steps Performed**:
+    1.  Built the React application (`npm run build`).
+    2.  Created an S3 bucket in `ap-northeast-1`.
+    3.  Configured S3 bucket's public access block settings to allow a CloudFront-specific policy.
+    4.  Uploaded built assets from `dist/` to the S3 bucket.
+    5.  Created a CloudFront Origin Access Control (OAC).
+    6.  Created a CloudFront distribution pointing to the S3 bucket origin, using the OAC.
+    7.  Updated the S3 bucket policy to grant `s3:GetObject` permission only to the CloudFront distribution via the OAC and AWS Source ARN.
+- **Frontend URL**: `http://dqv3ckdbgwb1i.cloudfront.net` (redirects to HTTPS).
+- **Backend**: Continues to be the existing Supabase project. Frontend makes API calls to Supabase.
+- **Region**: All AWS resources deployed in `ap-northeast-1` (Tokyo). 

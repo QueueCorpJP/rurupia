@@ -97,7 +97,7 @@ const Login = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/google-auth-callback`,
+          redirectTo: 'https://rupipia.jp/auth/callback',
         },
       });
 
@@ -120,8 +120,8 @@ const Login = () => {
     try {
       setIsLoading(true);
       
-      const LINE_CLIENT_ID = process.env.REACT_APP_LINE_CLIENT_ID || "2007106410";
-      const REDIRECT_URI = "https://therapist-connectivity.vercel.app/callback";
+      const LINE_CLIENT_ID = process.env.VITE_LINE_CLIENT_ID || "2007106410";
+      const REDIRECT_URI = process.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
       
       sessionStorage.setItem("line_auth_intent", "login");
       

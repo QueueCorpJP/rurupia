@@ -31,7 +31,7 @@ This project is automatically deployed to AWS using GitHub Actions:
 
 - **S3 Bucket:** `therapist-connectivity-frontend-93b9faa0` (Tokyo region)
 - **CloudFront Distribution:** `dqv3ckdbgwb1i.cloudfront.net`
-- **Custom Domain:** `rurupia.jp` (pending DNS configuration)
+- **Custom Domain:** `rupipia.jp` (pending DNS configuration)
 
 ### CI/CD Setup
 
@@ -65,14 +65,14 @@ npm run preview
 
 ## DNS Configuration
 
-To set up the custom domain (rurupia.jp), you need to:
+To set up the custom domain (rupipia.jp), you need to:
 
 1. Add the following DNS validation record for the SSL certificate:
-   - CNAME: `_3f57c5b25a3bf8bdee4378634d7025df.rurupia.jp`
-   - Value: `_4883f03dca08670b110ed34d855bf404.xlfgrmvvlj.acm-validations.aws`
+   - CNAME: `_9a689ffbd47df0f833e3dcb0d742c029.rupipia.jp`
+   - Value: `_ca8dbb7f5b87f13819f0f5bcd230052e.xlfgrmvvlj.acm-validations.aws`
 
 2. After the certificate is validated, add a CNAME record:
-   - CNAME: `rurupia.jp`
+   - CNAME: `rupipia.jp`
    - Value: `dqv3ckdbgwb1i.cloudfront.net`
 
 ## Live Demo

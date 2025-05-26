@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import Layout from "../components/Layout";
+import { supabase } from "@/integrations/supabase/client";
 
 const LineCallback = () => {
   const navigate = useNavigate();
@@ -31,11 +32,11 @@ const LineCallback = () => {
         }
 
         // Ensure this URI exactly matches what is registered in your LINE console
-        const REDIRECT_URI = "https://therapist-connectivity.vercel.app/callback";
+        const REDIRECT_URI = process.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
 
-        // It’s recommended to store sensitive keys in environment variables
-        const LINE_CLIENT_ID = process.env.REACT_APP_LINE_CLIENT_ID;
-        const LINE_CLIENT_SECRET = process.env.REACT_APP_LINE_CLIENT_SECRET;
+        // It's recommended to store sensitive keys in environment variables
+        const LINE_CLIENT_ID = process.env.VITE_LINE_CLIENT_ID;
+        const LINE_CLIENT_SECRET = process.env.VITE_LINE_CLIENT_SECRET;
 
         // Exchange the authorization code for an access token with LINE's API
         const tokenResponse = await fetch("https://api.line.me/oauth2/v2.1/token", {
@@ -62,18 +63,58 @@ const LineCallback = () => {
         const tokenData = await tokenResponse.json();
         console.log("Token data received:", tokenData);
 
-        // Determine if the user is signing up or logging in
-        const intent = sessionStorage.getItem("line_auth_intent") || "login";
-        sessionStorage.removeItem("line_auth_intent");
+        const { id_token, access_token } = tokenData;
 
-        if (intent === "signup" || state === "signup") {
-          // Here you would typically create a new user record in your database
-          toast.success("LINEアカウントで登録しました");
-          navigate("/verify-identity");
+        if (!id_token) {
+          setError("LINE IDトークンが見つかりません。");
+          setIsProcessing(false);
+          return;
+        }
+
+        // Call Supabase Edge Function
+        // Ensure 'line-auth-handler' is the correct name of your deployed Edge Function
+        const { data: functionInvokeData, error: functionError } = await supabase.functions.invoke(
+          'line-auth-handler', 
+          { body: { id_token, access_token } } 
+        );
+
+        if (functionError) {
+          console.error("Edge function error:", functionError);
+          setError(`認証処理エラー: ${functionError.message}`);
+          setIsProcessing(false);
+          return;
+        }
+        
+        // IMPORTANT: Edge function NO LONGER returns Supabase session tokens in this simplified model
+        if (functionInvokeData && functionInvokeData.profile) {
+          // Store the fetched profile data or a "logged in via LINE" flag
+          // in your client-side state management (React Context, Zustand, etc.)
+          // For example, you might dispatch an action or call a context function:
+          // authContext.setLineUser(functionInvokeData.profile);
+          // authContext.setAuthMethod('line');
+          // This part depends on your app's state management approach.
+
+          // Persist user type if your application relies on it for UI/routing
+          if (functionInvokeData.user_type) {
+            localStorage.setItem('nokutoru_user_type', functionInvokeData.user_type);
+          }
+          
+          toast.success("LINEアカウントで正常に処理されました。");
+          
+          const intent = sessionStorage.getItem("line_auth_intent") || "login";
+          sessionStorage.removeItem("line_auth_intent");
+
+          // Navigate based on whether it was a login or a new user signup via LINE
+          if (intent === "signup" && functionInvokeData.is_new_user) {
+            navigate("/user-profile"); // Or a welcome/profile completion page
+          } else {
+            navigate("/user-profile"); // Default navigation for login
+          }
         } else {
-          // Here you would log the user in (e.g., store the token and update state)
-          toast.success("LINEアカウントでログインしました");
-          navigate("/user-profile");
+          console.error("LINE Auth: Edge function did not return expected profile data:", functionInvokeData);
+          setError("LINE認証からのユーザーデータの取得に失敗しました。データ構造を確認してください。");
+          setIsProcessing(false);
+          return;
         }
       } catch (err) {
         console.error("LINE callback error:", err);

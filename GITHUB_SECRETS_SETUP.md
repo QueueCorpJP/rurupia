@@ -77,4 +77,4 @@ After setting up the secrets and pushing to the main branch:
 2. You should see the workflow running
 3. Once completed successfully, verify the deployment at:
    - CloudFront URL: `https://dqv3ckdbgwb1i.cloudfront.net`
-   - Custom domain (after DNS setup): `https://rurupia.jp` 
+   - Custom domain (after DNS setup): `https://rupipia.jp` 

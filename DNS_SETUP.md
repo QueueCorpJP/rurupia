@@ -1,4 +1,4 @@
-# DNS Configuration for rurupia.jp
+# DNS Configuration for rupipia.jp
 
 This guide explains how to set up DNS records for the Rurupia website.
 
@@ -10,8 +10,8 @@ First, you need to validate ownership of your domain for the SSL certificate:
 
 ```
 Type: CNAME
-Name: _3f57c5b25a3bf8bdee4378634d7025df.rurupia.jp
-Value: _4883f03dca08670b110ed34d855bf404.xlfgrmvvlj.acm-validations.aws
+Name: _9a689ffbd47df0f833e3dcb0d742c029.rupipia.jp
+Value: _ca8dbb7f5b87f13819f0f5bcd230052e.xlfgrmvvlj.acm-validations.aws
 TTL: 300 (or Auto)
 ```
 
@@ -23,7 +23,7 @@ After the certificate is validated, add the following record to point your domai
 
 ```
 Type: CNAME
-Name: rurupia.jp (or @ if your DNS provider supports it)
+Name: rupipia.jp (or @ if your DNS provider supports it)
 Value: dqv3ckdbgwb1i.cloudfront.net
 TTL: 300 (or Auto)
 ```
@@ -34,7 +34,7 @@ If you're using Amazon Route 53 for DNS, you can use an Alias record instead of 
 
 ```
 Type: A
-Name: rurupia.jp (or @)
+Name: rupipia.jp (or @)
 Value: Alias to CloudFront distribution (dqv3ckdbgwb1i.cloudfront.net)
 ```
 
@@ -44,10 +44,10 @@ You can verify your DNS configuration with the following commands:
 
 ```bash
 # Check certificate validation record
-dig _3f57c5b25a3bf8bdee4378634d7025df.rurupia.jp CNAME
+dig _9a689ffbd47df0f833e3dcb0d742c029.rupipia.jp CNAME
 
 # Check domain to CloudFront record
-dig rurupia.jp
+dig rupipia.jp
 ```
 
 ## After DNS Setup
@@ -61,4 +61,4 @@ Once DNS is properly configured and the certificate is validated:
 5. Select "YES" for the "Confirm certificate is validated" prompt
 6. Click "Run workflow" to update CloudFront with your custom domain
 
-After a few minutes, your site should be accessible at https://rurupia.jp 
+After a few minutes, your site should be accessible at https://rupipia.jp 

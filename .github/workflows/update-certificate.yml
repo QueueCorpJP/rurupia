@@ -16,7 +16,7 @@ jobs:
     env:
       AWS_REGION: us-east-1
       CLOUDFRONT_DISTRIBUTION_ID: E2P3Q41GY0N3CJ
-      CERTIFICATE_ARN: arn:aws:acm:us-east-1:536697269239:certificate/b6808ea9-96f2-4a06-8e31-b22f0254eb21
+      CERTIFICATE_ARN: arn:aws:acm:us-east-1:536697269239:certificate/a7a75270-922d-4506-921e-d37143a91ff1
     
     steps:
       - name: Configure AWS Credentials
@@ -50,7 +50,7 @@ jobs:
         if: steps.check_cert.outputs.certificate_valid == 'true'
         run: |
           # Update Aliases
-          jq '.Aliases.Quantity = 1 | .Aliases.Items = ["rurupia.jp"]' distribution_config_only.json > temp.json && mv temp.json distribution_config_only.json
+          jq '.Aliases.Quantity = 1 | .Aliases.Items = ["rupipia.jp"]' distribution_config_only.json > temp.json && mv temp.json distribution_config_only.json
           
           # Update ViewerCertificate
           jq '.ViewerCertificate = {

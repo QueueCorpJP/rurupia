@@ -1,6 +1,79 @@
-# Therapist Connectivity Project
+# Rurupia - Therapist Connectivity Platform
 
-A web application for connecting therapists and managing therapy-related services.
+A web application that connects clients with therapists, manages therapy-related services, and provides a platform for therapist-client interaction.
+
+## Features
+
+- Multiple user roles: Client, Therapist, Store Admin, System Admin
+- Therapist browsing and filtering
+- Appointment booking and management
+- Messaging system between clients and therapists
+- Authentication with email/password, LINE, and Google
+- Blog system with Rich Text Editor
+- Analytics for store and system admins
+- Responsive design for mobile and desktop
+
+## Tech Stack
+
+- **Frontend:** React, TypeScript, Vite, TailwindCSS, Shadcn UI
+- **Backend:** Supabase (Auth, Database, Storage)
+- **Infrastructure:** AWS (S3, CloudFront)
+
+## Deployment
+
+This project is automatically deployed to AWS using GitHub Actions:
+
+1. The React application is built using Vite
+2. Built assets are uploaded to AWS S3
+3. CloudFront distribution is invalidated to serve the latest content
+
+### AWS Resources
+
+- **S3 Bucket:** `therapist-connectivity-frontend-93b9faa0` (Tokyo region)
+- **CloudFront Distribution:** `dqv3ckdbgwb1i.cloudfront.net`
+- **Custom Domain:** `rurupia.jp` (pending DNS configuration)
+
+### CI/CD Setup
+
+The repository includes GitHub Actions workflows that automatically:
+- Build the application
+- Deploy to AWS S3
+- Invalidate the CloudFront cache
+
+To use this CI/CD pipeline, you must set up the following GitHub repository secrets:
+- `AWS_ACCESS_KEY_ID`: AWS access key with permissions for S3 and CloudFront
+- `AWS_SECRET_ACCESS_KEY`: Corresponding AWS secret key
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+- `VITE_TINYMCE_API_KEY`: Your TinyMCE API key
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## DNS Configuration
+
+To set up the custom domain (rurupia.jp), you need to:
+
+1. Add the following DNS validation record for the SSL certificate:
+   - CNAME: `_3f57c5b25a3bf8bdee4378634d7025df.rurupia.jp`
+   - Value: `_4883f03dca08670b110ed34d855bf404.xlfgrmvvlj.acm-validations.aws`
+
+2. After the certificate is validated, add a CNAME record:
+   - CNAME: `rurupia.jp`
+   - Value: `dqv3ckdbgwb1i.cloudfront.net`
 
 ## Live Demo
 The application is deployed and accessible at: [https://therapist-connectivity.vercel.app/](https://therapist-connectivity.vercel.app/)
@@ -83,56 +156,6 @@ All store routes are prefixed with `/store-admin`
 - `GET /api/store/courses` - Get courses
 - `POST /api/store/courses` - Create course
 - `PUT /api/store/courses/:id` - Update course
-
-## Tech Stack
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- React Query
-- React Router DOM
-- Vercel (Deployment)
-
-## Getting Started
-
-1. Clone the repository
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env.local
-```
-
-4. Run the development server:
-```bash
-npm run dev
-```
-
-5. Open [http://localhost:8080](http://localhost:8080) in your browser
-
-## Environment Variables
-
-Required environment variables:
-- `NEXT_PUBLIC_API_URL` - API base URL
-- `DATABASE_URL` - Database connection string
-- `NEXTAUTH_SECRET` - Authentication secret
-- `NEXTAUTH_URL` - Authentication URL
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 # Memory and Lesson Management System
 

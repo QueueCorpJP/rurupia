@@ -42,3 +42,30 @@ coverage/
 # Vercel
 .vercel
 .next
+
+# AWS deployment files
+bucket_policy.json
+bucket_policy_for_cloudfront.json
+cloudfront_*.json
+current_distribution_config.json
+fixed_distribution_config*.json
+updated_distribution_config.json
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+env-production-temp.txt
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

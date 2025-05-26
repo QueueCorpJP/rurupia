@@ -1,0 +1,67 @@
+name: Update CloudFront Certificate
+
+on:
+  workflow_dispatch:
+    inputs:
+      certificate_status:
+        description: 'Confirm certificate is validated (YES/NO)'
+        required: true
+        default: 'NO'
+
+jobs:
+  update_cloudfront:
+    if: ${{ github.event.inputs.certificate_status == 'YES' }}
+    runs-on: ubuntu-latest
+    
+    env:
+      AWS_REGION: us-east-1
+      CLOUDFRONT_DISTRIBUTION_ID: E2P3Q41GY0N3CJ
+      CERTIFICATE_ARN: arn:aws:acm:us-east-1:536697269239:certificate/b6808ea9-96f2-4a06-8e31-b22f0254eb21
+    
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Check Certificate Status
+        id: check_cert
+        run: |
+          CERT_STATUS=$(aws acm describe-certificate --certificate-arn ${{ env.CERTIFICATE_ARN }} --query 'Certificate.Status' --output text)
+          echo "Certificate status: $CERT_STATUS"
+          if [ "$CERT_STATUS" != "ISSUED" ]; then
+            echo "Certificate is not yet validated. Current status: $CERT_STATUS"
+            exit 1
+          fi
+          echo "certificate_valid=true" >> $GITHUB_OUTPUT
+      
+      - name: Get Current Distribution Config
+        id: get_config
+        if: steps.check_cert.outputs.certificate_valid == 'true'
+        run: |
+          aws cloudfront get-distribution-config --id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} > distribution_config.json
+          ETAG=$(cat distribution_config.json | jq -r '.ETag')
+          echo "etag=$ETAG" >> $GITHUB_OUTPUT
+          cat distribution_config.json | jq '.DistributionConfig' > distribution_config_only.json
+      
+      - name: Update Distribution Config
+        if: steps.check_cert.outputs.certificate_valid == 'true'
+        run: |
+          # Update Aliases
+          jq '.Aliases.Quantity = 1 | .Aliases.Items = ["rurupia.jp"]' distribution_config_only.json > temp.json && mv temp.json distribution_config_only.json
+          
+          # Update ViewerCertificate
+          jq '.ViewerCertificate = {
+            "ACMCertificateArn": "${{ env.CERTIFICATE_ARN }}",
+            "SSLSupportMethod": "sni-only",
+            "MinimumProtocolVersion": "TLSv1.2_2021",
+            "CertificateSource": "acm"
+          }' distribution_config_only.json > temp.json && mv temp.json distribution_config_only.json
+      
+      - name: Apply Updated Config
+        if: steps.check_cert.outputs.certificate_valid == 'true'
+        run: |
+          aws cloudfront update-distribution --id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} --distribution-config file://distribution_config_only.json --if-match ${{ steps.get_config.outputs.etag }}
+          echo "CloudFront distribution updated with custom domain and SSL certificate" 

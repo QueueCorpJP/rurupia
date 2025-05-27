@@ -122,6 +122,9 @@
 * Improved the mobile layout with consistent container styling
 
 **Recent Updates:**
+- Updated GitHub Actions workflows to use OpenID Connect (OIDC) authentication with AWS instead of access keys
+- Added proper permissions configuration for GitHub Actions workflows to support OIDC token-based authentication
+- Changed the AWS credential configuration to use role-to-assume instead of direct access keys for better security
 - Fixed 400 Bad Request errors in analytics by updating PostgreSQL RPC functions with consistent parameter naming (input_store_id)
 - Fixed TypeScript errors in StoreAnalytics.tsx by adding proper module declarations for Supabase RPC functions
 - Improved error handling in analytics data fetching with better error logging and type safety checks

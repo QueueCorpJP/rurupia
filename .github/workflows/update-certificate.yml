@@ -13,6 +13,11 @@ jobs:
     if: ${{ github.event.inputs.certificate_status == 'YES' }}
     runs-on: ubuntu-latest
     
+    # Add permissions for GitHub OIDC
+    permissions:
+      id-token: write
+      contents: read
+    
     env:
       AWS_REGION: us-east-1
       CLOUDFRONT_DISTRIBUTION_ID: E2P3Q41GY0N3CJ
@@ -22,8 +27,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Check Certificate Status

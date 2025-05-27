@@ -1,11 +1,14 @@
 # Setting up GitHub Secrets for CI/CD
 
-To enable automatic deployment to AWS, you need to configure OpenID Connect (OIDC) authentication for GitHub Actions:
+To enable automatic deployment to AWS, you need to configure the following secrets in your GitHub repository:
 
 ## Required Secrets
 
-1. **AWS OIDC Role**
-   - `AWS_ROLE_TO_ASSUME`: The ARN of the AWS IAM role for GitHub Actions to assume (e.g., `arn:aws:iam::536697269239:role/github-actions-rurupia`)
+1. **AWS Credentials**
+   - `AWS_ACCESS_KEY_ID`: Your AWS access key
+   - `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
+
+   These credentials should have permissions for S3 and CloudFront operations.
 
 2. **Environment Variables**
    - `VITE_SUPABASE_URL`: `https://vvwkuqnotnilsbcswfqu.supabase.co`
@@ -21,37 +24,13 @@ To enable automatic deployment to AWS, you need to configure OpenID Connect (OID
 5. Add each secret with its corresponding name and value
 6. Click "Add secret" to save
 
-## Setting up AWS IAM Role for GitHub Actions OIDC
+## Creating AWS IAM User with Required Permissions
 
-For enhanced security, create a dedicated IAM role for GitHub Actions using OIDC:
+For security best practices, create a dedicated IAM user for GitHub Actions:
 
 1. Go to AWS IAM Console
-2. Create a new IAM role with the following trust policy:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::536697269239:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:QueueCorpJP/rurupia:*"
-        }
-      }
-    }
-  ]
-}
-```
-
-3. Attach the following inline policy to the role:
+2. Create a new user with programmatic access
+3. Attach the following inline policy:
 
 ```json
 {
@@ -102,18 +81,8 @@ For enhanced security, create a dedicated IAM role for GitHub Actions using OIDC
 }
 ```
 
-4. Add the role ARN as the `AWS_ROLE_TO_ASSUME` secret in GitHub
-
-## Setting up OIDC Provider in AWS
-
-If you haven't already configured GitHub as an OIDC provider in AWS:
-
-1. Go to AWS IAM Console → Identity Providers
-2. Click "Add Provider"
-3. Select "OpenID Connect"
-4. For Provider URL, enter: `https://token.actions.githubusercontent.com`
-5. For Audience, enter: `sts.amazonaws.com`
-6. Click "Add provider"
+4. Get the access key and secret key for this user
+5. Add these credentials to the GitHub repository secrets
 
 ## Verifying Deployment
 

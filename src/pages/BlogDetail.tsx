@@ -207,11 +207,11 @@ const BlogDetail = () => {
       "image": post.coverImage,
       "author": {
         "@type": "Person",
-        "name": post.author_name || "るるぴあ"
+        "name": post.author_name || "るぴぴあ"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "るるぴあ",
+        "name": "るぴぴあ",
         "logo": {
           "@type": "ImageObject",
           "url": `${window.location.origin}/logo.png`

@@ -41,7 +41,7 @@ export const TherapistLayout = ({ children }: TherapistLayoutProps) => {
             <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
               <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
             </div>
-            <span className="font-semibold text-lg">るるぴあセラピストページ</span>
+            <span className="font-semibold text-lg">るぴぴあセラピストページ</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link to="/">

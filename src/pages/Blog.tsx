@@ -137,12 +137,12 @@ const Blog = () => {
   const blogListingSchema = {
     "@context": "https://schema.org",
     "@type": "Blog",
-    "headline": "るるぴあブログ",
+    "headline": "るぴぴあブログ",
     "description": "健康的な体と心を保つためのヒントやマッサージ技術、リラクゼーションに関する最新の情報をお届けします。",
     "url": window.location.href,
     "author": {
       "@type": "Organization",
-      "name": "るるぴあ"
+      "name": "るぴぴあ"
     },
     "blogPost": blogPosts.map(post => ({
       "@type": "BlogPosting",
@@ -150,7 +150,7 @@ const Blog = () => {
       "description": post.excerpt,
       "author": {
         "@type": "Person",
-        "name": post.author_name || "るるぴあ"
+        "name": post.author_name || "るぴぴあ"
       },
       "datePublished": post.publishedAt,
       "image": post.coverImage,
@@ -169,7 +169,7 @@ const Blog = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl mb-2">
-              るるぴあブログ
+              るぴぴあブログ
             </h1>
             <p className="text-muted-foreground">
               ブログ記事を読み込み中...
@@ -191,7 +191,7 @@ const Blog = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl mb-2">
-            るるぴあブログ
+            るぴぴあブログ
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             健康的な体と心を保つためのヒントやマッサージ技術、リラクゼーションに関する最新の情報をお届けします。

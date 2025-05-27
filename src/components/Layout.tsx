@@ -95,7 +95,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
       <header className="sticky top-0 w-full bg-white border-b z-40">
         <div className="container flex h-16 items-center">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo/rurupia_logo.png" alt="るるぴあ" className="h-14 w-auto" />
+            <img src="/logo/rurupia_logo.png" alt="るぴぴあ" className="h-14 w-auto" />
           
           </Link>
           
@@ -321,7 +321,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h2 className="text-lg font-bold mb-4">るるぴあ</h2>
+              <h2 className="text-lg font-bold mb-4">るぴぴあ</h2>
               <p className="text-muted-foreground mb-4">
                 リラクゼーションと癒やしの空間を提供し、あなたの心と体のバランスを整えるお手伝いをします。
               </p>
@@ -409,7 +409,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
           
           <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-              &copy; {new Date().getFullYear()} るるぴあ. All rights reserved.
+              &copy; {new Date().getFullYear()} るぴぴあ. All rights reserved.
             </p>
             
             <div className="flex space-x-4">

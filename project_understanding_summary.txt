@@ -289,3 +289,155 @@ This summary reflects the current understanding of the project based on the inte
 - **Frontend URL**: `http://dqv3ckdbgwb1i.cloudfront.net` (redirects to HTTPS).
 - **Backend**: Continues to be the existing Supabase project. Frontend makes API calls to Supabase.
 - **Region**: All AWS resources deployed in `ap-northeast-1` (Tokyo). 
+
+### UI/UX Branding Changes - As of 2024-10-24
+- **Homepage Branding**: Updated from a general relaxation service to a female-oriented male therapist platform
+  - **Header Text**: Changed to "もう、なんとなくで選ばない。"Re：また会いたくなる出会い"が、ここにある。"
+  - **Subheader**: Updated to "あなたにぴったりのセラピストと繋がれる新しい女風マッチングプラットフォーム、るぴぴあ。"
+  - **Feature Badges**: Changed to "届出済店舗で安心", "空き状況がすぐわかる", "メッセージで相談可能"
+  - **Main Concept**: Updated from "リラクゼーションの新しいカタチ" to "癒し、もっと自由に。"
+  - **Section Description**: Changed to "るぴぴあは、相性でつながる新しい出会いを届けます。"
+  - **Feature Set**: Revised to "まるっと完結 (ー 検索から予約まで、ぜんぶここで)", "ぜんぶ横断 (ー 店舗をまたいで、好きな"ぴ"を選べる)", "ぴったり重視 (ー 相性で選ぶから、癒しがハマる)"
+  - **Call to Action**: Changed to ""この人かも"が、きっと見つかる。さあ、ぴったりの癒しを探しにいこう。"
+
+- **Filter System Enhancement**: Added detailed therapist filtering options
+  - **MBTI Types**: Updated with Japanese descriptors (INTJ - 建築家, INTP - 論理学者, etc.)
+  - **Age Ranges**: Added 20～24歳, 25～29歳, 30～34歳, 35～40歳, 40歳～
+  - **Height Ranges**: Added 150～159cm, 160～169cm, 170～179cm, 180～189cm, 190cm～
+  - **Service Style**: Added filters for ランキング入り, 高リピート, テクニシャン, マッサージ上手, トーク力, お酒OK, カラオケOK, カップルコースOK, お泊まりOK, 非粘膜接触OK, 英語対応可, ノンスモーカー
+  - **Facial Features**: Added filters for 男らしい系, 可愛い系, 爽やか系, 中性的, エキゾチック系, 韓流系
+  - **Body Type**: Added filters for 筋肉質, 細見, 標準体型, 脱毛済, タトゥー有り, ヒゲ有り
+  - **Personality Traits**: Added filters for 明るい, 穏やか, しっかり者, ユーモアがある, 社交的, ピュア, 人懐っこい, ツンデレ, オタク, 天然, 知的, 上品 
+
+### Database Schema Updates - As of 2024-10-24
+- **Therapist Table Enhancements**: Added new fields to support enhanced filtering options
+  - **Modified existing fields**:
+    - Changed `height` from integer to text type to support range format ('150-159', '160-169', etc.)
+  - **Added new fields**:
+    - `service_style` (text[]): Array of service style options like 'ranking', 'repeat', 'technician', etc.
+    - `facial_features` (text): Single facial feature type like 'masculine', 'cute', 'fresh', etc.
+    - `body_type` (text[]): Array of body type attributes like 'muscular', 'slim', 'average', etc.
+    - `personality_traits` (text[]): Array of personality traits like 'bright', 'calm', 'reliable', etc.
+  - **Data validation**:
+    - Created enum types and triggers to validate field values
+    - Added database constraints to ensure data integrity
+    - Created indexes on new fields to improve search performance
+
+- **Therapist Profile Form System**:
+  - **New table `therapist_profile_forms`**: Stores therapist profile data during the editing process
+    - Includes all therapist profile fields plus form state tracking
+    - Connected to the main therapists table with a trigger to update data when form is completed
+  - **Row Level Security**:
+    - Ensured therapists can only view and edit their own profile forms
+    - Administrators have access to all profile forms for management purposes
+
+- **Search and API Functions**:
+  - **Enhanced `search_therapists` function**: Added support for all new filter parameters
+  - **Created `search_therapists_api` function**: Frontend-friendly API that takes JSON parameters
+    - Returns formatted JSON with paginated results and metadata
+    - Properly handles empty or null parameters for flexible filtering
+  - **Created `get_therapist_profile_options` function**: Returns all available options for profile fields
+    - Provides structured data for frontend dropdown and multi-select components
+    - Includes localized Japanese labels for all options
+
+### Frontend UI Enhancements - As of 2024-10-25
+- **TherapistProfileForm Component**: 
+  - **New UI Tab**: Added "詳細プロフィール" (Detailed Profile) tab to the therapist profile form
+  - **Enhanced Profile Fields**: Created interface for therapists to input:
+    - Height range (dropdown): 150～159cm, 160～169cm, 170～179cm, 180～189cm, 190cm～
+    - Facial features (radio buttons): 男らしい系, 可愛い系, 爽やか系, 中性的, エキゾチック系, 韓流系
+    - Service style (multi-select badges): ランキング入り, 高リピート, テクニシャン, etc.
+    - Body type (multi-select badges): 筋肉質, 細見, 標準体型, 脱毛済, etc.
+    - Personality traits (multi-select badges): 明るい, 穏やか, しっかり者, etc.
+  - **Data Handling**: Updated mapping functions to properly convert between frontend and database formats
+  - **Integration with API**: Created React hook (useTherapistProfileOptions) to fetch options from the database
+    - Fallback to hardcoded options if database call fails
+    - Loading and error states for improved UX
+
+- **TypeScript Type System**: 
+  - Updated TherapistProfile and Therapist interfaces to include new fields
+  - Added proper type checking for service_style, facial_features, body_type, and personality_traits
+  - Modified height field to accept both number and string types (to support range format)
+  - Updated Filters interface to include new search parameters
+
+- **Data Presentation**:
+  - Badge-based UI for multi-select options (similar to existing hobbies field)
+  - Radio button grid for facial features selection
+  - Dropdown menu for height range selection
+  - Added loading indicators and error states for data fetching
+  - Consistent styling with existing form components
+
+### Frontend Therapist Profile Enhancements - As of 2024-10-24
+- **Enhanced Therapist Profile Form**:
+  - **New TherapistProfileEnhanced Component**: Created a dedicated component to manage the new therapist profile fields:
+    - Height range selection with preset ranges (150-159cm, 160-169cm, etc.)
+    - Facial features selection (masculine, cute, fresh, neutral, exotic, etc.)
+    - Service style multi-select (ranking, high repeat, technician, etc.)
+    - Body type multi-select (muscular, slim, tattoo, etc.)
+    - Personality traits multi-select (bright, calm, reliable, etc.)
+  - **Therapist Profile Form Updates**:
+    - Added a new "詳細プロフィール" (Enhanced Profile) tab
+    - Updated form state to handle the new fields
+    - Enhanced data mapping between database and UI fields
+  - **Custom React Hook**: Created `useTherapistProfileOptions` hook to fetch profile options from the database
+    - Provides dropdown/selector options for all the new fields
+    - Includes fallback options in case of database connectivity issues
+    - Handles loading and error states
+
+### Database Schema Updates - As of 2024-10-24
+- **Therapist Table Enhancements**: Added new fields to support enhanced filtering options
+  - **Modified existing fields**:
+    - Changed `height` from integer to text type to support range format ('150-159', '160-169', etc.)
+  - **Added new fields**:
+    - `service_style` (text[]): Array of service style options like 'ranking', 'repeat', 'technician', etc.
+    - `facial_features` (text): Single facial feature type like 'masculine', 'cute', 'fresh', etc.
+    - `body_type` (text[]): Array of body type attributes like 'muscular', 'slim', 'average', etc.
+    - `personality_traits` (text[]): Array of personality traits like 'bright', 'calm', 'reliable', etc.
+  - **Data validation**:
+    - Created enum types and triggers to validate field values
+  - **Therapist Profile Form System**:
+    - Created `therapist_profile_forms` table to handle the profile editing process
+    - Created API functions for retrieving and updating profile data
+    - Set up automatic data synchronization between form and therapist tables
+
+### API Functions - As of 2024-10-24
+- **New Database Functions**:
+  - `get_therapist_profile_options()`: Returns all the profile dropdown options
+  - `upsert_therapist_profile_form()`: Creates or updates therapist profile data
+  - `search_therapists_api()`: Enhanced search function supporting all new filter criteria
+  - Created sample data to demonstrate the new fields
+
+### AWS Deployment (Frontend Only) - As of 2024-10-22
+- **Strategy**: Static frontend hosting on AWS, Supabase remains the backend.
+- **Services Used**:
+    - **AWS S3**: Stores the static built assets of the React application (output of `npm run build`).
+        - Bucket Name: `therapist-connectivity-frontend-93b9faa0` (in `ap-northeast-1` - Tokyo).
+        - Bucket is private.
+    - **AWS CloudFront**: CDN to serve the S3 content, provide HTTPS, and improve performance.
+        - Distribution ID: `E2P3Q41GY0N3CJ`
+        - Domain Name: `dqv3ckdbgwb1i.cloudfront.net`
+        - Configured with Origin Access Control (OAC ID: `E3CJMWQPFVBULW`) to securely access the private S3 bucket.
+    - **AWS Certificate Manager**: SSL certificate for custom domain (rupipia.jp)
+        - Certificate ARN: `arn:aws:acm:us-east-1:576646866458:certificate/a8c9a5d9-5cd0-4cf9-abc9-f08c89de1fc9`
+    - **Amazon Route 53**: DNS configuration for the custom domain
+        - Hosted zone ID: `Z0795318RWFJ8NZJMRG5`
+        - A record pointing to the CloudFront distribution
+
+### UI/UX Branding Changes - As of 2024-10-24
+- **Homepage Branding**: Updated from a general relaxation service to a female-oriented male therapist platform
+  - **Header Text**: Changed to "もう、なんとなくで選ばない。"Re：また会いたくなる出会い"が、ここにある。"
+  - **Subheader**: Updated to "あなたにぴったりのセラピストと繋がれる新しい女風マッチングプラットフォーム、るぴぴあ。"
+  - **Feature Badges**: Changed to "届出済店舗で安心", "空き状況がすぐわかる", "メッセージで相談可能"
+  - **Main Concept**: Updated from "リラクゼーションの新しいカタチ" to "癒し、もっと自由に。"
+  - **Section Description**: Changed to "るぴぴあは、相性でつながる新しい出会いを届けます。"
+  - **Feature Set**: Revised to "まるっと完結 (ー 検索から予約まで、ぜんぶここで)", "ぜんぶ横断 (ー 店舗をまたいで、好きな"ぴ"を選べる)", "ぴったり重視 (ー 相性で選ぶから、癒しがハマる)"
+  - **Call to Action**: Changed to ""この人かも"が、きっと見つかる。さあ、ぴったりの癒しを探しにいこう。"
+
+- **Filter System Enhancement**: Added detailed therapist filtering options
+  - **MBTI Types**: Added 16 MBTI personality types with Japanese descriptions
+  - **Age Ranges**: Added structured age range options (20-24, 25-29, etc.)
+  - **Height Ranges**: Added structured height range options (150-159cm, 160-169cm, etc.)
+  - **Service Styles**: Added 12 service style options including "ランキング入り", "高リピート", etc.
+  - **Facial Features**: Added 6 facial feature categories including "男らしい系", "爽やか系", etc.
+  - **Body Type/Visual**: Added 6 body type options including "筋肉質", "細見", etc.
+  - **Personality Traits**: Added 12 personality traits including "明るい", "穏やか", etc.

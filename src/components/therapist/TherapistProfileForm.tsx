@@ -20,6 +20,7 @@ import PrefectureSelect from "@/components/PrefectureSelect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
+import TherapistProfileEnhanced from "./TherapistProfileEnhanced";
 
 // List of all Japanese prefectures
 const japanesePrefectures = [
@@ -37,6 +38,30 @@ interface TherapistProfileFormProps {
   existingData?: any;
   onCancel?: () => void;
   onSuccess?: (data: any) => void;
+}
+
+interface ProfileState {
+  name: string;
+  workingDays: string[];
+  workingHours: { start: string; end: string };
+  pricePerHour: number;
+  bio: string;
+  serviceAreas: { 
+    prefecture: string; 
+    cities: string[];
+    detailedArea?: string;
+  };
+  height: number | string;
+  mbtiType?: string;
+  hobbies: string[];
+  specialties: string[];
+  image: File | null;
+  previewUrl: string;
+  ageRange?: string;
+  facialFeatures?: string;
+  serviceStyle: string[];
+  bodyType: string[];
+  personalityTraits: string[];
 }
 
 // Function to convert database fields to component format
@@ -62,80 +87,116 @@ const mapDatabaseToComponentFormat = (data: any) => {
     };
     
     workingDays = data.working_days.map((day: string) => {
-      return dayNameToChar[day.toLowerCase()] || day.charAt(0);
+      if (day in dayNameToChar) {
+        return dayNameToChar[day];
+      }
+      return day;
     });
-  } else if (data.workingDays && Array.isArray(data.workingDays)) {
-    workingDays = data.workingDays;
-  } else if (data.availability && Array.isArray(data.availability)) {
-    // Map availability days to workingDays if necessary
-    workingDays = data.availability.map((day: string) => day.charAt(0));
   }
 
-  // Map the price field - could be in price or pricePerHour
-  const price = data.price_per_hour || data.pricePerHour || data.price || 0;
+  // Handle price formatting - default to 0 if not present
+  const price = data.price || 0;
 
-  // Parse questionnaire data from JSONB
-  const questionnaireData = data.questionnaire_data || {};
+  // Handle working hours parsing - default to 9AM-5PM if not present or invalid
+  let workingHours = { start: "09:00", end: "17:00" };
+  if (data.working_hours) {
+    try {
+      if (typeof data.working_hours === 'string') {
+        // If it's a string, try parsing JSON
+        const parsed = JSON.parse(data.working_hours);
+        workingHours = {
+          start: parsed.start || "09:00",
+          end: parsed.end || "17:00"
+        };
+      } else if (typeof data.working_hours === 'object') {
+        // If it's already an object, use it directly
+        workingHours = {
+          start: data.working_hours.start || "09:00",
+          end: data.working_hours.end || "17:00"
+        };
+      }
+    } catch (e) {
+      console.error("Error parsing working hours:", e);
+    }
+  }
 
-  // Create a mapped object with the correct field names
+  // Handle service areas mapping
+  let serviceAreas = { 
+    prefecture: data.location || '',
+    cities: [] as string[],  // Specify as string[] to fix type error
+    detailedArea: data.detailed_area || ''
+  };
+
+  // Handle hobbies array
+  const hobbies = Array.isArray(data.hobbies) ? data.hobbies : [];
+
+  // Handle specialties array
+  const specialties = Array.isArray(data.specialties) ? data.specialties : [];
+
+  // Handle service style array
+  const serviceStyle = Array.isArray(data.service_style) ? data.service_style : [];
+
+  // Handle body type array
+  const bodyType = Array.isArray(data.body_type) ? data.body_type : [];
+
+  // Handle personality traits array
+  const personalityTraits = Array.isArray(data.personality_traits) ? data.personality_traits : [];
+
   return {
     name: data.name || '',
     workingDays,
-    workingHours: data.working_hours || data.workingHours || { start: "09:00", end: "18:00" },
+    workingHours,
     pricePerHour: price,
-    bio: data.bio || data.description || '',
-    serviceAreas: {
-      prefecture: data.service_areas?.prefecture || data.serviceAreas?.prefecture || data.location || '',
-      cities: data.service_areas?.cities || data.serviceAreas?.cities || [],
-      detailedArea: data.service_areas?.detailedArea || data.serviceAreas?.detailedArea || data.detailed_area || '',
-    },
-    height: data.height,
-    weight: data.weight,
-    hobbies: data.hobbies || [],
-    qualifications: data.qualifications || [],
-    avatarUrl: data.image_url || data.avatarUrl || '',
-    galleryImages: data.gallery_images || data.galleryImages || [],
-    healthDocumentUrl: data.health_document_url || '',
-    mbtiType: data.mbti_type || 'unknown',
-    age: data.age || '',
-    questionnaireData: {
-      mood: questionnaireData.mood || '',
-      therapistType: questionnaireData.therapistType || '',
-      treatmentType: questionnaireData.treatmentType || '',
-      therapistAge: questionnaireData.therapistAge || ''
-    }
+    bio: data.description || '',
+    serviceAreas,
+    height: data.height || '',
+    mbtiType: data.mbti_type || '',
+    hobbies,
+    specialties,
+    previewUrl: data.image_url || '',
+    ageRange: data.age || '',
+    facialFeatures: data.facial_features || '',
+    serviceStyle,
+    bodyType,
+    personalityTraits,
+    image: null  // Initialize with null to match ProfileState
   };
 };
 
-interface ProfileState {
-  name: string;
-  workingDays: string[];
-  workingHours: { start: string; end: string };
-  pricePerHour: number;
-  bio: string;
-  serviceAreas: { 
-    prefecture: string; 
-    cities: [];
-    detailedArea?: string;  // Add detailed area field
+// Function to convert component format to database fields
+const mapComponentToDatabase = (state: ProfileState) => {
+  return {
+    name: state.name,
+    working_days: state.workingDays.map(day => {
+      // Map Japanese day first characters to full day names for DB
+      const charToDayName: { [key: string]: string } = {
+        '月': 'monday',
+        '火': 'tuesday',
+        '水': 'wednesday',
+        '木': 'thursday',
+        '金': 'friday',
+        '土': 'saturday',
+        '日': 'sunday'
+      };
+      
+      return day in charToDayName ? charToDayName[day] : day;
+    }),
+    working_hours: JSON.stringify(state.workingHours),
+    price: state.pricePerHour,
+    description: state.bio,
+    location: state.serviceAreas.prefecture,
+    detailed_area: state.serviceAreas.detailedArea,
+    height: state.height,
+    mbti_type: state.mbtiType,
+    hobbies: state.hobbies,
+    specialties: state.specialties,
+    age: state.ageRange,
+    facial_features: state.facialFeatures,
+    service_style: state.serviceStyle,
+    body_type: state.bodyType,
+    personality_traits: state.personalityTraits
   };
-  height: number | undefined;
-  weight: number | undefined;
-  experience: number | undefined;
-  hobbies: string[];
-  specialties: string[];
-  qualifications: string[]; // Keep for database compatibility
-  avatarUrl: string;
-  galleryImages: string[];
-  healthDocumentUrl: string;
-  mbtiType: string;
-  age: string;  // Add age field
-  questionnaireData: {
-    mood: string;
-    therapistType: string;
-    treatmentType: string;
-    therapistAge: string;
-  };
-}
+};
 
 export const TherapistProfileForm = ({ 
   therapist, 
@@ -149,27 +210,21 @@ export const TherapistProfileForm = ({
   const initialProfile: ProfileState = {
     name: '',
     workingDays: [],
-    workingHours: { start: "09:00", end: "18:00" },
+    workingHours: { start: "09:00", end: "17:00" },
     pricePerHour: 0,
     bio: "",
     serviceAreas: { prefecture: '', cities: [] },
-    height: undefined,
-    weight: undefined,
-    experience: undefined,
+    height: '',
+    mbtiType: '',
     hobbies: [],
     specialties: [],
-    qualifications: [],
-    avatarUrl: '',
-    galleryImages: [],
-    healthDocumentUrl: '',
-    mbtiType: 'unknown',
-    age: '',
-    questionnaireData: {
-      mood: '',
-      therapistType: '',
-      treatmentType: '',
-      therapistAge: ''
-    },
+    image: null,
+    previewUrl: '',
+    ageRange: '',
+    facialFeatures: '',
+    serviceStyle: [],
+    bodyType: [],
+    personalityTraits: [],
     ...mappedData
   };
   
@@ -205,8 +260,8 @@ export const TherapistProfileForm = ({
     checkBuckets();
     
     // Set initial preview URL if avatarUrl exists
-    if (profile.avatarUrl) {
-      setProfilePreviewUrl(profile.avatarUrl);
+    if (profile.previewUrl) {
+      setProfilePreviewUrl(profile.previewUrl);
     }
     
     // Cleanup function for object URLs
@@ -234,8 +289,8 @@ export const TherapistProfileForm = ({
       }));
       
       // Update preview URL if avatarUrl exists
-      if (mappedData.avatarUrl) {
-        setProfilePreviewUrl(mappedData.avatarUrl);
+      if (mappedData.previewUrl) {
+        setProfilePreviewUrl(mappedData.previewUrl);
       }
       
       console.log("Updated profile with mapped data:", mappedData);
@@ -455,236 +510,44 @@ export const TherapistProfileForm = ({
     }
   };
 
-  // Return mapped data for saving to database
-  const mapComponentToDatabaseFormat = (data: any) => {
-    console.log("Mapping component format to database format:", data);
-    
-    // Extract individual fields
-    const {
-      name,
-      workingDays,
-      workingHours,
-      pricePerHour,
-      bio,
-      serviceAreas,
-      height,
-      weight,
-      hobbies,
-      qualifications,
-      avatarUrl,
-      galleryImages,
-      healthDocumentUrl,
-      mbtiType,
-      age,
-      questionnaireData
-    } = data;
-    
-    // Convert Japanese day abbreviations back to full English day names
-    const dayCharToName: { [key: string]: string } = {
-      '月': 'monday',
-      '火': 'tuesday',
-      '水': 'wednesday',
-      '木': 'thursday',
-      '金': 'friday',
-      '土': 'saturday',
-      '日': 'sunday'
-    };
-    
-    const working_days = workingDays.map((day: string) => {
-      return dayCharToName[day] || day;
-    });
-    
-    // Consolidated database format
-    return {
-      name,
-      working_days,
-      working_hours: workingHours,
-      price: pricePerHour, // Store in price field for compatibility
-      description: bio, // Keep only description, remove bio
-      service_areas: {
-        prefecture: serviceAreas.prefecture,
-        cities: serviceAreas.cities,
-        detailedArea: serviceAreas.detailedArea
-      },
-      location: serviceAreas.prefecture, // Store prefecture in location for compatibility
-      detailed_area: serviceAreas.detailedArea, // Store in detailed_area column (not detailedArea)
-      height,
-      weight,
-      hobbies,
-      qualifications,
-      image_url: avatarUrl,
-      gallery_images: galleryImages,
-      health_document_url: healthDocumentUrl,
-      mbti_type: mbtiType,
-      age: age, // Use 'age' column, not 'age_group'
-      questionnaire_data: questionnaireData
-    };
-  };
-
   const handleSave = async () => {
-    if (!userId) {
-      toast.error("ユーザー情報が見つかりません");
-      return;
-    }
-    
+    setUploading(true);
+
     try {
-      setUploading(true);
-      console.log("Starting profile save process for user ID:", userId);
+      // Convert component state to database fields
+      const dbFields = mapComponentToDatabase(profile);
       
-      // Debug query to check table structure
-      try {
-        const { data: tableInfo, error: tableError } = await supabase
-          .from('therapists')
-          .select('*')
-          .limit(1);
-          
-        if (tableError) {
-          console.error("Error querying therapist table:", tableError);
-        } else {
-          console.log("Therapist table structure sample:", tableInfo);
-          if (tableInfo && tableInfo.length > 0) {
-            console.log("Available columns:", Object.keys(tableInfo[0]));
-          }
-        }
-      } catch (debugError) {
-        console.error("Debug query error:", debugError);
-      }
+      // Create a copy of the fields for updates
+      const updatedProfile = { ...profile };
       
-      let updatedProfile = { ...profile };
-      
-      // Upload profile image if selected
+      // Upload profile image if provided
       if (profileImage) {
-        console.log("Uploading profile image...");
         const profileImageUrl = await uploadFile(profileImage, 'Therapist files', 'avatars');
+        
         if (profileImageUrl) {
           console.log("Profile image uploaded successfully, URL:", profileImageUrl);
-          updatedProfile.avatarUrl = profileImageUrl;
+          updatedProfile.previewUrl = profileImageUrl;
         } else {
           console.warn("Profile image upload failed, continuing without updating avatar");
         }
       }
       
-      // Upload gallery images if selected
-      if (galleryImages.length > 0) {
-        console.log(`Uploading ${galleryImages.length} gallery images...`);
-        const galleryUrls = [];
-        for (const image of galleryImages) {
-          const imageUrl = await uploadFile(image, 'Therapist files', 'gallery');
-          if (imageUrl) {
-            console.log("Gallery image uploaded successfully, URL:", imageUrl);
-            galleryUrls.push(imageUrl);
-          }
-        }
-        
-        if (galleryUrls.length > 0) {
-          console.log(`Successfully uploaded ${galleryUrls.length} gallery images`);
-          updatedProfile.galleryImages = [
-            ...(updatedProfile.galleryImages || []),
-            ...galleryUrls
-          ];
-          
-          // Clear gallery previews and selected files after successful upload
-          setGalleryPreviews([]);
-          setGalleryImages([]);
-        }
-      }
-      
-      // Upload health document if selected
-      if (healthDoc) {
-        console.log("Uploading health document...");
-        const healthDocUrl = await uploadFile(healthDoc, 'Therapist files', 'documents');
-        if (healthDocUrl) {
-          console.log("Health document uploaded successfully, URL:", healthDocUrl);
-          updatedProfile.healthDocumentUrl = healthDocUrl;
-        } else {
-          console.warn("Health document upload failed");
-        }
-      }
-      
-      // Map data for database
-      const dbData = mapComponentToDatabaseFormat(updatedProfile);
-      
-      console.log("Updating therapist with data:", dbData);
-      
-      // Update therapist data in the database
-      const { data: therapistData, error: therapistCheckError } = await supabase
+      // Upload final data to database
+      const { data, error } = await supabase
         .from('therapists')
-        .select('id, gallery_images')
-        .eq('id', userId)
-        .maybeSingle();
+        .update(dbFields)
+        .eq('id', userId);
       
-      if (therapistCheckError) {
-        console.error("Error checking therapist:", therapistCheckError);
-        if (!therapistCheckError.message.includes('No rows found')) {
-          throw therapistCheckError;
-        } else {
-          console.log("No existing therapist record found, will create a new one");
-        }
+      if (error) {
+        throw new Error(`Failed to update profile: ${error.message}`);
       }
       
-      if (!therapistData) {
-        // If therapist record doesn't exist yet, insert it
-        console.log("Inserting new therapist record...");
-        const { data, error: insertError } = await supabase
-          .from('therapists')
-          .insert([{ id: userId, ...dbData }])
-          .select();
-          
-        if (insertError) {
-          console.error("Error inserting therapist:", insertError);
-          throw insertError;
-        }
-        
-        console.log("Successfully inserted new therapist record:", data);
-        toast.success(`プロフィールが作成されました (${activeTab}タブ)`, { 
-          duration: 5000,
-          position: 'top-center'
-        });
-      } else {
-        // Merge existing gallery images with new ones if needed
-        console.log("Found existing therapist record:", therapistData);
-        let mergedGalleryImages = updatedProfile.galleryImages || [];
-        
-        // If there were existing gallery images and we didn't just reset them
-        if (therapistData.gallery_images && galleryImages.length > 0) {
-          console.log("Merging new gallery images with existing ones");
-          mergedGalleryImages = [
-            ...(therapistData.gallery_images || []),
-            ...mergedGalleryImages
-          ];
-        } else if (therapistData.gallery_images && !updatedProfile.galleryImages) {
-          // If we're not adding new images, keep existing ones
-          console.log("Keeping existing gallery images");
-          mergedGalleryImages = therapistData.gallery_images;
-        }
-        
-        // Update the gallery images in the database data
-        dbData.gallery_images = mergedGalleryImages;
-        
-        // Update existing therapist record
-        console.log("Updating existing therapist record...");
-        const { data, error: updateTherapistError } = await supabase
-          .from('therapists')
-          .update(dbData)
-          .eq('id', userId)
-          .select();
-          
-        if (updateTherapistError) {
-          console.error("Error updating therapist:", updateTherapistError);
-          throw updateTherapistError;
-        }
-        
-        console.log("Successfully updated therapist record:", data);
-        toast.success(`プロフィールが更新されました (${activeTab}タブ)`, {
-          duration: 5000,
-          position: 'top-center'
-        });
-      }
+      toast.success("プロフィールが正常に更新されました");
       
       if (onSuccess) onSuccess(updatedProfile);
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast.error("プロフィールの保存に失敗しました");
+      toast.error("プロフィールの更新中にエラーが発生しました");
     } finally {
       setUploading(false);
     }
@@ -749,8 +612,8 @@ export const TherapistProfileForm = ({
   // Clean up object URLs on unmount or when they change
   useEffect(() => {
     // Set initial preview URL if avatarUrl exists
-    if (profile.avatarUrl) {
-      setProfilePreviewUrl(profile.avatarUrl);
+    if (profile.previewUrl) {
+      setProfilePreviewUrl(profile.previewUrl);
     }
     
     // Cleanup function for object URLs
@@ -783,50 +646,64 @@ export const TherapistProfileForm = ({
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfile(prev => ({
       ...prev,
-      age: e.target.value
+      ageRange: e.target.value
     }));
   };
 
+  // Add handlers for new enhanced profile fields
+  const handleServiceStyleChange = (values: string[]) => {
+    setProfile({
+      ...profile,
+      serviceStyle: values
+    });
+  };
+
+  const handleFacialFeaturesChange = (value: string) => {
+    setProfile({
+      ...profile,
+      facialFeatures: value
+    });
+  };
+
+  const handleBodyTypeChange = (values: string[]) => {
+    setProfile({
+      ...profile,
+      bodyType: values
+    });
+  };
+
+  const handlePersonalityTraitsChange = (values: string[]) => {
+    setProfile({
+      ...profile,
+      personalityTraits: values
+    });
+  };
+
+  // Add handler for height range change
+  const handleHeightRangeChange = (value: string) => {
+    setProfile({
+      ...profile,
+      height: value
+    });
+  };
+
   return (
-    <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
-      {/* Circular Profile Picture Uploader */}
-      <div className="flex justify-center mb-8">
-        <div className="relative group">
-          <input
-            id="profile-image-input"
-            type="file"
-            accept="image/*"
-            onChange={handleProfileImageChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            aria-label="プロフィール画像をアップロード"
-          />
-          <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/20 shadow-md relative">
-            {profilePreviewUrl ? (
-              <img 
-                src={profilePreviewUrl} 
-                alt="プロフィール" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
-                <User size={40} />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <UploadCloud size={30} className="text-white" />
-            </div>
-          </div>
-          <p className="text-center mt-2 text-sm text-muted-foreground">プロフィール写真</p>
-        </div>
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">セラピストプロフィール編集</h1>
+        <p className="text-sm text-muted-foreground">
+          お客様に伝わるプロフィールを作成しましょう。より詳細な情報を提供することで、マッチング率が向上します。
+        </p>
       </div>
-      
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 mb-6">
+        <TabsList className="grid grid-cols-4">
           <TabsTrigger value="basic">基本情報</TabsTrigger>
-          <TabsTrigger value="profile">プロフィール</TabsTrigger>
-          <TabsTrigger value="questionnaire">マッチング質問</TabsTrigger>
+          <TabsTrigger value="services">サービス</TabsTrigger>
+          <TabsTrigger value="enhanced">詳細プロフィール</TabsTrigger>
+          <TabsTrigger value="images">画像</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="basic">
           <div className="space-y-4">
             <div>
@@ -850,8 +727,8 @@ export const TherapistProfileForm = ({
               </Label>
               <Input
                 id="age"
-                name="age"
-                value={profile.age}
+                name="ageRange"
+                value={profile.ageRange}
                 onChange={handleAgeChange}
                 className="w-full"
                 placeholder="例: 20代後半"
@@ -1024,7 +901,7 @@ export const TherapistProfileForm = ({
           </div>
         </TabsContent>
         
-        <TabsContent value="profile">
+        <TabsContent value="services">
           <div className="space-y-4">
             <div className="mb-4">
               <Label htmlFor="mbti-type" className="block text-sm font-medium mb-2">
@@ -1155,171 +1032,99 @@ export const TherapistProfileForm = ({
           </div>
         </TabsContent>
         
-        <TabsContent value="questionnaire">
-          <div className="space-y-6">
-            <h3 className="text-lg font-medium">マッチング質問</h3>
-            <p className="text-sm text-muted-foreground">
-              これらの質問はユーザーとのマッチングに使用されます。質問の答えはトップページでのユーザーの好みと一致する場合に表示されます。
-            </p>
-            
-            {/* Mood Question */}
-            <div className="space-y-3">
-              <h3 className="text-md font-medium">1. あなたの施術の特徴は？</h3>
-              <RadioGroup 
-                value={profile.questionnaireData.mood} 
-                onValueChange={(value) => handleQuestionnaireChange('mood', value)}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="relax" id="profile-mood-1" />
-                  <label htmlFor="profile-mood-1" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">リラックスさせる</span>
-                    <span className="ml-2">☁️</span>
-                  </label>
+        <TabsContent value="enhanced" className="space-y-6 p-4 border rounded-md">
+          <TherapistProfileEnhanced 
+            serviceStyle={profile.serviceStyle}
+            facialFeatures={profile.facialFeatures}
+            bodyType={profile.bodyType}
+            personalityTraits={profile.personalityTraits}
+            onServiceStyleChange={handleServiceStyleChange}
+            onFacialFeaturesChange={handleFacialFeaturesChange}
+            onBodyTypeChange={handleBodyTypeChange}
+            onPersonalityTraitsChange={handlePersonalityTraitsChange}
+            heightRange={profile.height as string || ''}
+            onHeightRangeChange={handleHeightRangeChange}
+          />
+        </TabsContent>
+        
+        <TabsContent value="images">
+          <div className="space-y-4">
+            <div className="mb-4">
+              <Label htmlFor="gallery-images" className="block text-sm font-medium mb-1">
+                ギャラリー画像
+              </Label>
+              {/* Only show file input if total images is less than 5 */}
+              {(galleryPreviews.length + (profile.galleryImages?.length || 0) < 5) ? (
+                <>
+                  <Input
+                    id="gallery-images"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleGalleryImagesChange}
+                    className="w-full"
+                    multiple
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    最大5枚まで選択できます。現在 {galleryPreviews.length + (profile.galleryImages?.length || 0)}/5 枚。
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-amber-500 font-medium mt-1 mb-2">
+                  画像の最大数（5枚）に達しています。新しい画像を追加するには、既存の画像を削除してください。
+                </p>
+              )}
+              
+              {/* Gallery image previews */}
+              {(galleryPreviews.length > 0 || profile.galleryImages?.length > 0) && (
+                <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {/* Show new uploads */}
+                  {galleryPreviews.map((url, index) => (
+                    <div key={`preview-${index}`} className="relative aspect-square rounded-md overflow-hidden border">
+                      <img 
+                        src={url} 
+                        alt={`Gallery preview ${index + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newPreviews = [...galleryPreviews];
+                          URL.revokeObjectURL(newPreviews[index]);
+                          newPreviews.splice(index, 1);
+                          setGalleryPreviews(newPreviews);
+                          
+                          const newImages = [...galleryImages];
+                          newImages.splice(index, 1);
+                          setGalleryImages(newImages);
+                        }}
+                        className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"
+                        aria-label="Remove image"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {/* Show existing gallery images */}
+                  {profile.galleryImages && profile.galleryImages.map((url, index) => (
+                    <div key={`existing-${index}`} className="relative aspect-square rounded-md overflow-hidden border">
+                      <img 
+                        src={url} 
+                        alt={`Gallery image ${index + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExistingImage(index)}
+                        className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"
+                        aria-label="Remove existing image"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="stress" id="profile-mood-2" />
-                  <label htmlFor="profile-mood-2" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">ストレス発散に効果的</span>
-                    <span className="ml-2">💥</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="heal" id="profile-mood-3" />
-                  <label htmlFor="profile-mood-3" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">癒し効果が高い</span>
-                    <span className="ml-2">💗</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="talk" id="profile-mood-4" />
-                  <label htmlFor="profile-mood-4" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">会話を楽しめる</span>
-                    <span className="ml-2">🗣️</span>
-                  </label>
-                </div>
-              </RadioGroup>
-            </div>
-            
-            {/* Therapist Type Question */}
-            <div className="space-y-3">
-              <h3 className="text-md font-medium">2. あなたの性格・雰囲気は？</h3>
-              <RadioGroup 
-                value={profile.questionnaireData.therapistType} 
-                onValueChange={(value) => handleQuestionnaireChange('therapistType', value)}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="mature" id="profile-type-1" />
-                  <label htmlFor="profile-type-1" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">落ち着いた・大人っぽい</span>
-                    <span className="ml-2">🎩</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="bright" id="profile-type-2" />
-                  <label htmlFor="profile-type-2" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">明るくて話しやすい</span>
-                    <span className="ml-2">😄</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="inclusive" id="profile-type-3" />
-                  <label htmlFor="profile-type-3" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">包容力がある</span>
-                    <span className="ml-2">🌿</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="cool" id="profile-type-4" />
-                  <label htmlFor="profile-type-4" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">クールで控えめ</span>
-                    <span className="ml-2">❄️</span>
-                  </label>
-                </div>
-              </RadioGroup>
-            </div>
-            
-            {/* Treatment Type Question */}
-            <div className="space-y-3">
-              <h3 className="text-md font-medium">3. あなたの施術スタイルは？</h3>
-              <RadioGroup 
-                value={profile.questionnaireData.treatmentType} 
-                onValueChange={(value) => handleQuestionnaireChange('treatmentType', value)}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="gentle" id="profile-treatment-1" />
-                  <label htmlFor="profile-treatment-1" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">ゆっくり丁寧なプレイ</span>
-                    <span className="ml-2">🦊</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="strong" id="profile-treatment-2" />
-                  <label htmlFor="profile-treatment-2" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">しっかり強めのプレイ</span>
-                    <span className="ml-2">💪</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="technique" id="profile-treatment-3" />
-                  <label htmlFor="profile-treatment-3" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">ハンドテクニックメイン</span>
-                    <span className="ml-2">✋</span>
-                  </label>
-                </div>
-              </RadioGroup>
-            </div>
-            
-            {/* Age Question */}
-            <div className="space-y-3">
-              <h3 className="text-md font-medium">4. あなたの年齢層は？</h3>
-              <RadioGroup 
-                value={profile.questionnaireData.therapistAge} 
-                onValueChange={(value) => handleQuestionnaireChange('therapistAge', value)}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="early20s" id="profile-age-1" />
-                  <label htmlFor="profile-age-1" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">20代前半</span>
-                    <span className="ml-2">👧</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="late20s" id="profile-age-2" />
-                  <label htmlFor="profile-age-2" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">20代後半</span>
-                    <span className="ml-2">👱</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="30plus" id="profile-age-3" />
-                  <label htmlFor="profile-age-3" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">30代以上</span>
-                    <span className="ml-2">👨</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-3 rounded-lg border p-3 cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value="noPreference" id="profile-age-4" />
-                  <label htmlFor="profile-age-4" className="flex items-center cursor-pointer w-full">
-                    <span className="text-md">非公開</span>
-                    <span className="ml-2">🙈</span>
-                  </label>
-                </div>
-              </RadioGroup>
+              )}
             </div>
           </div>
         </TabsContent>
@@ -1342,7 +1147,7 @@ export const TherapistProfileForm = ({
           )}
         </Button>
       </div>
-    </form>
+    </div>
   );
 };
 

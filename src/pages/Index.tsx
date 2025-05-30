@@ -698,10 +698,10 @@ const Index = () => {
                 </span>
               </div>
               <h1 className="text-4xl font-bold tracking-tight md:text-5xl mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-rose-400">
-                心と体に優しい<br className="hidden sm:inline" />癒しのひととき
+                もう、なんとなくで選ばない。<br className="hidden sm:inline" />"Re：また会いたくなる出会い"が、ここにある。
               </h1>
-              <p className="text-xl text-muted-foreground max-w-[600px] mx-auto leading-relaxed">
-                プロフェッショナルな男性セラピストによる、あなただけのリラックスタイムをお届けします
+              <p className="text-xl text-muted-foreground mx-auto leading-relaxed">
+                あなたにぴったりのセラピストと繋がれる新しい女風マッチングプラットフォーム、るぴぴあ。
               </p>
             </div>
             
@@ -864,19 +864,19 @@ const Index = () => {
                   <div className="w-10 h-10 rounded-full bg-pink-100/80 flex items-center justify-center">
                     <Shield className="h-5 w-5 text-pink-500" />
                   </div>
-                  <span className="text-sm font-medium">安心の身元確認</span>
+                  <span className="text-sm font-medium">届出済店舗で安心</span>
                 </div>
                 <div className="flex items-center gap-3 bg-gradient-to-br from-white to-pink-50/50 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-pink-100 hover:shadow-md transition-all">
                   <div className="w-10 h-10 rounded-full bg-pink-100/80 flex items-center justify-center">
                     <Check className="h-5 w-5 text-pink-500" />
                   </div>
-                  <span className="text-sm font-medium">簡単予約システム</span>
+                  <span className="text-sm font-medium">空き状況がすぐわかる</span>
                 </div>
                 <div className="flex items-center gap-3 bg-gradient-to-br from-white to-pink-50/50 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-pink-100 hover:shadow-md transition-all">
                   <div className="w-10 h-10 rounded-full bg-pink-100/80 flex items-center justify-center">
                     <Clock className="h-5 w-5 text-pink-500" />
                   </div>
-                  <span className="text-sm font-medium">24時間対応</span>
+                  <span className="text-sm font-medium">メッセージで相談可能</span>
                 </div>
               </div>
             </div>
@@ -932,9 +932,9 @@ const Index = () => {
                 特徴
               </span>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight mb-3">リラクゼーションの新しいカタチ</h2>
+            <h2 className="text-3xl font-bold tracking-tight mb-3">癒し、もっと自由に。</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              私たちのサービスは心と体の健康を第一に考え、安心して利用できる環境を提供します
+              るぴぴあは、相性でつながる新しい出会いを届けます。
             </p>
           </div>
           
@@ -943,9 +943,9 @@ const Index = () => {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center mb-4">
                 <Shield className="h-6 w-6 text-pink-500" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">安心・安全</h3>
+              <h3 className="text-lg font-semibold mb-2">まるっと完結</h3>
               <p className="text-muted-foreground">
-                すべてのセラピストは厳しい審査を通過し、常に最高の品質とプロフェッショナリズムを提供します。
+                ー 検索から予約まで、ぜんぶここで。
               </p>
             </div>
             
@@ -953,9 +953,9 @@ const Index = () => {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center mb-4">
                 <MessageSquare className="h-6 w-6 text-pink-500" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">コミュニケーション</h3>
+              <h3 className="text-lg font-semibold mb-2">ぜんぶ横断</h3>
               <p className="text-muted-foreground">
-                あなたの希望に合わせた施術を提供するため、セラピストとの事前相談も充実しています。
+                ー 店舗をまたいで、好きな"ぴ"を選べる。
               </p>
             </div>
             
@@ -963,9 +963,9 @@ const Index = () => {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center mb-4">
                 <Calendar className="h-6 w-6 text-pink-500" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">柔軟な予約</h3>
+              <h3 className="text-lg font-semibold mb-2">ぴったり重視</h3>
               <p className="text-muted-foreground">
-                オンライン予約システムで簡単にセラピストを選び、あなたの都合に合わせた日時で予約できます。
+                ー 相性で選ぶから、癒しがハマる。
               </p>
             </div>
           </div>
@@ -983,7 +983,7 @@ const Index = () => {
         <div className="container px-4 md:px-6 relative z-10 text-center">
           <h2 className="text-3xl font-bold tracking-tight mb-6">今すぐ始めましょう</h2>
           <p className="text-xl max-w-2xl mx-auto mb-8 text-white/90">
-            あなたに合ったセラピストを見つけて、心と体のリラックスタイムを体験してください
+            "この人かも"が、きっと見つかる。さあ、ぴったりの癒しを探しにいこう。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/therapists">

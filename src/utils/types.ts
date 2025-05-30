@@ -40,7 +40,7 @@ export interface TherapistProfile {
   availability: string[];
   
   // Additional properties needed for TherapistProfileForm
-  height?: number;
+  height?: number | string;
   weight?: number;
   hobbies?: string[];
   serviceAreas?: {
@@ -60,6 +60,12 @@ export interface TherapistProfile {
   detailedArea?: string;
   mbtiType?: string;
   questionnaireData?: QuestionnaireData;
+  
+  // New fields for enhanced filtering
+  service_style?: string[];
+  facial_features?: string;
+  body_type?: string[];
+  personality_traits?: string[];
 }
 
 export interface StoreProfile {
@@ -108,7 +114,7 @@ export interface Therapist {
   services: Service[];
   // Additional fields from Supabase
   galleryImages?: string[];
-  height?: number | null;
+  height?: number | string | null;
   weight?: number | null;
   workingDays?: string[];
   workingHours?: { start?: string; end?: string } | Record<string, any>;
@@ -118,6 +124,12 @@ export interface Therapist {
   detailedArea?: string;
   mbtiType?: string;
   questionnaireData?: QuestionnaireData;
+  
+  // New fields for enhanced filtering
+  serviceStyle?: string[];
+  facialFeatures?: string;
+  bodyType?: string[];
+  personalityTraits?: string[];
 }
 
 export interface Service {
@@ -167,6 +179,11 @@ export interface Filters {
   therapistType?: string;
   treatmentType?: string;
   therapistAge?: string;
+  height?: string;
+  serviceStyle?: string[];
+  facialFeatures?: string;
+  bodyType?: string[];
+  personalityTraits?: string[];
 }
 
 export interface BookingSlot {

@@ -22,6 +22,11 @@ interface TherapistFiltersProps {
     therapistType?: string;
     treatmentType?: string;
     therapistAge?: string;
+    height?: string;
+    serviceStyle?: string[];
+    facialFeatures?: string;
+    bodyType?: string[];
+    personalityTraits?: string[];
   };
 }
 
@@ -39,6 +44,11 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
   const [therapistType, setTherapistType] = useState(initialFilters?.therapistType || "");
   const [treatmentType, setTreatmentType] = useState(initialFilters?.treatmentType || "");
   const [therapistAge, setTherapistAge] = useState(initialFilters?.therapistAge || "");
+  const [height, setHeight] = useState(initialFilters?.height || "");
+  const [serviceStyle, setServiceStyle] = useState<string[]>(initialFilters?.serviceStyle || []);
+  const [facialFeatures, setFacialFeatures] = useState(initialFilters?.facialFeatures || "");
+  const [bodyType, setBodyType] = useState<string[]>(initialFilters?.bodyType || []);
+  const [personalityTraits, setPersonalityTraits] = useState<string[]>(initialFilters?.personalityTraits || []);
 
   const specialties = [
     "マッサージ",
@@ -58,26 +68,94 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
     { value: "talk", label: "会話を楽しめる" }
   ];
   
-  // Define therapist type options that match Index page questionnaire
-  const therapistTypeOptions = [
-    { value: "mature", label: "落ち着いた・大人っぽい" },
-    { value: "bright", label: "明るくて話しやすい" },
-    { value: "inclusive", label: "包容力がある" },
-    { value: "cool", label: "クールで控えめ" }
+  // Updated MBTI types with Japanese descriptions
+  const mbtiOptions = [
+    { value: "INTJ", label: "INTJ - 建築家" },
+    { value: "INTP", label: "INTP - 論理学者" },
+    { value: "ENTJ", label: "ENTJ - 指揮官" },
+    { value: "ENTP", label: "ENTP - 討論者" },
+    { value: "INFJ", label: "INFJ - 提唱者" },
+    { value: "INFP", label: "INFP - 仲介者" },
+    { value: "ENFJ", label: "ENFJ - 主人公" },
+    { value: "ENFP", label: "ENFP - 運動家" },
+    { value: "ISTJ", label: "ISTJ - 管理者" },
+    { value: "ISFJ", label: "ISFJ - 擁護者" },
+    { value: "ESTJ", label: "ESTJ - 幹部" },
+    { value: "ESFJ", label: "ESFJ - 領事" },
+    { value: "ISTP", label: "ISTP - 巨匠" },
+    { value: "ISFP", label: "ISFP - 冒険家" },
+    { value: "ESTP", label: "ESTP - 起業家" },
+    { value: "ESFP", label: "ESFP - エンターテイナー" }
   ];
   
-  // Define treatment type options that match Index page questionnaire
-  const treatmentTypeOptions = [
-    { value: "gentle", label: "ゆっくり丁寧なプレイ" },
-    { value: "strong", label: "しっかり強めのプレイ" },
-    { value: "technique", label: "ハンドテクニックメイン" }
-  ];
-  
-  // Define age range options that match Index page questionnaire
+  // Updated age range options
   const therapistAgeOptions = [
-    { value: "early20s", label: "20代前半" },
-    { value: "late20s", label: "20代後半" },
-    { value: "30plus", label: "30代以上" }
+    { value: "20-24", label: "20～24歳" },
+    { value: "25-29", label: "25～29歳" },
+    { value: "30-34", label: "30～34歳" },
+    { value: "35-40", label: "35～40歳" },
+    { value: "40plus", label: "40歳～" }
+  ];
+  
+  // Height range options
+  const heightOptions = [
+    { value: "150-159", label: "150～159cm" },
+    { value: "160-169", label: "160～169cm" },
+    { value: "170-179", label: "170～179cm" },
+    { value: "180-189", label: "180～189cm" },
+    { value: "190plus", label: "190cm～" }
+  ];
+  
+  // Service style options
+  const serviceStyleOptions = [
+    { value: "ranking", label: "ランキング入り" },
+    { value: "repeat", label: "高リピート" },
+    { value: "technician", label: "テクニシャン" },
+    { value: "massage", label: "マッサージ上手" },
+    { value: "talking", label: "トーク力" },
+    { value: "alcohol", label: "お酒OK" },
+    { value: "karaoke", label: "カラオケOK" },
+    { value: "couple", label: "カップルコースOK" },
+    { value: "overnight", label: "お泊まりOK" },
+    { value: "non-mucous", label: "非粘膜接触OK" },
+    { value: "english", label: "英語対応可" },
+    { value: "non-smoker", label: "ノンスモーカー" }
+  ];
+  
+  // Facial features options
+  const facialFeaturesOptions = [
+    { value: "masculine", label: "男らしい系" },
+    { value: "cute", label: "可愛い系" },
+    { value: "fresh", label: "爽やか系" },
+    { value: "neutral", label: "中性的" },
+    { value: "exotic", label: "エキゾチック系" },
+    { value: "korean", label: "韓流系" }
+  ];
+  
+  // Body type options
+  const bodyTypeOptions = [
+    { value: "muscular", label: "筋肉質" },
+    { value: "slim", label: "細見" },
+    { value: "average", label: "標準体型" },
+    { value: "depilated", label: "脱毛済" },
+    { value: "tattoo", label: "タトゥー有り" },
+    { value: "beard", label: "ヒゲ有り" }
+  ];
+  
+  // Personality traits options
+  const personalityTraitsOptions = [
+    { value: "bright", label: "明るい" },
+    { value: "calm", label: "穏やか" },
+    { value: "reliable", label: "しっかり者" },
+    { value: "humorous", label: "ユーモアがある" },
+    { value: "social", label: "社交的" },
+    { value: "pure", label: "ピュア" },
+    { value: "friendly", label: "人懐っこい" },
+    { value: "tsundere", label: "ツンデレ" },
+    { value: "otaku", label: "オタク" },
+    { value: "natural", label: "天然" },
+    { value: "intellectual", label: "知的" },
+    { value: "elegant", label: "上品" }
   ];
 
   const formatPrice = (price: number) => {
@@ -113,6 +191,18 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
       setter(value);
     }
   };
+  
+  const handleArrayOptionClick = (
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    currentValues: string[],
+    value: string
+  ) => {
+    if (currentValues.includes(value)) {
+      setter(currentValues.filter((v) => v !== value));
+    } else {
+      setter([...currentValues, value]);
+    }
+  };
 
   const handleReset = () => {
     setLocation("");
@@ -125,6 +215,11 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
     setTherapistType("");
     setTreatmentType("");
     setTherapistAge("");
+    setHeight("");
+    setServiceStyle([]);
+    setFacialFeatures("");
+    setBodyType([]);
+    setPersonalityTraits([]);
   };
 
   // Add useEffect to sync state with initialFilters prop changes
@@ -149,6 +244,11 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
       setTherapistType(initialFilters.therapistType || "");
       setTreatmentType(initialFilters.treatmentType || "");
       setTherapistAge(initialFilters.therapistAge || "");
+      setHeight(initialFilters.height || "");
+      setServiceStyle(initialFilters.serviceStyle || []);
+      setFacialFeatures(initialFilters.facialFeatures || "");
+      setBodyType(initialFilters.bodyType || []);
+      setPersonalityTraits(initialFilters.personalityTraits || []);
       
       console.log('TherapistFilters: Updated internal state with initialFilters');
     }
@@ -168,7 +268,12 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
       mood,
       therapistType,
       treatmentType,
-      therapistAge
+      therapistAge,
+      height,
+      serviceStyle,
+      facialFeatures,
+      bodyType,
+      personalityTraits
     });
   }, [
     location, 
@@ -180,7 +285,12 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
     mood, 
     therapistType, 
     treatmentType, 
-    therapistAge
+    therapistAge,
+    height,
+    serviceStyle,
+    facialFeatures,
+    bodyType,
+    personalityTraits
   ]);
 
   return (
@@ -207,6 +317,108 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
             placeholder="MBTIタイプを選択"
           />
         </div>
+        
+        {/* Age range filter */}
+        <div>
+          <Label className="text-sm mb-1 block">年齢層</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {therapistAgeOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={therapistAge === option.value ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleQuestionnaireOptionClick(setTherapistAge, therapistAge, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        
+        {/* Height filter */}
+        <div>
+          <Label className="text-sm mb-1 block">身長</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {heightOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={height === option.value ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleQuestionnaireOptionClick(setHeight, height, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        
+        {/* Service Style filter */}
+        <div>
+          <Label className="text-sm mb-1 block">接客スタイル</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {serviceStyleOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={serviceStyle.includes(option.value) ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleArrayOptionClick(setServiceStyle, serviceStyle, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        
+        {/* Facial Features filter */}
+        <div>
+          <Label className="text-sm mb-1 block">顔立ち</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {facialFeaturesOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={facialFeatures === option.value ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleQuestionnaireOptionClick(setFacialFeatures, facialFeatures, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        
+        {/* Body Type filter */}
+        <div>
+          <Label className="text-sm mb-1 block">体型・ビジュアル</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {bodyTypeOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={bodyType.includes(option.value) ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleArrayOptionClick(setBodyType, bodyType, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        
+        {/* Personality Traits filter */}
+        <div>
+          <Label className="text-sm mb-1 block">性格・雰囲気</Label>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {personalityTraitsOptions.map((option) => (
+              <Badge
+                key={option.value}
+                variant={personalityTraits.includes(option.value) ? "default" : "outline"}
+                className="cursor-pointer py-0.5 px-2 text-xs"
+                onClick={() => handleArrayOptionClick(setPersonalityTraits, personalityTraits, option.value)}
+              >
+                {option.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
 
         {/* Mood filter */}
         <div>
@@ -218,57 +430,6 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
                 variant={mood === option.value ? "default" : "outline"}
                 className="cursor-pointer py-0.5 px-2 text-xs"
                 onClick={() => handleQuestionnaireOptionClick(setMood, mood, option.value)}
-              >
-                {option.label}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {/* Therapist Type filter */}
-        <div>
-          <Label className="text-sm mb-1 block">性格・雰囲気</Label>
-          <div className="flex flex-wrap gap-1 mb-2">
-            {therapistTypeOptions.map((option) => (
-              <Badge
-                key={option.value}
-                variant={therapistType === option.value ? "default" : "outline"}
-                className="cursor-pointer py-0.5 px-2 text-xs"
-                onClick={() => handleQuestionnaireOptionClick(setTherapistType, therapistType, option.value)}
-              >
-                {option.label}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {/* Treatment Type filter */}
-        <div>
-          <Label className="text-sm mb-1 block">施術スタイル</Label>
-          <div className="flex flex-wrap gap-1 mb-2">
-            {treatmentTypeOptions.map((option) => (
-              <Badge
-                key={option.value}
-                variant={treatmentType === option.value ? "default" : "outline"}
-                className="cursor-pointer py-0.5 px-2 text-xs"
-                onClick={() => handleQuestionnaireOptionClick(setTreatmentType, treatmentType, option.value)}
-              >
-                {option.label}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {/* Therapist Age filter */}
-        <div>
-          <Label className="text-sm mb-1 block">年齢層</Label>
-          <div className="flex flex-wrap gap-1 mb-2">
-            {therapistAgeOptions.map((option) => (
-              <Badge
-                key={option.value}
-                variant={therapistAge === option.value ? "default" : "outline"}
-                className="cursor-pointer py-0.5 px-2 text-xs"
-                onClick={() => handleQuestionnaireOptionClick(setTherapistAge, therapistAge, option.value)}
               >
                 {option.label}
               </Badge>

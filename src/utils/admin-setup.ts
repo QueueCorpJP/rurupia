@@ -4,6 +4,15 @@ import { User } from '@supabase/supabase-js';
 
 export async function setupAdminUser() {
   try {
+    // Get admin password from environment variables
+    const adminPassword = import.meta.env.VITE_ADMIN_DEFAULT_PASSWORD;
+    
+    if (!adminPassword) {
+      throw new Error(
+        'Missing admin password environment variable. Please check your .env file and ensure VITE_ADMIN_DEFAULT_PASSWORD is set.'
+      );
+    }
+
     // First check if admin user already exists
     const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     
@@ -42,7 +51,7 @@ export async function setupAdminUser() {
     // Create new admin user
     const { data: { user }, error } = await supabaseAdmin.auth.admin.createUser({
       email: 'admin@serenitysage.com',
-      password: '5ecurity@SageAdmin2025',
+      password: adminPassword,
       email_confirm: true
     });
 

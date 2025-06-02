@@ -11,6 +11,7 @@ import { toast } from '../components/ui/use-toast';
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import SEO from '@/components/SEO';
+import DOMPurify from 'dompurify';
 
 const BlogDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -454,7 +455,16 @@ const BlogDetail = () => {
                   {post.title}
                 </h1>
                 
-                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
+                <div 
+                  className="prose prose-lg max-w-none" 
+                  dangerouslySetInnerHTML={{ 
+                    __html: DOMPurify.sanitize(post.content, {
+                      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre'],
+                      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel'],
+                      ALLOW_DATA_ATTR: false
+                    }) 
+                  }} 
+                />
                 
                 <div className="flex flex-wrap gap-2 pt-4">
                   {post.tags.map((tag, idx) => (

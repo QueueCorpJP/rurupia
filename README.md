@@ -1,199 +1,173 @@
-# Rurupia - Therapist Connectivity Platform
+# Rurupia（るぴぴあ） - セラピスト向けマッチングプラットフォーム
 
-A web application that connects clients with therapists, manages therapy-related services, and provides a platform for therapist-client interaction.
+クライアントとセラピストを繋ぐWebアプリケーションです。セラピー関連サービスの管理とセラピストとクライアント間のやり取りを可能にするプラットフォームを提供しています。
 
-## Features
+## 機能
 
-- Multiple user roles: Client, Therapist, Store Admin, System Admin
-- Therapist browsing and filtering
-- Appointment booking and management
-- Messaging system between clients and therapists
-- Authentication with email/password, LINE, and Google
-- Blog system with Rich Text Editor
-- Analytics for store and system admins
-- Responsive design for mobile and desktop
+- 複数のユーザー役割：クライアント、セラピスト、店舗管理者、システム管理者
+- セラピストの検索・フィルタリング機能
+- 予約の管理
+- クライアントとセラピスト間のメッセージ機能
+- メール/パスワード、LINE、Googleでの認証
+- リッチテキストエディター搭載のブログシステム
+- 店舗・システム管理者向けアナリティクス機能
+- モバイル・デスクトップ対応のレスポンシブデザイン
 
-## Tech Stack
+## 技術スタック
 
-- **Frontend:** React, TypeScript, Vite, TailwindCSS, Shadcn UI
-- **Backend:** Supabase (Auth, Database, Storage)
-- **Infrastructure:** AWS (S3, CloudFront)
+- **フロントエンド:** React、TypeScript、Vite、TailwindCSS、Shadcn UI
+- **バックエンド:** Supabase（認証、データベース、ストレージ）
+- **インフラ:** AWS（S3、CloudFront）
 
-## Deployment
+## デプロイメント
 
-This project is automatically deployed to AWS using GitHub Actions:
+このプロジェクトは GitHub Actions を使用して AWS に自動デプロイされます：
 
-1. The React application is built using Vite
-2. Built assets are uploaded to AWS S3
-3. CloudFront distribution is invalidated to serve the latest content
+1. ReactアプリケーションがViteを使用してビルドされます
+2. ビルドされたアセットがAWS S3にアップロードされます
+3. CloudFrontディストリビューションが無効化され、最新のコンテンツが配信されます
 
-### AWS Resources
+### AWS リソース
 
-- **S3 Bucket:** `therapist-connectivity-frontend-93b9faa0` (Tokyo region)
-- **CloudFront Distribution:** `dqv3ckdbgwb1i.cloudfront.net`
-- **Custom Domain:** `rupipia.jp` (pending DNS configuration)
+- **S3バケット:** `therapist-connectivity-frontend-93b9faa0`（東京リージョン）
+- **CloudFrontディストリビューション:** `dqv3ckdbgwb1i.cloudfront.net`
+- **カスタムドメイン:** `rupipia.jp`（DNS設定待ち）
 
-### CI/CD Setup
+### CI/CD セットアップ
 
-The repository includes GitHub Actions workflows that automatically:
-- Build the application
-- Deploy to AWS S3
-- Invalidate the CloudFront cache
+リポジトリには以下を自動実行するGitHub Actionsワークフローが含まれています：
+- アプリケーションのビルド
+- AWS S3へのデプロイ
+- CloudFrontキャッシュの無効化
 
-To use this CI/CD pipeline, you must set up the following GitHub repository secrets:
-- `AWS_ACCESS_KEY_ID`: AWS access key with permissions for S3 and CloudFront
-- `AWS_SECRET_ACCESS_KEY`: Corresponding AWS secret key
-- `VITE_SUPABASE_URL`: Your Supabase project URL
-- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
-- `VITE_TINYMCE_API_KEY`: Your TinyMCE API key
+このCI/CDパイプラインを使用するには、以下のGitHubリポジトリシークレットを設定する必要があります：
+- `AWS_ACCESS_KEY_ID`: S3とCloudFrontの権限を持つAWSアクセスキー
+- `AWS_SECRET_ACCESS_KEY`: 対応するAWSシークレットキー
+- `VITE_SUPABASE_URL`: SupabaseプロジェクトURL
+- `VITE_SUPABASE_ANON_KEY`: Supabase匿名キー
+- `VITE_TINYMCE_API_KEY`: TinyMCE APIキー
 
-## Development
+## 開発環境
 
 ```bash
-# Install dependencies
+# 依存関係のインストール
 npm install
 
-# Start development server
+# 開発サーバーの起動
 npm run dev
 
-# Build for production
+# 本番用ビルド
 npm run build
 
-# Preview production build
+# 本番ビルドのプレビュー
 npm run preview
 ```
 
-## DNS Configuration
+## 環境変数の設定
 
-To set up the custom domain (rupipia.jp), you need to:
+プロジェクトを動作させるには、以下の環境変数を `.env` ファイルに設定する必要があります：
 
-1. Add the following DNS validation record for the SSL certificate:
+```bash
+# Supabase設定
+VITE_SUPABASE_URL=your-supabase-project-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+
+# 管理者設定
+VITE_ADMIN_DEFAULT_PASSWORD=your-secure-admin-password
+```
+
+サンプルファイル `.env.example` を参考にしてください。
+
+## DNS設定
+
+カスタムドメイン（rupipia.jp）を設定するには、以下の手順が必要です：
+
+1. SSL証明書のDNS検証レコードを追加：
    - CNAME: `_9a689ffbd47df0f833e3dcb0d742c029.rupipia.jp`
-   - Value: `_ca8dbb7f5b87f13819f0f5bcd230052e.xlfgrmvvlj.acm-validations.aws`
+   - 値: `_ca8dbb7f5b87f13819f0f5bcd230052e.xlfgrmvvlj.acm-validations.aws`
 
-2. After the certificate is validated, add a CNAME record:
+2. 証明書の検証後、CNAMEレコードを追加：
    - CNAME: `rupipia.jp`
-   - Value: `dqv3ckdbgwb1i.cloudfront.net`
+   - 値: `dqv3ckdbgwb1i.cloudfront.net`
 
-## Live Demo
-The application is deployed and accessible at: [https://therapist-connectivity.vercel.app/](https://therapist-connectivity.vercel.app/)
+## ライブデモ
+アプリケーションは以下のURLでデプロイされ、アクセス可能です：[https://therapist-connectivity.vercel.app/](https://therapist-connectivity.vercel.app/)
 
-## Available Routes
+## 利用可能なルート
 
-### Main Pages
-- `/` - Home/Landing page
-- `/therapists` - Browse all therapists
-- `/therapists/:id` - View specific therapist details
-- `/book/:id` - Book an appointment with a specific therapist
-- `/contact` - Contact page
-- `/blog` - Blog listing page
-- `/blog/:slug` - Individual blog post
+### メインページ
+- `/` - ホーム/ランディングページ
+- `/therapists` - 全セラピスト一覧
+- `/therapists/:id` - 特定のセラピスト詳細表示
+- `/book/:id` - 特定のセラピストとの予約
+- `/contact` - お問い合わせページ
+- `/blog` - ブログ一覧ページ
+- `/blog/:slug` - 個別ブログ記事
 
-### User Routes
-- `/user-profile` - User profile management
-- `/user-bookings` - View and manage user bookings
-- `/messages` - Messages overview
-- `/messages/:id` - Individual message thread
+### ユーザールート
+- `/user-profile` - ユーザープロフィール管理
+- `/user-bookings` - ユーザー予約の表示・管理
+- `/messages` - メッセージ概要
+- `/messages/:id` - 個別メッセージスレッド
 
-### Therapist Routes
-- `/therapist-dashboard` - Therapist's dashboard
-- `/therapist-login` - Therapist login
-- `/therapist-signup` - Therapist registration
+### セラピストルート
+- `/therapist-dashboard` - セラピストダッシュボード
+- `/therapist-login` - セラピストログイン
+- `/therapist-signup` - セラピスト登録
 
-### Authentication Routes
-- `/login` - User login
-- `/signup` - User registration
-- `/store-login` - Store admin login
-- `/store-signup` - Store registration
+### 認証ルート
+- `/login` - ユーザーログイン
+- `/signup` - ユーザー登録
+- `/store-login` - 店舗管理者ログイン
+- `/store-signup` - 店舗登録
 
-### Admin Panel Routes
-All admin routes are prefixed with `/admin`
-- `/admin` - Admin dashboard
-- `/admin/accounts` - Manage user accounts
-- `/admin/requests` - Handle requests
-- `/admin/inquiries` - Manage inquiries
-- `/admin/blog` - Blog management
-- `/admin/settings` - Admin settings
+### 管理者パネルルート
+全ての管理者ルートには `/admin` プレフィックスが付きます
+- `/admin` - 管理者ダッシュボード
+- `/admin/accounts` - ユーザーアカウント管理
+- `/admin/requests` - リクエスト処理
+- `/admin/inquiries` - お問い合わせ管理
+- `/admin/blog` - ブログ管理
+- `/admin/settings` - 管理者設定
 
-### Store Management Routes
-All store routes are prefixed with `/store-admin`
-- `/store-admin` - Store dashboard
-- `/store-admin/therapists` - Manage therapists
-- `/store-admin/bookings` - Manage bookings
-- `/store-admin/courses` - Manage courses
-- `/store-admin/inquiries` - Handle store inquiries
-- `/store-admin/analytics` - View analytics
+### 店舗管理ルート
+全ての店舗ルートには `/store-admin` プレフィックスが付きます
+- `/store-admin` - 店舗ダッシュボード
+- `/store-admin/therapists` - セラピスト管理
+- `/store-admin/bookings` - 予約管理
+- `/store-admin/courses` - コース管理
+- `/store-admin/inquiries` - 店舗お問い合わせ処理
+- `/store-admin/analytics` - アナリティクス表示
 
-## API Endpoints
+## セキュリティ対策
 
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - New user registration
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/session` - Get current session
+- XSS攻撃対策：DOMPurifyを使用したHTMLサニタイゼーション
+- 認証情報の環境変数化：ハードコーディングされた秘密鍵の削除
+- Row Level Security（RLS）ポリシーによるデータアクセス制御
 
-### User Management
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update profile
-- `GET /api/users/therapists` - List therapists
-- `GET /api/users/therapists/:id` - Get therapist details
+## プロジェクト構造
 
-### Appointments
-- `GET /api/appointments` - List appointments
-- `POST /api/appointments` - Create appointment
-- `PUT /api/appointments/:id` - Update appointment
-- `DELETE /api/appointments/:id` - Cancel appointment
-- `GET /api/appointments/:id` - Get appointment details
+```
+src/
+├── components/          # 再利用可能なUIコンポーネント
+├── pages/              # ページコンポーネント
+├── integrations/       # 外部サービス統合
+│   └── supabase/       # Supabase設定とクライアント
+├── utils/              # ユーティリティ関数
+├── contexts/           # Reactコンテキスト
+├── hooks/              # カスタムReactフック
+└── types/              # TypeScript型定義
+```
 
-### Messaging
-- `GET /api/messages` - Get messages
-- `POST /api/messages` - Send message
-- `GET /api/messages/:conversationId` - Get conversation
+## 貢献
 
-### Store Management
-- `GET /api/store/analytics` - Get store analytics
-- `GET /api/store/bookings` - Get store bookings
-- `GET /api/store/courses` - Get courses
-- `POST /api/store/courses` - Create course
-- `PUT /api/store/courses/:id` - Update course
+1. このリポジトリをフォークしてください
+2. 機能ブランチを作成してください（`git checkout -b feature/amazing-feature`）
+3. 変更をコミットしてください（`git commit -m 'Add some amazing feature'`）
+4. ブランチにプッシュしてください（`git push origin feature/amazing-feature`）
+5. プルリクエストを開いてください
 
-# Memory and Lesson Management System
+## ライセンス
 
-This system maintains user interactions, memories, and learned lessons through two primary JSON files:
-
-## memory.json
-Stores user-related information including:
-- Basic identity
-- Behaviors
-- Preferences
-- Goals
-- Relationships (up to 3 degrees of separation)
-- Entities and their relationships
-
-## lessons.json
-Tracks error-related information including:
-- Error patterns
-- Solutions
-- Success metrics
-- Verification steps
-
-## File Management
-- Files automatically split at 1000 lines
-- Atomic and factual observations
-- Clear naming conventions
-- Regular updates and maintenance
-
-## Quality Guidelines
-### Lessons
-- Descriptive names (e.g., "NEXTJS_BUILD_ERROR_001")
-- Detailed error patterns
-- Testable verification steps
-- Environmental requirements
-- Solution effectiveness tracking
-
-### Memory
-- Atomic observations
-- Active voice relations
-- Consistent entity naming
-- Meaningful connections
-- Regular cleanup
+このプロジェクトは MIT ライセンスの下で配布されています。詳細については `LICENSE` ファイルをご覧ください。

@@ -95,7 +95,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
       <header className="sticky top-0 w-full bg-white border-b z-40">
         <div className="container flex h-16 items-center">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo/rurupia_logo.png" alt="るぴぴあ" className="h-14 w-auto" />
+            <img src="/logo/rupipia_logo.png" alt="るぴぴあ" className="h-14 w-auto" />
           
           </Link>
           

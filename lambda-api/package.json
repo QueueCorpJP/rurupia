@@ -1,0 +1,13 @@
+{
+  "name": "rurupia-lambda-api",
+  "version": "1.0.0",
+  "description": "Lambda function for Rurupia API",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "zip -r function.zip . -x node_modules/\\* \\*.git\\*"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  }
+} 

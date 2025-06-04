@@ -57,19 +57,34 @@
     *   Provider: Supabase (PaaS).
     *   Services Used: Supabase Auth (including OAuth for LINE, Google), Supabase Database (PostgreSQL), Supabase Storage (for blog images, verification documents).
     *   Database Migrations: Managed via Supabase CLI (migration files in `supabase/migrations/`). Numerous other ad-hoc SQL scripts are present in various locations (`/`, `api/`, `supabase/`, `migrations/` at root).
+*   **AWS Infrastructure (Serverless Backend):**
+    *   AWS Lambda function `rurupia-api` deployed in ap-northeast-1 region
+    *   API Gateway `rurupia-api` (ID: pq33gk4qqd) with proxy integration
+    *   Production endpoint: https://pq33gk4qqd.execute-api.ap-northeast-1.amazonaws.com/prod
+    *   IAM role `rurupia-lambda-role` with basic execution permissions
+    *   Lambda handles API routes: `/api/post-likes`, `/api/user-likes`, `/api/post-comments`, `/api/config`
+    *   Environment variables securely stored in Lambda configuration
+*   **Deployment & Hosting:**
+    *   Frontend: AWS S3 bucket with CloudFront distribution (E2P3Q41GY0N3CJ)
+    *   Domain: rupipia.jp
+    *   CloudFront configuration:
+        - S3 origin for static frontend files
+        - API Gateway origin for `/api/*` routes  
+        - CORS enabled for API endpoints
+        - Cache behaviors optimized for static assets and API responses
 *   **API Interaction:**
     *   Primarily client-side interaction with Supabase services (Database, Auth, Storage) using the `supabase-js` client library.
+    *   Additional API routes handled by AWS Lambda for post likes/comments and configuration
     *   Data logic, authorization, and complex operations are handled by Supabase RLS policies, database functions (PL/pgSQL), and triggers.
-*   **Deployment:**
-    *   Platform: Configured for Vercel (`vercel.json`).
-    *   Strategy: Deployed as a Single Page Application (SPA). `vercel.json` specifies `framework: "vite"` and rewrites all requests to `index.html`.
-    *   Build: `npm run build` outputting to `dist/` directory.
+    *   Configuration service (`src/lib/config.ts`) fetches environment variables from Lambda API endpoint
 *   **Development & Tooling:**
     *   Package Manager: npm (indicated by `package-lock.json`, though `bun.lockb` also exists).
     *   Linting: ESLint with TypeScript support.
     *   Component Tagger: `lovable-tagger` (used in development mode via Vite config).
-    *   Supabase Client: Initialized in `src/integrations/supabase/client.ts` with hardcoded URL/anon key and `localStorage` for session persistence.
-    *   Supabase Admin Client: A separate client initialized in `src/integrations/supabase/admin-client.ts` using a hardcoded Service Role Key. This is intended for admin operations but poses a **critical security risk if ever imported and used in client-side code.**
+    *   Supabase Client: Initialized in `src/integrations/supabase/client.ts` with environment variables for URL/anon key and `localStorage` for session persistence.
+    *   Supabase Admin Client: A separate client initialized in `src/integrations/supabase/admin-client.ts` using environment variables for Service Role Key.
+    *   Environment Variables: Managed through `.env` file for development and Lambda environment for production
+    *   Configuration Service: `src/lib/config.ts` provides secure access to environment variables in production
     *   Auth State Management: 
         *   Uses a combination of Supabase auth session and custom localStorage caching for user types.
         *   The app determines user types by checking multiple tables (`stores`, `therapists`, `profiles`) and caches the result in localStorage under the key 'nokutoru_user_type'.
@@ -99,13 +114,20 @@
     *   `App.tsx`: Root component with routing setup.
     *   `pages/`: Route components.
     *   `components/`: Reusable UI components (including Shadcn UI).
-    *   `integrations/supabase/client.ts`: Supabase client setup.
+    *   `integrations/supabase/client.ts`: Supabase client setup with environment variables.
+    *   `lib/config.ts`: Configuration service for environment variables.
     *   `contexts/`, `hooks/`, `utils/`, `types/`.
+*   `lambda-api/`: AWS Lambda function code
+    *   `index.js`: Main Lambda handler with API routes
+    *   `package.json`: Node.js dependencies (Supabase client)
 *   `supabase/`: Supabase CLI related files.
     *   `migrations/`: Official database migration scripts.
     *   `config.toml`: Supabase project ID.
     *   Numerous other SQL scripts and READMEs for specific features/fixes.
+*   `api/`: Legacy API routes (now handled by Lambda)
 *   `public/`: Static assets.
+*   `.env`: Environment variables for development
+*   `.env.example`: Template for environment variables
 *   SQL Scripts: Many `.sql` files across the project for initial setup, fixes, feature additions (e.g., `supabase-setup.sql`, `api/database-setup.sql`, `add-questionnaire-columns.sql`).
 *   Configuration: `vite.config.ts`, `tailwind.config.ts`, `tsconfig.json`, `package.json`, `vercel.json`, `eslint.config.js`.
 *   Documentation: Various `README.md` files explaining setup for Supabase, LINE login, questionnaire, therapist signup, etc.
@@ -557,3 +579,43 @@ The following issues have been identified and require immediate attention:
 - Scattered SQL scripts across multiple directories
 - Legacy API code that's not used (api/post-api-routes.js)
 - Dual lockfiles (package-lock.json and bun.lockb)
+
+## AWS Infrastructure
+
+**CloudFront Distribution:**
+*   Distribution ID: E2P3Q41GY0N3CJ
+*   Domain: rupipia.jp
+*   Origins:
+    *   S3 bucket (static frontend files)
+    *   API Gateway (backend serverless functions)
+*   Cache behaviors:
+    *   Default: S3 bucket (static files)
+    *   Path pattern `/api/*`: API Gateway (backend APIs)
+
+**Lambda Function:**
+*   Function name: rurupia-api
+*   Runtime: Node.js 20.x
+*   Region: ap-northeast-1
+*   Handler: index.handler
+*   IAM Role: rurupia-lambda-role
+*   Environment variables:
+    *   SUPABASE_URL: Supabase project URL
+    *   SUPABASE_SERVICE_ROLE_KEY: Supabase service role key (for server operations)
+    *   SUPABASE_ANON_KEY: Supabase anonymous key (for client operations)
+    *   VITE_TINYMCE_API_KEY: TinyMCE editor API key
+    *   VITE_APP_LINE_CLIENT_ID: LINE OAuth client ID
+    *   VITE_APP_LINE_CLIENT_SECRET: LINE OAuth client secret
+
+**API Gateway:**
+*   API ID: pq33gk4qqd
+*   Name: rurupia-api
+*   Endpoint: https://pq33gk4qqd.execute-api.ap-northeast-1.amazonaws.com/prod
+*   Resources:
+    *   Proxy resource {proxy+} with ANY method
+    *   OPTIONS method with CORS configuration
+
+**API Endpoints:**
+*   `/api/config`: Returns environment variables for the frontend
+*   `/api/post-likes`: Manages post likes (POST/DELETE)
+*   `/api/user-likes`: Retrieves user likes
+*   `/api/post-comments`: Manages post comments

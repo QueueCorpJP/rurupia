@@ -18,9 +18,10 @@ export async function getConfig() {
     // Fallback to environment variables for development
     return {
       VITE_TINYMCE_API_KEY: (import.meta as any).env?.VITE_TINYMCE_API_KEY,
-      VTIE_APP_LINE_CLIENT_ID: (import.meta as any).env?.VTIE_APP_LINE_CLIENT_ID,
+      VITE_APP_LINE_CLIENT_ID: (import.meta as any).env?.VITE_APP_LINE_CLIENT_ID,
       VITE_APP_LINE_CLIENT_SECRET: (import.meta as any).env?.VITE_APP_LINE_CLIENT_SECRET,
-      SUPABASE_URL: (import.meta as any).env?.VITE_SUPABASE_URL
+      VITE_SUPABASE_URL: (import.meta as any).env?.VITE_SUPABASE_URL,
+      VITE_SUPABASE_ANON_KEY: (import.meta as any).env?.VITE_SUPABASE_ANON_KEY
     };
   }
 }
@@ -33,7 +34,7 @@ export async function getTinyMCEApiKey() {
 
 export async function getLineClientId() {
   const config = await getConfig();
-  return config.VTIE_APP_LINE_CLIENT_ID;
+  return config.VITE_APP_LINE_CLIENT_ID;
 }
 
 export async function getLineClientSecret() {
@@ -43,5 +44,10 @@ export async function getLineClientSecret() {
 
 export async function getSupabaseUrl() {
   const config = await getConfig();
-  return config.SUPABASE_URL;
+  return config.VITE_SUPABASE_URL;
+}
+
+export async function getSupabaseAnonKey() {
+  const config = await getConfig();
+  return config.VITE_SUPABASE_ANON_KEY;
 } 

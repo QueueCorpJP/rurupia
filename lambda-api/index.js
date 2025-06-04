@@ -346,8 +346,8 @@ async function handleConfig() {
       VITE_APP_LINE_CLIENT_ID: process.env.VITE_APP_LINE_CLIENT_ID,
       VITE_APP_LINE_CLIENT_SECRET: process.env.VITE_APP_LINE_CLIENT_SECRET,
       VITE_SUPABASE_URL: process.env.SUPABASE_URL,
-      VITE_SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
-      // Note: We don't expose the service role key to frontend
+      VITE_SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY,
+      VITE_SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY
     })
   };
 } 

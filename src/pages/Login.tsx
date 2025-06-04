@@ -119,29 +119,17 @@ const Login = () => {
   const handleLineLogin = async () => {
     try {
       setIsLoading(true);
-      
-      const LINE_CLIENT_ID = process.env.VITE_LINE_CLIENT_ID || "2007106410";
-      const REDIRECT_URI = process.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
+      const clientId = import.meta.env.VITE_APP_LINE_CLIENT_ID || "2007106410";
+      const redirectUri = import.meta.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
       
       sessionStorage.setItem("line_auth_intent", "login");
       
-      const LINE_OAUTH_URL = 
-        `https://access.line.me/oauth2/v2.1/authorize?` + 
-        `response_type=code&` +
-        `client_id=${encodeURIComponent(LINE_CLIENT_ID)}&` +
-        `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
-        `state=login&` +
-        `scope=${encodeURIComponent("profile openid email")}&` +
-        `nonce=${encodeURIComponent(Math.random().toString(36).substring(2, 15))}&` +
-        `prompt=consent&` +
-        `bot_prompt=normal`;
+      const lineLoginUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=login&scope=${encodeURIComponent("profile openid email")}&nonce=${encodeURIComponent(Math.random().toString(36).substring(2, 15))}&prompt=consent&bot_prompt=normal`;
       
-      window.location.href = LINE_OAUTH_URL;
+      window.location.href = lineLoginUrl;
     } catch (error) {
       console.error("LINE login error:", error);
-      toast.error("LINEログイン中にエラーが発生しました", {
-        duration: 3000,
-      });
+      toast.error("LINEログイン中にエラーが発生しました", { duration: 3000 });
       setIsLoading(false);
     }
   };

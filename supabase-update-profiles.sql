@@ -41,12 +41,19 @@ CREATE TRIGGER update_profiles_updated_at
 
 -- Create or replace the function to handle new user signups
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+RETURNS TRIGGER AS $$
 BEGIN
     -- Check if profile already exists to prevent duplicates
     IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = new.id) THEN
-        INSERT INTO public.profiles (id, email)
-        VALUES (new.id, new.email);
+        INSERT INTO public.profiles (id, email, full_name, avatar_url, line_id, user_type)
+        VALUES (
+            new.id,
+            new.email,
+            new.raw_user_meta_data->>'full_name',
+            new.raw_user_meta_data->>'avatar_url',
+            new.raw_user_meta_data->>'line_id',
+            COALESCE(new.raw_user_meta_data->>'user_type', 'customer') -- Default to 'customer'
+        );
     END IF;
     RETURN new;
 END;

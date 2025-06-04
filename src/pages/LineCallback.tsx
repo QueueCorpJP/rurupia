@@ -32,11 +32,17 @@ const LineCallback = () => {
         }
 
         // Ensure this URI exactly matches what is registered in your LINE console
-        const REDIRECT_URI = process.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
+        const REDIRECT_URI = import.meta.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
 
-        // It's recommended to store sensitive keys in environment variables
-        const LINE_CLIENT_ID = process.env.VITE_LINE_CLIENT_ID;
-        const LINE_CLIENT_SECRET = process.env.VITE_LINE_CLIENT_SECRET;
+        // Get the client credentials from environment variables
+        const LINE_CLIENT_ID = import.meta.env.VITE_APP_LINE_CLIENT_ID;
+        const LINE_CLIENT_SECRET = import.meta.env.VITE_APP_LINE_CLIENT_SECRET;
+
+        console.log("Using LINE credentials:", { 
+          clientId: LINE_CLIENT_ID, 
+          redirectUri: REDIRECT_URI,
+          hasSecret: !!LINE_CLIENT_SECRET
+        });
 
         // Exchange the authorization code for an access token with LINE's API
         const tokenResponse = await fetch("https://api.line.me/oauth2/v2.1/token", {
@@ -48,13 +54,14 @@ const LineCallback = () => {
             grant_type: "authorization_code",
             code,
             redirect_uri: REDIRECT_URI,
-            client_id: LINE_CLIENT_ID!,
-            client_secret: LINE_CLIENT_SECRET!,
+            client_id: LINE_CLIENT_ID,
+            client_secret: LINE_CLIENT_SECRET,
           }),
         });
 
         if (!tokenResponse.ok) {
           const errData = await tokenResponse.json();
+          console.error("Token exchange error:", errData);
           setError(`トークン交換に失敗しました: ${errData.error || tokenResponse.statusText}`);
           setIsProcessing(false);
           return;
@@ -71,51 +78,143 @@ const LineCallback = () => {
           return;
         }
 
-        // Call Supabase Edge Function
-        // Ensure 'line-auth-handler' is the correct name of your deployed Edge Function
-        const { data: functionInvokeData, error: functionError } = await supabase.functions.invoke(
-          'line-auth-handler', 
-          { body: { id_token, access_token } } 
+        // Decode the ID token to get user info (simple JWT parsing)
+        const base64Url = id_token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
         );
+        const idTokenData = JSON.parse(jsonPayload);
+        
+        // Get user profile from LINE API
+        const profileResponse = await fetch("https://api.line.me/v2/profile", {
+          headers: {
+            "Authorization": `Bearer ${access_token}`,
+          },
+        });
 
-        if (functionError) {
-          console.error("Edge function error:", functionError);
-          setError(`認証処理エラー: ${functionError.message}`);
+        if (!profileResponse.ok) {
+          setError("LINEプロフィール情報の取得に失敗しました");
           setIsProcessing(false);
           return;
         }
-        
-        // IMPORTANT: Edge function NO LONGER returns Supabase session tokens in this simplified model
-        if (functionInvokeData && functionInvokeData.profile) {
-          // Store the fetched profile data or a "logged in via LINE" flag
-          // in your client-side state management (React Context, Zustand, etc.)
-          // For example, you might dispatch an action or call a context function:
-          // authContext.setLineUser(functionInvokeData.profile);
-          // authContext.setAuthMethod('line');
-          // This part depends on your app's state management approach.
 
-          // Persist user type if your application relies on it for UI/routing
-          if (functionInvokeData.user_type) {
-            localStorage.setItem('nokutoru_user_type', functionInvokeData.user_type);
+        const profileData = await profileResponse.json();
+        const { userId, displayName, pictureUrl } = profileData;
+        const email = idTokenData.email;
+
+        // Check if user already exists in profiles table by line_id
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .eq('line_id', userId)
+          .single();
+
+        let authResult;
+        let isNewUser = false;
+
+        if (existingProfile) {
+          // User exists, sign them in using their email
+          if (email) {
+            // Create a one-time password for LINE users
+            const tempPassword = `line_${userId}_${Date.now()}`;
+            authResult = await supabase.auth.signInWithPassword({
+              email: email,
+              password: tempPassword
+            });
+
+            // If sign in fails, try to create the user with this password
+            if (authResult.error) {
+              authResult = await supabase.auth.signUp({
+                email: email,
+                password: tempPassword,
+                options: {
+                  data: {
+                    line_id: userId,
+                    full_name: displayName,
+                    avatar_url: pictureUrl,
+                    provider: 'line'
+                  }
+                }
+              });
+            }
+          } else {
+            setError("LINEアカウントにメールアドレスが設定されていません");
+            setIsProcessing(false);
+            return;
           }
+        } else {
+          // New user, create account
+          if (!email) {
+            setError("LINEアカウントにメールアドレスが設定されていません");
+            setIsProcessing(false);
+            return;
+          }
+
+          const tempPassword = `line_${userId}_${Date.now()}`;
+          authResult = await supabase.auth.signUp({
+            email: email,
+            password: tempPassword,
+            options: {
+              data: {
+                line_id: userId,
+                full_name: displayName,
+                avatar_url: pictureUrl,
+                provider: 'line',
+                user_type: 'customer'
+              }
+            }
+          });
+          isNewUser = true;
+        }
+
+        if (authResult.error) {
+          console.error("Supabase auth error:", authResult.error);
+          setError(`認証エラー: ${authResult.error.message}`);
+          setIsProcessing(false);
+          return;
+        }
+
+        // Update profile with LINE information
+        if (authResult.data.user) {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: authResult.data.user.id,
+              email: email,
+              full_name: displayName,
+              avatar_url: pictureUrl,
+              line_id: userId,
+              user_type: 'customer'
+            });
+
+          if (updateError) {
+            console.error("Profile update error:", updateError);
+            // Don't fail the auth for this
+          }
+
+          // Store user type for UI
+          localStorage.setItem('nokutoru_user_type', 'customer');
           
-          toast.success("LINEアカウントで正常に処理されました。");
+          toast.success("LINEアカウントで正常にログインしました！");
           
           const intent = sessionStorage.getItem("line_auth_intent") || "login";
           sessionStorage.removeItem("line_auth_intent");
 
           // Navigate based on whether it was a login or a new user signup via LINE
-          if (intent === "signup" && functionInvokeData.is_new_user) {
+          if (intent === "signup" && isNewUser) {
             navigate("/user-profile"); // Or a welcome/profile completion page
           } else {
             navigate("/user-profile"); // Default navigation for login
           }
         } else {
-          console.error("LINE Auth: Edge function did not return expected profile data:", functionInvokeData);
-          setError("LINE認証からのユーザーデータの取得に失敗しました。データ構造を確認してください。");
+          setError("ユーザー認証に失敗しました");
           setIsProcessing(false);
-          return;
         }
+
       } catch (err) {
         console.error("LINE callback error:", err);
         setError("処理中にエラーが発生しました");

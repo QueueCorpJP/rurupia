@@ -619,3 +619,142 @@ The following issues have been identified and require immediate attention:
 *   `/api/post-likes`: Manages post likes (POST/DELETE)
 *   `/api/user-likes`: Retrieves user likes
 *   `/api/post-comments`: Manages post comments
+
+# Rurupia - Therapist Connectivity Platform
+
+## Project Overview
+Rurupia is a web platform for connecting clients with therapists. The platform allows users to search for therapists, book sessions, and communicate with therapists.
+
+## Architecture
+- Frontend: React + Vite + TypeScript + ShadCN UI
+- Backend: Supabase (PostgreSQL + Authentication)
+- Hosting: AWS S3 + CloudFront
+- API Gateway + Lambda for environment variables and server-side operations
+- Supabase Edge Functions for specialized integrations (e.g., LINE Login)
+
+## Authentication Methods
+The platform supports multiple authentication methods:
+- Email/Password
+- Google OAuth
+- LINE Login
+
+## Key Components
+1. Frontend React SPA hosted on S3/CloudFront
+2. Server-side environment variables served via Lambda function
+3. Supabase database for storing user data, therapist profiles, bookings, etc.
+4. Supabase authentication for user management
+5. Edge Functions for specialized integration logic (e.g., LINE authentication)
+
+## Challenges Resolved
+1. CloudFront/S3 routing for SPA with proper error handling
+2. Environment variable handling in a static hosting environment
+3. Supabase client initialization with proper error handling
+4. LINE Login integration with appropriate environment variables and Edge Functions
+
+## LINE Authentication Flow
+1. User initiates LINE Login from login/signup page
+2. User is redirected to LINE authorization page
+3. LINE redirects back to our application with an authorization code
+4. Frontend exchanges code for ID token and access token
+5. Frontend calls Supabase Edge Function with tokens
+6. Edge Function verifies tokens, retrieves user profile, and creates/updates user in Supabase
+7. User is logged in and redirected to appropriate page
+
+## Environment Variables
+- VITE_APP_LINE_CLIENT_ID: LINE Login client ID
+- VITE_APP_LINE_CLIENT_SECRET: LINE Login client secret 
+- VITE_LINE_REDIRECT_URI: Callback URL for LINE Login
+- Other environment variables for Supabase connection
+
+## Notes
+- The frontend is designed as a SPA and requires CloudFront to handle routing
+- The platform uses a responsive design for mobile and desktop
+- The codebase follows a component-based architecture with React
+
+Project Understanding Summary:
+
+Core Functionality:
+The project appears to be a web application with user authentication, including social login via LINE. It uses Supabase for its backend, including Auth, Database (Postgres), and Edge Functions.
+
+Key Components Identified:
+- Supabase Project: "nokutoru" (ID: vvwkuqnotnilsbcswfqu)
+- Authentication:
+  - Standard Supabase Auth.
+  - LINE Login:
+    - Frontend initiates LINE login and handles callback via `src/pages/LineCallback.tsx`.
+    - Callback component calls Supabase Edge Function `line-auth-handler`.
+    - Edge Function (`supabase/functions/line-auth-handler/index.ts`):
+      - Receives LINE `id_token` and `access_token`.
+      - Verifies tokens and fetches user profile (including email) from LINE APIs.
+      - For new users:
+        - Creates an `auth.users` entry using `supabase.auth.admin.createUser`.
+        - Populates `user_metadata` with `line_id`, `full_name`, `avatar_url` from LINE, and `provider: 'line'`.
+      - For existing users (identified by `line_id` in `profiles` table):
+        - Updates `full_name` and `avatar_url` in their `profiles` entry.
+- Database:
+  - `profiles` table: Stores user profile information, linked to `auth.users` by `id`.
+    - Contains `line_id` column for LINE integration.
+    - Other columns include `full_name`, `avatar_url`, `email`, `user_type`.
+  - `handle_new_user` SQL function:
+    - Triggered on `AFTER INSERT ON auth.users`.
+    - **Updated (based on my last interaction on this issue):** Now creates an entry in `public.profiles` by inserting `id`, `email` from the new `auth.users` record, AND `full_name`, `avatar_url`, `line_id` from `NEW.raw_user_meta_data`. It also sets a default `user_type` to 'customer'. This ensures LINE-specific information is immediately available in the profile upon creation.
+- Environment Variables:
+  - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`: Standard Supabase keys.
+  - `VITE_APP_LINE_CLIENT_ID`, `VITE_APP_LINE_CLIENT_SECRET`: LINE OAuth application credentials. These are used by the frontend (`LineCallback.tsx`) and the Edge Function (`line-auth-handler` which fetches `VITE_APP_LINE_CLIENT_ID` from its environment).
+
+Recent Issue & Fix:
+- Problem: LINE authentication was not properly adding the LINE account details (like `line_id`, `full_name`) to the user's profile in the `profiles` table for new users.
+- Solution Implemented: Modified the `handle_new_user` SQL trigger function in `supabase-update-profiles.sql`. This function now extracts `line_id`, `full_name`, and `avatar_url` from `NEW.raw_user_meta_data` (which is populated by the `line-auth-handler` Edge Function during `createUser`) and inserts them directly into the `profiles` table when a new user is created. This ensures that the `profiles` entry is complete with LINE information from the start. The Edge Function's existing logic to update the profile for new users acts as a safeguard.
+
+Assumptions:
+- The `line-auth-handler` Edge Function is correctly deployed and configured with necessary environment variables (Supabase URL/Service Key, LINE Client ID).
+- The LINE Developer Console callback URL is correctly configured to point to the application's callback path handled by `LineCallback.tsx`.
+- The `VITE_APP_LINE_CLIENT_ID` and `VITE_APP_LINE_CLIENT_SECRET` are correctly set in their respective environments.
+
+User Story/Problem Solved:
+- User reported that LINE authentication was not working properly, and the account wasn't being added to the profile.
+- The fix ensures that when a new user signs up via LINE, their `line_id`, `full_name`, and `avatar_url` are correctly stored in the `profiles` table.
+
+## Recent Updates & Improvements
+
+### LINE Authentication Simplification - COMPLETED ✅
+
+**Problem**: The original LINE authentication flow used Supabase Edge Functions which were difficult to deploy and had many errors.
+
+**Solution**: Simplified the LINE authentication to work entirely client-side without Edge Functions:
+
+1. **LineCallback.tsx Updates**:
+   - Removed Edge Function dependency (`line-auth-handler`)
+   - Added direct LINE API calls to get user profile information
+   - Implemented client-side JWT token parsing to extract user email
+   - Added direct Supabase auth.signUp/signInWithPassword calls
+   - Added profile table upsert to ensure LINE information is stored
+
+2. **Authentication Flow**:
+   - User initiates LINE Login → LINE authorization → Callback with code
+   - Exchange code for access_token and id_token via LINE API
+   - Parse id_token to get email, fetch profile from LINE API
+   - Check if user exists in profiles table by line_id
+   - For existing users: Sign in with email and temporary password
+   - For new users: Sign up with email, temporary password, and LINE metadata
+   - Update/insert profile with LINE information (line_id, full_name, avatar_url)
+
+3. **Database Integration**:
+   - Applied migration to ensure `handle_new_user` trigger populates LINE data
+   - Trigger extracts `line_id`, `full_name`, `avatar_url` from `raw_user_meta_data`
+   - Sets default `user_type` to 'customer' for new LINE users
+
+4. **Benefits**:
+   - No Edge Function deployment required
+   - Simpler architecture with fewer failure points
+   - Direct integration with Supabase auth
+   - Automatic profile creation via existing database triggers
+
+**Technical Details**:
+- Uses temporary passwords for LINE users (`line_${userId}_${timestamp}`)
+- Handles both new user registration and existing user login
+- Proper error handling for missing email addresses
+- JWT parsing for id_token without external libraries
+- Profile table upsert ensures data consistency
+
+// ... existing code ...

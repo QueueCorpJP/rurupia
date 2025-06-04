@@ -159,29 +159,16 @@ const Signup = () => {
   const handleLineSignup = async () => {
     try {
       setIsLoading(true);
+      const clientId = import.meta.env.VITE_APP_LINE_CLIENT_ID || "2007106410";
+      const redirectUri = import.meta.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
       
-      // Use environment variable for the LINE client ID
-      const LINE_CLIENT_ID = process.env.VITE_LINE_CLIENT_ID || "2007106410";
-      // Use a fixed redirect URI that matches your LINE developer console configuration
-      const REDIRECT_URI = process.env.VITE_LINE_REDIRECT_URI || "https://rupipia.jp/line-callback";
-      
-      // Store the intent in sessionStorage for the callback handling
+      // Store signup intent in sessionStorage
       sessionStorage.setItem("line_auth_intent", "signup");
       
-      // Construct the LINE OAuth URL using LINE's v2.1 endpoint
-      const LINE_OAUTH_URL = 
-        `https://access.line.me/oauth2/v2.1/authorize?` + 
-        `response_type=code&` +
-        `client_id=${encodeURIComponent(LINE_CLIENT_ID)}&` +
-        `redirect_uri=${encodeURIComponent(REDIRECT_URI)}&` +
-        `state=signup&` +
-        `scope=${encodeURIComponent("profile openid email")}&` +
-        `nonce=${encodeURIComponent(Math.random().toString(36).substring(2, 15))}&` +
-        `prompt=consent&` +
-        `bot_prompt=normal`;
+      // Construct LINE login URL with signup state
+      const lineLoginUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=signup&scope=${encodeURIComponent("profile openid email")}&nonce=${encodeURIComponent(Math.random().toString(36).substring(2, 15))}&prompt=consent&bot_prompt=normal`;
       
-      // Redirect the user to the LINE OAuth page
-      window.location.href = LINE_OAUTH_URL;
+      window.location.href = lineLoginUrl;
     } catch (error) {
       console.error("LINE signup error:", error);
       toast.error("LINEでの登録中にエラーが発生しました");

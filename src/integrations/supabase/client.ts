@@ -133,6 +133,10 @@ const createSimpleClient = () => {
         const client = await initializeClientAsync();
         return client.auth.getSession();
       },
+      getUser: async () => {
+        const client = await initializeClientAsync();
+        return client.auth.getUser();
+      },
       signUp: async (credentials: any) => {
         const client = await initializeClientAsync();
         return client.auth.signUp(credentials);
@@ -148,6 +152,10 @@ const createSimpleClient = () => {
       signOut: async () => {
         const client = await initializeClientAsync();
         return client.auth.signOut();
+      },
+      updateUser: async (attributes: any) => {
+        const client = await initializeClientAsync();
+        return client.auth.updateUser(attributes);
       }
     },
     from: (table: string) => {

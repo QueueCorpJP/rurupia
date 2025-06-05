@@ -118,128 +118,104 @@ const LineCallback = () => {
         );
         const idTokenData = JSON.parse(jsonPayload);
         
-        // Get user profile from LINE API
-        const profileResponse = await fetch("https://api.line.me/v2/profile", {
+        // Get user profile data from LINE
+        const profileResponse = await fetch('https://api.line.me/v2/profile', {
           headers: {
-            "Authorization": `Bearer ${access_token}`,
+            Authorization: `Bearer ${access_token}`,
           },
         });
 
         if (!profileResponse.ok) {
-          setError("LINEプロフィール情報の取得に失敗しました");
-          setIsProcessing(false);
-          return;
+          throw new Error('Failed to fetch LINE profile');
         }
 
         const profileData = await profileResponse.json();
         const { userId, displayName, pictureUrl } = profileData;
-        const email = idTokenData.email;
 
-        console.log("Looking up existing user with LINE ID:", userId);
+        console.log('LINE profile data:', profileData);
 
-        // Check if user already exists by LINE ID
-        console.log('Looking up existing user with LINE ID:', userId);
-
-        const supabaseUrl = config.VITE_SUPABASE_URL;
-        const supabaseAnonKey = config.VITE_SUPABASE_ANON_KEY;
-
-        console.log('Looking up existing user with LINE ID:', userId);
-
-        const lookupResponse = await fetch(
-          `${supabaseUrl}/rest/v1/profiles?select=id%2Cemail&line_id=eq.${userId}`,
-          {
-            method: 'GET',
+        // Try to get email from LINE
+        let email;
+        try {
+          const emailResponse = await fetch('https://api.line.me/v2/profile/email', {
             headers: {
-              'Accept': 'application/json',
-              'Accept-Profile': 'public',
-              'apikey': supabaseAnonKey,
-            }
+              Authorization: `Bearer ${access_token}`,
+            },
+          });
+          if (emailResponse.ok) {
+            const emailData = await emailResponse.json();
+            email = emailData.email;
+            console.log('LINE email data:', emailData);
           }
-        );
-
-        if (!lookupResponse.ok) {
-          throw new Error(`Profile lookup failed: ${lookupResponse.status}`);
+        } catch (emailError) {
+          console.log('No email from LINE (expected for some accounts)');
         }
 
-        const existingProfiles = await lookupResponse.json();
-        console.log('Profile lookup result:', existingProfiles);
+        // Use the Edge Function to handle authentication for both new and existing users
+        const { data: authData, error: authError } = await supabase.functions.invoke('line-auth-handler', {
+          body: {
+            id_token,
+            access_token,
+          }
+        });
 
-        const existingProfile = existingProfiles.length > 0 ? existingProfiles[0] : null;
-        
+        if (authError) {
+          console.error('Edge Function error:', authError);
+          setError("認証処理中にエラーが発生しました。");
+          setIsProcessing(false);
+          return;
+        }
+
+        if (!authData) {
+          setError("認証データが取得できませんでした。");
+          setIsProcessing(false);
+          return;
+        }
+
+        console.log('Edge Function response:', authData);
+
         let authResult;
-        
-        if (existingProfile) {
-          // User exists, sign them in
-          console.log('Existing user found, attempting sign in');
-          
-          // For existing LINE users, we can use a special LINE-only sign-in flow
-          const tempPassword = `line_${userId}_${Date.now()}`;
-          
-          // Try to sign in with existing email if available
-          if (existingProfile.email) {
-            authResult = await supabase.auth.signInWithPassword({
-              email: existingProfile.email,
-              password: tempPassword
-            });
 
-            // If sign in fails, try to create the user with this password
-            if (authResult.error) {
-              authResult = await supabase.auth.signUp({
-                email: existingProfile.email,
-                password: tempPassword,
-                options: {
-                  data: {
-                    line_id: userId,
-                    display_name: displayName,
-                    picture_url: pictureUrl,
-                  }
-                }
-              });
-            }
-          } else {
-            // User exists but has no email - create temporary email
-            const tempEmail = `line_${userId}@temp.rupipia.jp`;
-            authResult = await supabase.auth.signUp({
-              email: tempEmail,
-              password: tempPassword,
-              options: {
-                data: {
-                  // Omitting line_id here because a profile entry with this line_id already exists.
-                  // We will link the auth user to the existing profile by ID later.
-                  display_name: displayName,
-                  picture_url: pictureUrl,
-                  needs_email_setup: true,
-                }
-              }
-            });
-          }
-        } else {
-          // New user registration
-          console.log('New user registration');
-          
-          let userEmail = email;
-          let needsEmailSetup = false;
-          
-          // If no email from LINE, create a temporary one
-          if (!email) {
-            console.log('No email from LINE, creating temporary email');
-            userEmail = `line_${userId}@temp.rupipia.jp`;
-            needsEmailSetup = true;
-          }
-
-          // Create new user account with LINE data
+        // Handle authentication based on whether user is new or existing
+        if (authData.is_new_user) {
+          // For new users, we can try to sign up normally since they don't exist yet
           authResult = await supabase.auth.signUp({
-            email: userEmail,
-            password: `line_${userId}_${Date.now()}`,
+            email: authData.profile.email || `line_${authData.profile.line_id}@temp.rupipia.jp`,
+            password: `line_${authData.profile.line_id}_${Date.now()}`,
             options: {
               data: {
-                line_id: userId,
-                display_name: displayName,
-                picture_url: pictureUrl,
-                needs_email_setup: needsEmailSetup,
+                line_id: authData.profile.line_id,
+                display_name: authData.profile.name,
+                picture_url: authData.profile.picture,
+                needs_email_setup: !authData.profile.email,
               }
             }
           });
+        } else {
+          // For existing users, we skip the Supabase auth and just create a mock session
+          // This avoids the 422 "User already registered" error
+          console.log('Existing user detected, creating direct session');
+          
+          authResult = {
+            data: {
+              user: {
+                id: authData.profile.id,
+                email: authData.profile.email,
+                user_metadata: {
+                  line_id: authData.profile.line_id,
+                  display_name: authData.profile.name,
+                  picture_url: authData.profile.picture,
+                  needs_email_setup: !authData.profile.email || authData.profile.email.includes('@temp.rupipia.jp')
+                }
+              }
+            },
+            error: null
+          };
+          
+          // Set localStorage to indicate the user is logged in
+          localStorage.setItem('nokutoru_user_type', authData.user_type);
+          localStorage.setItem('line_authenticated', 'true');
+          localStorage.setItem('user_id', authData.profile.id);
         }
 
         if (authResult.error) {

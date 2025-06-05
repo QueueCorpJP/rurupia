@@ -35,6 +35,7 @@ import {
 import type { UserProfile as UserProfileType } from "@/utils/types";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -54,8 +55,14 @@ const UserProfile = () => {
     mbti: "",
     hobbies: [],
     is_verified: false,
-    verification_document: ""
+    verification_document: "",
+    needs_email_setup: false
   });
+
+  // State for email setup
+  const [showEmailSetup, setShowEmailSetup] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -95,7 +102,13 @@ const UserProfile = () => {
             hobbies: data.hobbies || [],
             is_verified: data.is_verified || false,
             verification_document: data.verification_document || "",
+            needs_email_setup: data.needs_email_setup || false,
           });
+          
+          // Show email setup modal if user needs to set up email
+          if (data.needs_email_setup || (!data.email || data.email.includes('@temp.rupipia.jp'))) {
+            setShowEmailSetup(true);
+          }
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -333,10 +346,88 @@ const UserProfile = () => {
   const handleRemoveHobby = (hobbyToRemove: string) => {
     setProfile({
       ...profile,
-      hobbies: Array.isArray(profile.hobbies) 
-        ? profile.hobbies.filter(hobby => hobby !== hobbyToRemove)
-        : []
+      hobbies: profile.hobbies?.filter(hobby => hobby !== hobbyToRemove) || [],
     });
+  };
+
+  const handleEmailSetup = async () => {
+    if (!newEmail || !newEmail.includes('@')) {
+      toast.error("有効なメールアドレスを入力してください");
+      return;
+    }
+
+    // Check if this is actually a change (different from current email and not a temp email)
+    const hasRealEmail = profile.email && !profile.email.includes('@temp.rupipia.jp');
+    const isEmailChange = hasRealEmail && profile.email !== newEmail;
+    const isInitialSetup = !hasRealEmail;
+
+    setIsUpdatingEmail(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("ユーザー情報を取得できませんでした");
+        return;
+      }
+
+      // Update user email in auth
+      const { error: emailError } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+
+      if (emailError) {
+        console.error("Error updating user email:", emailError);
+        throw emailError;
+      }
+
+      // Update profile with new email and remove needs_email_setup flag
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          email: newEmail,
+          needs_email_setup: false,
+        })
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
+        throw profileError;
+      }
+
+      // Update local state
+      setProfile({
+        ...profile,
+        email: newEmail,
+        needs_email_setup: false,
+      });
+      
+      setShowEmailSetup(false);
+      setNewEmail("");
+      
+      // Different success messages based on action type
+      if (isEmailChange) {
+        toast.success("メールアドレスを変更しました！", {
+          position: "top-center",
+          duration: 3000,
+          icon: <CheckCircle className="h-5 w-5" />,
+          description: "新しいメールアドレスに確認メールが送信されました"
+        });
+      } else if (isInitialSetup) {
+        toast.success("メールアドレスが設定されました！", {
+          position: "top-center",
+          duration: 3000,
+          icon: <CheckCircle className="h-5 w-5" />,
+          description: "今後、こちらのメールアドレスに通知が送信されます"
+        });
+      }
+    } catch (error) {
+      console.error("Error setting up email:", error);
+      const errorMessage = isEmailChange ? "メールアドレスの変更に失敗しました" : "メールアドレスの設定に失敗しました";
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdatingEmail(false);
+    }
   };
 
   if (isLoading) {
@@ -515,11 +606,31 @@ const UserProfile = () => {
               <div>
                 <Label htmlFor="email" className="block text-sm font-medium text-gray-700">メールアドレス</Label>
                 <div className="mt-1">
-                  <div className="flex items-center h-10 px-3 rounded-md border border-input bg-background">
-                    <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
-                    {profile.email || "未設定"}
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-1 flex items-center h-10 px-3 rounded-md border border-input bg-background">
+                      <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {profile.email || "未設定"}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setNewEmail(profile.email || "");
+                        setShowEmailSetup(true);
+                      }}
+                      className="shrink-0"
+                    >
+                      {profile.email ? "変更" : "設定"}
+                    </Button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">メールアドレスは認証で使用されます。変更には再認証が必要です。</p>
+                  <p className="text-sm text-gray-500 mt-1">通知やアカウント回復のために使用されます。</p>
+                  {!profile.email && (
+                    <p className="text-sm text-amber-600 mt-1 flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      メールアドレスが設定されていません。設定することをお勧めします。
+                    </p>
+                  )}
                 </div>
               </div>
               
@@ -642,11 +753,50 @@ const UserProfile = () => {
               ) : (
                 <div>
                   <p className="text-sm text-gray-600 mb-4">
-                    アカウント認証サービスは現在メンテナンス中です。認証が必要な場合は、カスタマーサポートにお問い合わせください。
+                    アカウントを認証するために、身分証明書をアップロードしてください。認証により、より安全で信頼性の高いサービスをご利用いただけます。
                   </p>
                   
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="verification-document" className="block text-sm font-medium text-gray-700 mb-2">
+                        身分証明書のアップロード
+                      </Label>
+                      <div className="flex items-center space-x-4">
+                        <Label htmlFor="verification-document" className="cursor-pointer bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors inline-flex items-center">
+                          {isUploading ? (
+                            <span className="contents">
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              アップロード中...
+                            </span>
+                          ) : (
+                            <span className="contents">
+                              <UploadCloud className="h-4 w-4 mr-2" />
+                              書類を選択
+                            </span>
+                          )}
+                          <input 
+                            type="file" 
+                            id="verification-document" 
+                            className="hidden"
+                            onChange={handleDocumentUpload}
+                            accept="image/*,.pdf"
+                            disabled={isUploading}
+                          />
+                        </Label>
+                        {verificationFile && (
+                          <span className="text-sm text-gray-600">
+                            選択済み: {verificationFile.name}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        運転免許証、パスポート、マイナンバーカードなど（画像またはPDF形式）
+                      </p>
+                    </div>
+                  </div>
+                  
                   {profile.verification_document && (
-                    <div className="mt-2">
+                    <div className="mt-4">
                       <p className="text-sm font-medium text-gray-700">アップロード済み書類:</p>
                       <div className="mt-1 flex items-center p-3 bg-white border rounded-md">
                         <FileText className="h-5 w-5 text-blue-500 mr-2" />
@@ -684,6 +834,68 @@ const UserProfile = () => {
           </div>
         </div>
       </div>
+
+      {/* Email Setup/Change Dialog */}
+      <Dialog open={showEmailSetup} onOpenChange={setShowEmailSetup}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {profile.email && !profile.email.includes('@temp.rupipia.jp') ? "メールアドレスの変更" : "メールアドレスの設定"}
+            </DialogTitle>
+            <DialogDescription>
+              {profile.email && !profile.email.includes('@temp.rupipia.jp')
+                ? "新しいメールアドレスを入力してください。変更後は新しいアドレスに確認メールが送信されます。"
+                : "LINEアカウントからメールアドレスが取得できませんでした。通知やパスワードリセットのために、メールアドレスを設定してください。"
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {profile.email && !profile.email.includes('@temp.rupipia.jp') && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">現在のメールアドレス</Label>
+                <div className="flex items-center p-2 bg-gray-50 rounded-md">
+                  <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{profile.email}</span>
+                </div>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="new-email" className="text-sm font-medium">
+                {profile.email && !profile.email.includes('@temp.rupipia.jp') ? "新しいメールアドレス" : "メールアドレス"}
+              </Label>
+              <Input
+                id="new-email"
+                type="email"
+                placeholder="your-email@example.com"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              このメールアドレスは通知の送信やアカウント回復のために使用されます。
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowEmailSetup(false)}>
+              {profile.email && !profile.email.includes('@temp.rupipia.jp') ? "キャンセル" : "後で"}
+            </Button>
+            <Button 
+              onClick={handleEmailSetup} 
+              disabled={isUpdatingEmail || !newEmail.includes('@')}
+            >
+              {isUpdatingEmail ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  更新中...
+                </span>
+              ) : (
+                profile.email && !profile.email.includes('@temp.rupipia.jp') ? "変更する" : "保存する"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

@@ -41,123 +41,176 @@ const customStorage = {
 
 // Actual Supabase client instance
 let supabaseClient: any = null;
-let isInitializing = false;
+let initializationPromise: Promise<any> | null = null;
 
-// Initialize client synchronously
-function getSupabaseClient() {
+// Initialize client asynchronously
+async function initializeClientAsync() {
   if (supabaseClient) {
     return supabaseClient;
   }
-  
-  if (!isInitializing) {
-    isInitializing = true;
-    
-    // Start initialization in background
-    initializeClientAsync().then(client => {
-      supabaseClient = client;
-      isInitializing = false;
-    }).catch(error => {
-      console.error('Failed to initialize Supabase client:', error);
-      isInitializing = false;
-    });
+
+  if (initializationPromise) {
+    return initializationPromise;
   }
-  
-  // Return a temporary client that will be replaced once initialization is complete
-  return createTemporaryClient();
-}
 
-// Function to create a temporary client that logs errors but doesn't break the app
-function createTemporaryClient() {
-  // Create a proxy that logs errors for all operations until the real client is ready
-  return new Proxy({}, {
-    get(target, prop) {
-      // For most properties, return a function that logs but doesn't break
-      if (prop === 'auth') {
-        return createAuthProxy();
-      } else if (prop === 'from') {
-        return function() {
-          return createQueryProxy();
-        };
-      } else {
-        return function() {
-          console.log(`Supabase client not ready yet, operation '${String(prop)}' queued`);
-          return Promise.resolve({ data: null, error: new Error('Client not initialized') });
-        };
+  initializationPromise = (async () => {
+    try {
+      console.log('Initializing Supabase client...');
+      const config = await getConfig();
+      const SUPABASE_URL = config.VITE_SUPABASE_URL;
+      const SUPABASE_PUBLISHABLE_KEY = config.VITE_SUPABASE_ANON_KEY;
+
+      // Validation to ensure environment variables are loaded
+      if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+        throw new Error(
+          'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
+        );
       }
+
+      supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        auth: {
+          persistSession: true,               // Enable session persistence
+          storageKey: 'therapist-app-auth',   // Unique storage key for the app
+          autoRefreshToken: true,             // Automatically refresh token
+          detectSessionInUrl: true,           // Detect OAuth session in URL
+          storage: customStorage,
+        },
+        global: {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          }
+        },
+      });
+
+      console.log('Supabase client initialized successfully');
+      return supabaseClient;
+    } catch (error) {
+      console.error('Failed to initialize Supabase client:', error);
+      initializationPromise = null; // Reset so we can try again
+      throw error;
     }
-  });
+  })();
+
+  return initializationPromise;
 }
 
-// Special proxy for auth operations
-function createAuthProxy() {
-  return new Proxy({}, {
-    get(target, prop) {
-      if (prop === 'onAuthStateChange') {
-        // Special case for auth.onAuthStateChange
-        return function() {
-          console.log('Auth state change listener registered, will be active when client is ready');
-          // Return an object with a subscription that can be unsubscribed
+// Start initialization immediately when the module loads
+initializeClientAsync().catch(console.error);
+
+// Simple client that waits for initialization on each call
+const createSimpleClient = () => {
+  return {
+    auth: {
+      onAuthStateChange: (callback: Function) => {
+        // For auth state changes, we need to return the subscription immediately
+        // So we'll initialize synchronously if possible, or use a temporary approach
+        if (supabaseClient) {
+          return supabaseClient.auth.onAuthStateChange(callback);
+        } else {
+          // Return a mock subscription structure while initializing
+          let realSubscription: any = null;
+          
+          initializeClientAsync().then(client => {
+            const result = client.auth.onAuthStateChange(callback);
+            realSubscription = result.data.subscription;
+          }).catch(console.error);
+          
           return {
             data: {
               subscription: {
-                unsubscribe: () => {}
+                unsubscribe: () => {
+                  if (realSubscription) {
+                    realSubscription.unsubscribe();
+                  }
+                }
               }
             }
           };
-        };
-      } else {
-        return function() {
-          console.log(`Supabase auth not ready yet, operation '${String(prop)}' queued`);
-          return Promise.resolve({ data: { session: null, user: null }, error: null });
-        };
+        }
+      },
+      getSession: async () => {
+        const client = await initializeClientAsync();
+        return client.auth.getSession();
+      },
+      signUp: async (credentials: any) => {
+        const client = await initializeClientAsync();
+        return client.auth.signUp(credentials);
+      },
+      signInWithPassword: async (credentials: any) => {
+        const client = await initializeClientAsync();
+        return client.auth.signInWithPassword(credentials);
+      },
+      signInWithOAuth: async (options: any) => {
+        const client = await initializeClientAsync();
+        return client.auth.signInWithOAuth(options);
+      },
+      signOut: async () => {
+        const client = await initializeClientAsync();
+        return client.auth.signOut();
       }
+    },
+    from: (table: string) => {
+      return createAsyncQuery(table);
+    },
+    rpc: async (functionName: string, params: any) => {
+      const client = await initializeClientAsync();
+      return client.rpc(functionName, params);
     }
-  });
-}
+  };
+};
 
-// Special proxy for query operations
-function createQueryProxy() {
+// Special async query handler
+function createAsyncQuery(table: string) {
   return new Proxy({}, {
     get(target, prop) {
-      return function() {
-        console.log(`Supabase query not ready yet, operation '${String(prop)}' queued`);
-        return createQueryProxy(); // Return another proxy for chaining
+      return function(...args: any[]) {
+        if (prop === 'then') {
+          // Handle promise-like behavior
+          return initializeClientAsync().then(client => 
+            client.from(table)[prop as string](...args)
+          );
+        } else {
+          // Return another proxy for chaining
+          return createAsyncQueryChain(table, [[prop as string, args]]);
+        }
       };
     }
   });
 }
 
-// Initialize client asynchronously
-async function initializeClientAsync() {
-  try {
-    const config = await getConfig();
-    const SUPABASE_URL = config.VITE_SUPABASE_URL;
-    const SUPABASE_PUBLISHABLE_KEY = config.VITE_SUPABASE_ANON_KEY;
-
-    // Validation to ensure environment variables are loaded
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-      throw new Error(
-        'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
-      );
+// Handle chained operations
+function createAsyncQueryChain(table: string, operations: any[][]) {
+  return new Proxy({}, {
+    get(target, prop) {
+      return function(...args: any[]) {
+        const newOperations = [...operations, [prop as string, args]];
+        
+        if (prop === 'then') {
+          // Execute the chain
+          return initializeClientAsync().then(client => {
+            let query = client.from(table);
+            for (const [method, methodArgs] of operations) {
+              query = query[method](...methodArgs);
+            }
+            return query;
+          });
+        } else {
+          // Continue chaining
+          return createAsyncQueryChain(table, newOperations);
+        }
+      };
     }
-
-    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        persistSession: true,               // Enable session persistence
-        storageKey: 'therapist-app-auth',   // Unique storage key for the app
-        autoRefreshToken: true,             // Automatically refresh token
-        detectSessionInUrl: true,           // Detect OAuth session in URL
-        storage: customStorage,
-      },
-    });
-  } catch (error) {
-    console.error('Failed to initialize Supabase client:', error);
-    throw error;
-  }
+  });
 }
 
 // Export the client directly - it will initialize lazily
-export const supabase = getSupabaseClient();
+export const supabase = createSimpleClient() as any;
+
+// Function to get the real client (for cases where you need the actual instance)
+export const getSupabaseClient = async () => {
+  return await initializeClientAsync();
+};
 
 // Function to clear auth state - useful for debugging
 export const clearAuthState = () => {

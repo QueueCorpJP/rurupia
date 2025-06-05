@@ -96,6 +96,7 @@ export interface UserProfile {
   is_verified?: boolean;
   verification_document?: string;
   email?: string; // Added email field
+  needs_email_setup?: boolean; // For LINE users without email addresses
 }
 
 // Adding missing types

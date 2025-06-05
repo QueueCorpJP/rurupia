@@ -56,14 +56,28 @@ async function initializeClientAsync() {
   initializationPromise = (async () => {
     try {
       console.log('Initializing Supabase client...');
-      const config = await getConfig();
-      const SUPABASE_URL = config.VITE_SUPABASE_URL;
-      const SUPABASE_PUBLISHABLE_KEY = config.VITE_SUPABASE_ANON_KEY;
+      // Try up to 3 times in case the first /api/config fetch races with API Gateway cold start
+      let attempts = 0;
+      let SUPABASE_URL: string | undefined;
+      let SUPABASE_PUBLISHABLE_KEY: string | undefined;
 
-      // Validation to ensure environment variables are loaded
+      while (attempts < 3) {
+        const config = await getConfig();
+        SUPABASE_URL = config?.VITE_SUPABASE_URL;
+        SUPABASE_PUBLISHABLE_KEY = config?.VITE_SUPABASE_ANON_KEY;
+
+        if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
+          break; // success
+        }
+
+        attempts += 1;
+        console.warn(`Supabase env vars not available (attempt ${attempts}). Retrying...`);
+        await new Promise(res => setTimeout(res, 500 * attempts)); // exponential-ish backoff
+      }
+
       if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
         throw new Error(
-          'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
+          'Supabase environment variables could not be resolved after multiple attempts.'
         );
       }
 

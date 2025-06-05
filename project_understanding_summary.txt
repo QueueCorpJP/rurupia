@@ -33,30 +33,37 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 ## Recent Major Fixes (Latest Updates)
 
-### December 2024 - Data Display & UI Fixes
-**Issue**: No Supabase data being displayed, mobile logo too large, missing rating component circle icon
+### December 2024 - Data Display & UI Fixes + Production Deployment
+**Issue**: No Supabase data being displayed, mobile logo too large, missing rating component circle icon, GitHub Actions not reflecting changes
 
-**Root Cause**: 
+**Root Cause Analysis**: 
 - Therapist data had null/empty values preventing proper filtering
 - Mobile responsive design needed refinement
 - Rating slider needed visual enhancement
+- Changes were committed but production wasn't updated properly
 
 **Solutions Applied**:
 
-1. **Supabase Data Fixes**:
+1. **Supabase Data Fixes** (VERIFIED WORKING):
    - Updated therapist record with proper price (5000 yen)
    - Added availability: ["平日", "週末"] (weekdays, weekends)
    - Added specialties: ["マッサージ", "アロマセラピー"] (massage, aromatherapy)
    - Added questionnaire_data with mood, therapistType, treatmentType
    - Fixed rating to 4.5 (numeric value)
 
-2. **Mobile Logo Optimization**:
+2. **Mobile Logo Optimization** (COMMITTED):
    - Header logo: `h-8 w-auto sm:h-12 md:h-14` (32px on mobile, scales up)
    - Footer logo: `h-6 w-auto sm:h-8 md:h-10` (24px on mobile, scales up)
 
-3. **Rating Component Enhancement**:
+3. **Rating Component Enhancement** (COMMITTED):
    - Added circular icon at end of rating slider in TherapistFilters.tsx
    - Positioned with absolute positioning for visual appeal
+
+4. **Deployment Process** (COMPLETED):
+   - Manually deployed latest build to S3: `aws s3 sync dist/ s3://therapist-connectivity-frontend-93b9faa0`
+   - Created CloudFront invalidation: `I6GKIU0KJMAV0IWRRK0B0S73IP`
+   - Triggered GitHub Actions with empty commit and push
+   - All changes confirmed in git diff
 
 ### November 2024 - PM Feedback Implementation
 **Issues Addressed**:
@@ -76,7 +83,10 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 ## Deployment Information
 - **S3 Bucket**: `therapist-connectivity-frontend-93b9faa0`
 - **CloudFront Distribution**: `E2P3Q41GY0N3CJ`
-- **Latest Deployment**: December 2024 (fixed data display issues)
+- **Production URL**: `https://dqv3ckdbgwb1i.cloudfront.net/`
+- **Latest Deployment**: December 5, 2024 (fixed data display issues + UI improvements)
+- **GitHub Repository**: `https://github.com/QueueCorpJP/rurupia`
+- **GitHub Actions**: `https://github.com/QueueCorpJP/rurupia/actions`
 
 ## Admin Access
 - **URL**: Navigate to `/admin-auth`
@@ -98,8 +108,50 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 - `supabase/functions/line-auth-handler/index.ts` - LINE authentication
 - `index.html` - Japanese meta tags
 
+## Troubleshooting Notes
+- **Cache Issues**: Always run CloudFront invalidation after S3 sync
+- **GitHub Actions**: Check https://github.com/QueueCorpJP/rurupia/actions for workflow status
+- **Local vs Production**: Use `git diff HEAD~2 HEAD` to verify committed changes
+- **Mobile Testing**: Use browser dev tools or real devices to test responsive changes
+- **Data Issues**: Check Supabase directly via MCP tools for data validation
+
 ## Next Steps / Known Areas for Improvement
+- Monitor production site for data display after latest fixes
+- Verify mobile logo sizing on actual devices
 - Consider adding more sample therapist data for testing
-- Monitor user feedback on mobile logo sizing
 - Potentially add more visual enhancements to filter components
 - Consider performance optimization for large datasets
+
+## 2025-06-05 Investigation – Production "constant loading" bug
+
+1. Confirmed production domain `rupipia.jp` is served by **CloudFront** distribution that has:
+   • Default origin → S3 bucket `therapist-connectivity-frontend-93b9faa0`
+   • Secondary origin → **API Gateway** `pq33gk4qqd.execute-api.ap-northeast-1.amazonaws.com` (origin id `APIGateway-rurupia-api`)
+   • Cache behaviour `/api/*` forwards all HTTP verbs & auth headers to API Gateway (MinTTL 0 => no caching)
+   • No Lambda@Edge associations on default behaviour – dynamic API handled solely by API Gateway.
+
+2. The API Gateway exposes a single **Lambda function** (code in `lambda-api/index.js`) that returns `/api/config` plus post-likes, comments, etc.
+   • Lambda reads env vars `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` and injects them into `/api/config` response.
+   • Live call (`curl https://rupipia.jp/api/config`) confirmed the function is active and returns the expected Supabase URL + keys for project **nokutoru** (id `vvwkuqnotnilsbcswfqu`).
+
+3. Confirmed direct REST query to Supabase from terminal succeeds:
+   ```bash
+   curl https://vvwkuqnotnilsbcswfqu.supabase.co/rest/v1/therapists?select=id,name -H "apikey: <anon>" -H "Authorization: Bearer <anon>"
+   ```
+   → returns data (e.g. therapist "test"). Supabase project status ACTIVE_HEALTHY.
+
+4. Front-end data flow:
+   • `src/lib/config.ts` fetches `/api/config` on first load.
+   • `src/integrations/supabase/client.ts` awaits that config before creating Supabase client.
+   • Pages (e.g. `src/pages/Therapists.tsx`) then query tables directly (RLS disabled for `therapists`).
+
+5. Hypothesis for "constant loading" in production:
+   a) Front-end bundle possibly loaded before API Gateway DNS → TLS handshake finishes, causing first request to `/api/config` to time-out; `getConfig` then falls back to `import.meta.env` which is **undefined in production build**, throwing and keeping `initializeClientAsync` rejected ⇒ all pages depending on Supabase hang in loading state.
+   b) Local reproduction shows no issue once `/api/config` responds – indicates a race condition / error handling problem, not infra mis-config.
+
+6. Suggested fix (to be implemented next):
+   • Add retry logic in `getConfig()` when initial fetch fails instead of throwing immediately.
+   • Build-time inject `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` so fallback path works offline.
+   • Optionally shorten API Gateway timeout & ensure proper CORS so first request doesn't stall.
+
+---

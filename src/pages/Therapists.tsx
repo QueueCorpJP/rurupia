@@ -306,7 +306,15 @@ const Therapists = () => {
         }
 
         console.log('Executing Supabase query for therapists with filters:', filters);
-        const { data, error } = await query;
+        // Add a timeout to prevent hanging forever in case of network issues
+        const timeoutPromise = new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('Supabase query timeout')), 10000);
+        });
+
+        const { data, error } = await Promise.race([
+          query,
+          timeoutPromise
+        ]) as any;
         
         // Debug: Log the raw SQL query if possible
         console.log('Query executed, data items returned:', data?.length || 0);

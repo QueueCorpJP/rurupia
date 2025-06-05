@@ -321,7 +321,22 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h2 className="text-lg font-bold mb-4">るぴぴあ</h2>
+              {/* Logo */}
+              <div className="mb-4">
+                <img 
+                  src="/rupipia-logo.png" 
+                  alt="るぴぴあ" 
+                  className="h-8 w-auto sm:h-10 md:h-12"
+                  onError={(e) => {
+                    // Fallback to text logo if image fails to load
+                    const target = e.currentTarget as HTMLImageElement;
+                    const nextElement = target.nextElementSibling as HTMLElement;
+                    target.style.display = 'none';
+                    if (nextElement) nextElement.style.display = 'block';
+                  }}
+                />
+                <h2 className="text-lg font-bold text-primary hidden">るぴぴあ</h2>
+              </div>
               <p className="text-muted-foreground mb-4">
                 リラクゼーションと癒やしの空間を提供し、あなたの心と体のバランスを整えるお手伝いをします。
               </p>

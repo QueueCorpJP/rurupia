@@ -180,42 +180,25 @@ const LineCallback = () => {
         if (authData.is_new_user) {
           // For new users, we can try to sign up normally since they don't exist yet
           authResult = await supabase.auth.signUp({
-            email: authData.profile.email || `line_${authData.profile.line_id}@temp.rupipia.jp`,
-            password: `line_${authData.profile.line_id}_${Date.now()}`,
+            email: authData.auth_credentials.email,
+            password: authData.auth_credentials.password,
             options: {
               data: {
                 line_id: authData.profile.line_id,
                 display_name: authData.profile.name,
                 picture_url: authData.profile.picture,
-                needs_email_setup: !authData.profile.email,
+                needs_email_setup: !authData.profile.email || authData.profile.email.includes('@temp.rupipia.jp'),
               }
             }
           });
         } else {
-          // For existing users, we skip the Supabase auth and just create a mock session
-          // This avoids the 422 "User already registered" error
-          console.log('Existing user detected, creating direct session');
+          // For existing users, we sign them in with the credentials provided by the Edge Function
+          console.log('Existing user detected, signing in with provided credentials');
           
-          authResult = {
-            data: {
-              user: {
-                id: authData.profile.id,
-                email: authData.profile.email,
-                user_metadata: {
-                  line_id: authData.profile.line_id,
-                  display_name: authData.profile.name,
-                  picture_url: authData.profile.picture,
-                  needs_email_setup: !authData.profile.email || authData.profile.email.includes('@temp.rupipia.jp')
-                }
-              }
-            },
-            error: null
-          };
-          
-          // Set localStorage to indicate the user is logged in
-          localStorage.setItem('nokutoru_user_type', authData.user_type);
-          localStorage.setItem('line_authenticated', 'true');
-          localStorage.setItem('user_id', authData.profile.id);
+          authResult = await supabase.auth.signInWithPassword({
+            email: authData.auth_credentials.email,
+            password: authData.auth_credentials.password
+          });
         }
 
         if (authResult.error) {

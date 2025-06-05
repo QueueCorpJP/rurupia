@@ -207,6 +207,7 @@ const Therapists = () => {
   useEffect(() => {
     // Skip if initialization is not complete
     if (!isInitialized) {
+      console.log('Therapists: Skipping fetch because not initialized');
       return;
     }
   
@@ -215,6 +216,7 @@ const Therapists = () => {
     
     // Skip fetch if filters haven't actually changed
     if (filtersString === prevFiltersRef.current) {
+      console.log('Therapists: Skipping fetch because filters unchanged');
       return;
     }
     
@@ -235,28 +237,28 @@ const Therapists = () => {
           .select('*') as any;  // Use 'any' type to avoid TypeScript deep instantiation errors
 
         // Apply search term filter if provided
-        if (searchTerm) {
-          const searchPattern = `%${searchTerm}%`;
+        if (searchTerm && searchTerm.trim()) {
+          const searchPattern = `%${searchTerm.trim()}%`;
           query = query.or(`name.ilike.${searchPattern},description.ilike.${searchPattern}`);
         }
         
         // Apply location filter if provided
-        if (filters.location) {
-          query = query.ilike('location', `%${filters.location}%`);
+        if (filters.location && filters.location.trim()) {
+          query = query.ilike('location', `%${filters.location.trim()}%`);
         }
         
         // Apply specialty filters if any
-        if (filters.specialties.length > 0) {
+        if (filters.specialties && filters.specialties.length > 0) {
           query = query.contains('specialties', filters.specialties);
         }
         
         // Apply experience filter if provided
-        if (filters.experience > 0) {
+        if (filters.experience && filters.experience > 0) {
           query = query.gte('experience', filters.experience);
         }
         
-        // Apply price range filter only if both values are valid
-        if (typeof filters.priceRange[0] === 'number' && typeof filters.priceRange[1] === 'number') {
+        // Apply price range filters
+        if (filters.priceRange && filters.priceRange.length === 2) {
           // Apply min price (if it's greater than 0)
           if (filters.priceRange[0] > 0) {
             query = query.gte('price', filters.priceRange[0]);
@@ -269,7 +271,7 @@ const Therapists = () => {
         }
         
         // Apply availability filter if provided
-        if (filters.availability.length > 0) {
+        if (filters.availability && filters.availability.length > 0) {
           query = query.overlaps('availability', filters.availability);
         }
         
@@ -282,23 +284,23 @@ const Therapists = () => {
 
         // Apply questionnaire filters - use simple approach to avoid TypeScript errors
         // Instead of trying to combine filters, apply them one by one directly
-        if (filters.mood) {
+        if (filters.mood && filters.mood.trim()) {
           // Use the correct PostgreSQL operator for JSONB text value comparison
           query = query.filter(`questionnaire_data->>'mood'`, 'eq', filters.mood);
           console.log('Applied mood filter:', filters.mood);
         }
 
-        if (filters.therapistType) {
+        if (filters.therapistType && filters.therapistType.trim()) {
           query = query.filter(`questionnaire_data->>'therapistType'`, 'eq', filters.therapistType);
           console.log('Applied therapist type filter:', filters.therapistType);
         }
 
-        if (filters.treatmentType) {
+        if (filters.treatmentType && filters.treatmentType.trim()) {
           query = query.filter(`questionnaire_data->>'treatmentType'`, 'eq', filters.treatmentType);
           console.log('Applied treatment type filter:', filters.treatmentType);
         }
 
-        if (filters.therapistAge && filters.therapistAge !== 'noPreference') {
+        if (filters.therapistAge && filters.therapistAge !== 'noPreference' && filters.therapistAge.trim()) {
           query = query.filter(`questionnaire_data->>'therapistAge'`, 'eq', filters.therapistAge);
           console.log('Applied therapist age filter:', filters.therapistAge);
         }
@@ -312,6 +314,7 @@ const Therapists = () => {
         if (error) {
           console.error("Error fetching therapists:", error);
           toast.error("セラピスト情報の取得に失敗しました");
+          setTherapists([]);
           return;
         }
         
@@ -338,10 +341,13 @@ const Therapists = () => {
         }));
         
         setTherapists(mappedTherapists);
+        console.log('Therapists state updated with', mappedTherapists.length, 'therapists');
       } catch (error) {
         console.error("Error in fetchTherapists:", error);
         toast.error("エラーが発生しました");
+        setTherapists([]);
       } finally {
+        console.log('Setting isLoading to false');
         setIsLoading(false);
       }
     };

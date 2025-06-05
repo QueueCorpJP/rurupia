@@ -3,7 +3,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { decode } from 'https://deno.land/std@0.170.0/encoding/base64url.ts';
-import { SmartWeave } from 'https://esm.sh/smartweave@0.4.47';
 
 interface LineIdTokenPayload {
   iss: string;
@@ -138,10 +137,10 @@ Deno.serve(async (req) => {
     return new Response(null, {
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
       },
-      status: 204,
+      status: 200,
     });
   }
 
@@ -214,6 +213,18 @@ Deno.serve(async (req) => {
       // User exists, just update profile if needed
       userId = existingUser.id;
       
+      // For existing users, ensure they have the correct password pattern
+      const linePassword = `line_${userData.userId}_temp`;
+      
+      // Update user password to ensure consistent authentication
+      const { error: passwordUpdateError } = await supabase.auth.admin.updateUserById(userId, {
+        password: linePassword
+      });
+      
+      if (passwordUpdateError) {
+        console.error('Error updating user password:', passwordUpdateError);
+      }
+      
       // Update profile information
       const { error: updateError } = await supabase
         .from('profiles')
@@ -230,9 +241,12 @@ Deno.serve(async (req) => {
       
       console.log('Existing user logged in via LINE:', userId);
     } else {
-      // Create new user with LINE credentials
+      // Create new user with LINE credentials and set a consistent password
+      const linePassword = `line_${userData.userId}_temp`; // Consistent password pattern
+      
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email || `${userData.userId}@line.user.rupipia.jp`,
+        email: userData.email || `line_${userData.userId}@temp.rupipia.jp`,
+        password: linePassword,
         email_confirm: true,
         user_metadata: {
           full_name: userData.displayName,
@@ -280,10 +294,14 @@ Deno.serve(async (req) => {
           line_id: userData.userId,
           name: userData.displayName,
           picture: userData.pictureUrl,
-          email: userData.email,
+          email: userData.email || `line_${userData.userId}@temp.rupipia.jp`,
         },
         user_type: existingUser?.user_type || 'customer',
         is_new_user: isNewUser,
+        auth_credentials: {
+          email: userData.email || `line_${userData.userId}@temp.rupipia.jp`,
+          password: `line_${userData.userId}_temp`
+        }
       }),
       { 
         headers: { 

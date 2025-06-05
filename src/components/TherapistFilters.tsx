@@ -503,9 +503,9 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
               onValueChange={(value) => setRating(value[0])}
               className="my-3"
             />
-            {/* Ensure the overlay handle matches the default slider thumb size (w-5 h-5) */}
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-primary border-2 border-white shadow-md flex items-center justify-center">
-              <div className="w-2.5 h-2.5 rounded-full bg-white"></div>
+            {/* Overlay handle to visually match the Radix slider thumb */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary border-2 border-white shadow-md flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-white"></div>
             </div>
           </div>
         </div>

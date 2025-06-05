@@ -103,7 +103,8 @@ async function initializeAdminClientAsync() {
       SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
-          persistSession: false, // Don't persist admin sessions
+          persistSession: false, // Don't persist admin sessions in browser
+          storageKey: 'therapist-app-admin-auth',
           autoRefreshToken: false,
           detectSessionInUrl: false
         },

@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { getConfig } from '../../lib/config';
+import { getSupabaseAuth } from './auth';
 
 // Helper to check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
@@ -55,48 +56,8 @@ async function initializeClientAsync() {
 
   initializationPromise = (async () => {
     try {
-      console.log('Initializing Supabase client...');
-      // Try up to 3 times in case the first /api/config fetch races with API Gateway cold start
-      let attempts = 0;
-      let SUPABASE_URL: string | undefined;
-      let SUPABASE_PUBLISHABLE_KEY: string | undefined;
-
-      while (attempts < 3) {
-        const config = await getConfig();
-        SUPABASE_URL = config?.VITE_SUPABASE_URL;
-        SUPABASE_PUBLISHABLE_KEY = config?.VITE_SUPABASE_ANON_KEY;
-
-        if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
-          break; // success
-        }
-
-        attempts += 1;
-        console.warn(`Supabase env vars not available (attempt ${attempts}). Retrying...`);
-        await new Promise(res => setTimeout(res, 500 * attempts)); // exponential-ish backoff
-      }
-
-      if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-        throw new Error(
-          'Supabase environment variables could not be resolved after multiple attempts.'
-        );
-      }
-
-      supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-        auth: {
-          persistSession: true,               // Enable session persistence
-          storageKey: 'therapist-app-auth',   // Unique storage key for the app
-          autoRefreshToken: true,             // Automatically refresh token
-          detectSessionInUrl: true,           // Detect OAuth session in URL
-          storage: customStorage,
-        },
-        global: {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          }
-        },
-      });
-
+      console.log('Initializing Supabase client (singleton)...');
+      supabaseClient = await getSupabaseAuth();
       console.log('Supabase client initialized successfully');
       return supabaseClient;
     } catch (error) {
@@ -205,10 +166,13 @@ function createAsyncQuery(table: string) {
     get(target, prop) {
       return function(...args: any[]) {
         if (prop === 'then') {
-          // Handle promise-like behavior
-          return initializeClientAsync().then(client => 
-            client.from(table)[prop as string](...args)
-          );
+          // Provide a proper thenable so that `await` resolves the final query
+          return (resolve: any, reject: any) => {
+            initializeClientAsync()
+              .then(client => client.from(table))
+              .then(builder => (builder as any).then(resolve, reject))
+              .catch(reject);
+          };
         } else {
           // Return another proxy for chaining
           return createAsyncQueryChain(table, [[prop as string, args]]);
@@ -226,14 +190,19 @@ function createAsyncQueryChain(table: string, operations: any[][]) {
         const newOperations = [...operations, [prop as string, args]];
         
         if (prop === 'then') {
-          // Execute the chain
-          return initializeClientAsync().then(client => {
-            let query = client.from(table);
-            for (const [method, methodArgs] of operations) {
-              query = query[method](...methodArgs);
-            }
-            return query;
-          });
+          // Finalize the chain and execute once the real client is ready
+          return (resolve: any, reject: any) => {
+            initializeClientAsync()
+              .then(client => {
+                let query: any = client.from(table);
+                for (const [method, methodArgs] of operations) {
+                  query = query[method](...methodArgs);
+                }
+                return query;
+              })
+              .then((builder: any) => builder.then(resolve, reject))
+              .catch(reject);
+          };
         } else {
           // Continue chaining
           return createAsyncQueryChain(table, newOperations);
@@ -245,6 +214,11 @@ function createAsyncQueryChain(table: string, operations: any[][]) {
 
 // Export the client directly - it will initialize lazily
 export const supabase = createSimpleClient() as any;
+
+// Expose supabase to the window object for easier debugging in DevTools
+if (typeof window !== 'undefined') {
+  (window as any).supabase = supabase;
+}
 
 // Function to get the real client (for cases where you need the actual instance)
 export const getSupabaseClient = async () => {

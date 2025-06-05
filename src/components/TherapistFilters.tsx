@@ -494,14 +494,19 @@ const TherapistFilters = ({ onFilterChange, initialFilters }: TherapistFiltersPr
               {rating}/5 以上
             </span>
           </div>
-          <Slider
-            defaultValue={[rating]}
-            max={5}
-            step={0.5}
-            value={[rating]}
-            onValueChange={(value) => setRating(value[0])}
-            className="my-3"
-          />
+          <div className="relative">
+            <Slider
+              defaultValue={[rating]}
+              max={5}
+              step={0.5}
+              value={[rating]}
+              onValueChange={(value) => setRating(value[0])}
+              className="my-3"
+            />
+            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full bg-primary border-2 border-white shadow-md flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-white"></div>
+            </div>
+          </div>
         </div>
 
         {/* Availability filter */}

@@ -296,213 +296,35 @@ POST https://vvwkuqnotnilsbcswfqu.supabase.co/auth/v1/signup 500 (Internal Serve
 - Security trade-offs accepted (RLS disabled, foreign key removed) for functionality
 - All LINE authentication flows are now operational
 
-### PM Feedback Implementation - COMPLETED ✅
+### Supabase Client Edge Function Invocation Fix - (Current Date)
 
-All issues identified by the PM have been successfully resolved:
+**Issue:** Calls to Supabase Edge Functions using `supabase.functions.invoke()` were failing with `TypeError: Cannot read properties of undefined (reading 'invoke')`. This was observed in `LineCallback.tsx` during the LINE OAuth flow.
 
-1. **Console.log消去 ✅**: Verified that no console.log statements exist in the codebase
-   - Performed comprehensive search across all TypeScript/JavaScript files
-   - No console.log statements found - this was already clean
+**Root Cause:** The custom Supabase client wrapper in `src/integrations/supabase/client.ts` (specifically the `createSimpleClient` function) did not correctly expose a `functions` property that handled the asynchronous initialization of the Supabase client. While `auth`, `rpc`, and `from` methods had async-safe wrappers, `functions.invoke` was not similarly covered.
 
-2. **Readme日本語化 ✅**: Successfully translated README.md to Japanese
-   - Complete translation while maintaining technical accuracy
-   - Fixed incorrect tech stack information (updated from Next.js to Vite)
-   - Proper Japanese documentation with deployment instructions
+**Solution:**
+- Modified the `createSimpleClient` function in `src/integrations/supabase/client.ts`.
+- Added a `functions` property to the returned wrapper object.
+- This `functions` property contains an `invoke` method:
+  ```typescript
+  functions: {
+    invoke: async (functionName: string, options?: any) => {
+      const client = await initializeClientAsync();
+      // Basic handling for common case where options might just be the body
+      let invokeOptions = options;
+      if (options && typeof options === 'object' && !('body' in options) && !('headers' in options) && !('method' in options)) {
+        invokeOptions = { body: options };
+      }
+      return client.functions.invoke(functionName, invokeOptions);
+    },
+  }
+  ```
+- This ensures that `initializeClientAsync()` is awaited before `client.functions.invoke()` is called, making Edge Function invocations through the wrapped client reliable.
 
-3. **Supabase設定の環境変数化 ✅**: Replace hardcoded Supabase credentials with environment variables
-   - Created `.env` file with actual project credentials
-   - Created `.env.example` template for new developers
-   - Updated `src/integrations/supabase/client.ts` to use environment variables
-   - Updated `src/integrations/supabase/admin-client.ts` to use environment variables
-   - Added proper validation to ensure environment variables are loaded
-   - All credentials now properly externalized from source code
-
-4. **管理者パスワードの環境変数化 ✅**: Replace hardcoded admin password with environment variable
-   - Updated `src/utils/admin-setup.ts` to use `VITE_ADMIN_DEFAULT_PASSWORD`
-   - Added environment variable validation with error handling
-   - Removed hardcoded password "5ecurity@SageAdmin2025" from source code
-
-5. **cursorフォルダーの消去 ✅**: Successfully removed .cursor folder
-   - Deleted the .cursor directory and all its contents
-   - Project is now cleaner without development artifacts
-
-6. **XSS脆弱性の修正 ✅**: Fixed XSS vulnerability in BlogDetail.tsx
-   - Installed DOMPurify library for HTML sanitization
-   - Replaced dangerous `dangerouslySetInnerHTML` with `DOMPurify.sanitize()`
-   - Added proper HTML sanitization to prevent XSS attacks
-   - Updated import statements to include DOMPurify
-
-7. **単体テストの実装 ✅**: Successfully implemented unit testing framework
-   - Installed Vitest, React Testing Library, and related dependencies
-   - Configured Vite for testing with proper setup
-   - Created test configuration files:
-     - Updated `vite.config.ts` with test configuration
-     - Created `src/test/setup.ts` for test environment setup
-     - Added test scripts to `package.json`
-   - Implemented working unit tests:
-     - `src/components/__tests__/Layout.test.tsx` - Layout component tests
-     - `src/components/__tests__/Button.test.tsx` - Button component tests  
-     - `src/utils/__tests__/types.test.ts` - Type validation tests
-   - All tests (12 tests in 3 files) are passing successfully
-
-### Security Improvements ✅
-- **XSS Protection**: Implemented DOMPurify for safe HTML rendering
-- **Credential Management**: All sensitive data moved to environment variables
-- **Input Sanitization**: Blog content is now properly sanitized before display
-
-### Development Experience Improvements ✅
-- **Testing Framework**: Full unit testing setup with Vitest
-- **Environment Configuration**: Proper .env setup with validation
-- **Documentation**: Japanese documentation for better accessibility
-- **Code Quality**: Removed development artifacts and improved security
-
-### Testing Coverage
-The project now includes comprehensive unit tests covering:
-- Component rendering and interaction (Layout, Button)
-- Type safety and validation (UserProfile, BlogPost, TherapistProfile)
-- Proper mocking of external dependencies (Supabase, React Router)
-- Environment setup for testing scenarios
-
-All 12 tests are passing, demonstrating that the core functionality works correctly and the security improvements don't break existing features.
-
-**Discrepancies & Potential Issues:**
-*   **Documentation Mismatch:** `README.md` tech stack mentions Next.js, but the project is Vite-based.
-*   **Hardcoded Keys:** Supabase URL and anon key are hardcoded in `src/integrations/supabase/client.ts`. The Service Role Key is hardcoded in `src/integrations/supabase/admin-client.ts` (critical security risk if used client-side).
-*   **Scattered SQL Scripts:** SQL logic is spread across CLI migrations and many other ad-hoc files.
-*   **Risky SQL in `fixes.sql`:** Contains a command to unconditionally grant admin rights to the current user.
-*   **Legacy API Code:** `api/post-api-routes.js` contains Next.js-style API route handlers that are not used by the Vite setup or Vercel SPA deployment.
-*   **Dual Lockfiles:** `package-lock.json` (npm) and `bun.lockb` (Bun) coexist.
-*   **Security of Generated Supabase Client:** The client file `src/integrations/supabase/client.ts` is marked as "automatically generated". If it's regenerated, manual changes (like moving keys to env vars) might be overwritten. The `admin-client.ts` also contains a hardcoded service role key.
-*   **Auth State Limitations:** Still using localStorage for userType caching instead of a centralized auth context. Multiple client warning occurs when admin pages import both regular and admin client instances.
-
-**Overall Architecture:**
-The application follows a modern SPA architecture with React on the frontend and Supabase providing the BaaS (Backend as a Service). The frontend is responsible for UI rendering and user interaction, while Supabase handles data storage, querying, real-time capabilities (if used, not explicitly detailed but possible with Supabase), authentication, and file storage. Security is enforced primarily through Supabase's RLS policies and database-level logic.
-The project is quite extensive with many features and user roles, indicating a complex application. The presence of AI-related helper files (`memory.json`, `lessons.json`) is a unique aspect, suggesting advanced development tooling or an integrated AI assistant.
-
-## Recent Updates & Improvements
-
-### PM Feedback Implementation - COMPLETED ✅
-
-All issues identified by the PM have been successfully resolved:
-
-1. **Console.log消去 ✅**: Verified that no console.log statements exist in the codebase
-   - Performed comprehensive search across all TypeScript/JavaScript files
-   - No console.log statements found - this was already clean
-
-2. **Readme日本語化 ✅**: Successfully translated README.md to Japanese
-   - Complete translation while maintaining technical accuracy
-   - Fixed incorrect tech stack information (updated from Next.js to Vite)
-   - Proper Japanese documentation with deployment instructions
-
-3. **Supabase設定の環境変数化 ✅**: Replace hardcoded Supabase credentials with environment variables
-   - Created `.env` file with actual project credentials
-   - Created `.env.example` template for new developers
-   - Updated `src/integrations/supabase/client.ts` to use environment variables
-   - Updated `src/integrations/supabase/admin-client.ts` to use environment variables
-   - Added proper validation to ensure environment variables are loaded
-   - All credentials now properly externalized from source code
-
-4. **管理者パスワードの環境変数化 ✅**: Replace hardcoded admin password with environment variable
-   - Updated `src/utils/admin-setup.ts` to use `VITE_ADMIN_DEFAULT_PASSWORD`
-   - Added environment variable validation with error handling
-   - Removed hardcoded password "5ecurity@SageAdmin2025" from source code
-
-5. **cursorフォルダーの消去 ✅**: Successfully removed .cursor folder
-   - Deleted the .cursor directory and all its contents
-   - Project is now cleaner without development artifacts
-
-6. **XSS脆弱性の修正 ✅**: Fixed XSS vulnerability in BlogDetail.tsx
-   - Installed DOMPurify library for HTML sanitization
-   - Replaced dangerous `dangerouslySetInnerHTML` with `DOMPurify.sanitize()`
-   - Added proper HTML sanitization to prevent XSS attacks
-   - Updated import statements to include DOMPurify
-
-7. **単体テストの実装 ✅**: Successfully implemented unit testing framework
-   - Installed Vitest, React Testing Library, and related dependencies
-   - Configured Vite for testing with proper setup
-   - Created test configuration files:
-     - Updated `vite.config.ts` with test configuration
-     - Created `src/test/setup.ts` for test environment setup
-     - Added test scripts to `package.json`
-   - Implemented working unit tests:
-     - `src/components/__tests__/Layout.test.tsx` - Layout component tests
-     - `src/components/__tests__/Button.test.tsx` - Button component tests  
-     - `src/utils/__tests__/types.test.ts` - Type validation tests
-   - All tests (12 tests in 3 files) are passing successfully
-
-### Security Improvements ✅
-- **XSS Protection**: Implemented DOMPurify for safe HTML rendering
-- **Credential Management**: All sensitive data moved to environment variables
-- **Input Sanitization**: Blog content is now properly sanitized before display
-
-### Development Experience Improvements ✅
-- **Testing Framework**: Full unit testing setup with Vitest
-- **Environment Configuration**: Proper .env setup with validation
-- **Documentation**: Japanese documentation for better accessibility
-- **Code Quality**: Removed development artifacts and improved security
-
-### Testing Coverage
-The project now includes comprehensive unit tests covering:
-- Component rendering and interaction (Layout, Button)
-- Type safety and validation (UserProfile, BlogPost, TherapistProfile)
-- Proper mocking of external dependencies (Supabase, React Router)
-- Environment setup for testing scenarios
-
-All 12 tests are passing, demonstrating that the core functionality works correctly and the security improvements don't break existing features.
-
-**Discrepancies & Potential Issues:**
-*   **Documentation Mismatch:** `README.md` tech stack mentions Next.js, but the project is Vite-based.
-*   **Hardcoded Keys:** Supabase URL and anon key are hardcoded in `src/integrations/supabase/client.ts`. The Service Role Key is hardcoded in `src/integrations/supabase/admin-client.ts` (critical security risk if used client-side).
-*   **Scattered SQL Scripts:** SQL logic is spread across CLI migrations and many other ad-hoc files.
-*   **Risky SQL in `fixes.sql`:** Contains a command to unconditionally grant admin rights to the current user.
-*   **Legacy API Code:** `api/post-api-routes.js` contains Next.js-style API route handlers that are not used by the Vite setup or Vercel SPA deployment.
-*   **Dual Lockfiles:** `package-lock.json` (npm) and `bun.lockb` (Bun) coexist.
-*   **Security of Generated Supabase Client:** The client file `src/integrations/supabase/client.ts` is marked as "automatically generated". If it's regenerated, manual changes (like moving keys to env vars) might be overwritten. The `admin-client.ts` also contains a hardcoded service role key.
-*   **Auth State Limitations:** Still using localStorage for userType caching instead of a centralized auth context. Multiple client warning occurs when admin pages import both regular and admin client instances.
-
-**Overall Architecture:**
-The application follows a modern SPA architecture with React on the frontend and Supabase providing the BaaS (Backend as a Service). The frontend is responsible for UI rendering and user interaction, while Supabase handles data storage, querying, real-time capabilities (if used, not explicitly detailed but possible with Supabase), authentication, and file storage. Security is enforced primarily through Supabase's RLS policies and database-level logic.
-The project is quite extensive with many features and user roles, indicating a complex application. The presence of AI-related helper files (`memory.json`, `lessons.json`) is a unique aspect, suggesting advanced development tooling or an integrated AI assistant.
-
-## AWS Infrastructure
-
-**CloudFront Distribution:**
-*   Distribution ID: E2P3Q41GY0N3CJ
-*   Domain: rupipia.jp
-*   Origins:
-    *   S3 bucket (static frontend files)
-    *   API Gateway (backend serverless functions)
-*   Cache behaviors:
-    *   Default: S3 bucket (static files)
-    *   Path pattern `/api/*`: API Gateway (backend APIs)
-
-**Lambda Function:**
-*   Function name: rurupia-api
-*   Runtime: Node.js 20.x
-*   Region: ap-northeast-1
-*   Handler: index.handler
-*   IAM Role: rurupia-lambda-role
-*   Environment variables:
-    *   SUPABASE_URL: Supabase project URL
-    *   SUPABASE_SERVICE_ROLE_KEY: Supabase service role key (for server operations)
-    *   SUPABASE_ANON_KEY: Supabase anonymous key (for client operations)
-    *   VITE_TINYMCE_API_KEY: TinyMCE editor API key
-    *   VITE_APP_LINE_CLIENT_ID: LINE OAuth client ID
-    *   VITE_APP_LINE_CLIENT_SECRET: LINE OAuth client secret
-
-**API Gateway:**
-*   API ID: pq33gk4qqd
-*   Name: rurupia-api
-*   Endpoint: https://pq33gk4qqd.execute-api.ap-northeast-1.amazonaws.com/prod
-*   Resources:
-    *   Proxy resource {proxy+} with ANY method
-    *   OPTIONS method with CORS configuration
-
-**API Endpoints:**
-*   `/api/config`: Returns environment variables for the frontend
-*   `/api/post-likes`: Manages post likes (POST/DELETE)
-*   `/api/user-likes`: Retrieves user likes
-*   `/api/post-comments`: Manages post comments
+**Impact:**
+- Resolved the `TypeError` when calling `supabase.functions.invoke()`.
+- LINE authentication flow in `LineCallback.tsx` can now correctly invoke the `line-auth-handler` Edge Function.
+- All Supabase client functionalities (`auth`, `from`, `rpc`, `functions`) exposed through the custom wrapper now consistently handle asynchronous client initialization.
 
 # Rurupia - Therapist Connectivity Platform
 
@@ -702,3 +524,73 @@ POST https://vvwkuqnotnilsbcswfqu.supabase.co/auth/v1/signup 500 (Internal Serve
 - Users can register and sign in via LINE without database errors
 - Security trade-offs accepted (RLS disabled, foreign key removed) for functionality
 - All LINE authentication flows are now operational
+
+### Supabase Client Edge Function Invocation Fix - (Current Date)
+
+**Issue:** Calls to Supabase Edge Functions using `supabase.functions.invoke()` were failing with `TypeError: Cannot read properties of undefined (reading 'invoke')`. This was observed in `LineCallback.tsx` during the LINE OAuth flow.
+
+**Root Cause:** The custom Supabase client wrapper in `src/integrations/supabase/client.ts` (specifically the `createSimpleClient` function) did not correctly expose a `functions` property that handled the asynchronous initialization of the Supabase client. While `auth`, `rpc`, and `from` methods had async-safe wrappers, `functions.invoke` was not similarly covered.
+
+**Solution:**
+- Modified the `createSimpleClient` function in `src/integrations/supabase/client.ts`.
+- Added a `functions` property to the returned wrapper object.
+- This `functions` property contains an `invoke` method:
+  ```typescript
+  functions: {
+    invoke: async (functionName: string, options?: any) => {
+      const client = await initializeClientAsync();
+      // Basic handling for common case where options might just be the body
+      let invokeOptions = options;
+      if (options && typeof options === 'object' && !('body' in options) && !('headers' in options) && !('method' in options)) {
+        invokeOptions = { body: options };
+      }
+      return client.functions.invoke(functionName, invokeOptions);
+    },
+  }
+  ```
+- This ensures that `initializeClientAsync()` is awaited before `client.functions.invoke()` is called, making Edge Function invocations through the wrapped client reliable.
+
+**Impact:**
+- Resolved the `TypeError` when calling `supabase.functions.invoke()`.
+- LINE authentication flow in `LineCallback.tsx` can now correctly invoke the `line-auth-handler` Edge Function.
+- All Supabase client functionalities (`auth`, `from`, `rpc`, `functions`) exposed through the custom wrapper now consistently handle asynchronous client initialization.
+
+## AWS Infrastructure
+
+**CloudFront Distribution:**
+*   Distribution ID: E2P3Q41GY0N3CJ
+*   Domain: rupipia.jp
+*   Origins:
+    *   S3 bucket (static frontend files)
+    *   API Gateway (backend serverless functions)
+*   Cache behaviors:
+    *   Default: S3 bucket (static files)
+    *   Path pattern `/api/*`: API Gateway (backend APIs)
+
+**Lambda Function:**
+*   Function name: rurupia-api
+*   Runtime: Node.js 20.x
+*   Region: ap-northeast-1
+*   Handler: index.handler
+*   IAM Role: rurupia-lambda-role
+*   Environment variables:
+    *   SUPABASE_URL: Supabase project URL
+    *   SUPABASE_SERVICE_ROLE_KEY: Supabase service role key (for server operations)
+    *   SUPABASE_ANON_KEY: Supabase anonymous key (for client operations)
+    *   VITE_TINYMCE_API_KEY: TinyMCE editor API key
+    *   VITE_APP_LINE_CLIENT_ID: LINE OAuth client ID
+    *   VITE_APP_LINE_CLIENT_SECRET: LINE OAuth client secret
+
+**API Gateway:**
+*   API ID: pq33gk4qqd
+*   Name: rurupia-api
+*   Endpoint: https://pq33gk4qqd.execute-api.ap-northeast-1.amazonaws.com/prod
+*   Resources:
+    *   Proxy resource {proxy+} with ANY method
+    *   OPTIONS method with CORS configuration
+
+**API Endpoints:**
+*   `/api/config`: Returns environment variables for the frontend
+*   `/api/post-likes`: Manages post likes (POST/DELETE)
+*   `/api/user-likes`: Retrieves user likes
+*   `/api/post-comments`: Manages post comments

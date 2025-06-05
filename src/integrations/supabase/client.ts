@@ -164,6 +164,23 @@ const createSimpleClient = () => {
     rpc: async (functionName: string, params: any) => {
       const client = await initializeClientAsync();
       return client.rpc(functionName, params);
+    },
+    functions: {
+      invoke: async (functionName: string, options?: any) => {
+        const client = await initializeClientAsync();
+        // Supabase Functions invoke options are structured with 'body' for payload
+        // and 'headers' etc. Ensure the 'options' passed aligns with this.
+        // If 'options' is just the body, it should be { body: options }
+        // For simplicity, assuming 'options' is already structured correctly
+        // or is just the body, which is a common shorthand.
+        // Let's refine to handle common case where options might just be the body.
+        let invokeOptions = options;
+        if (options && typeof options === 'object' && !('body' in options) && !('headers' in options) && !('method' in options)) {
+          // If options is a plain object but not a full FunctionsInvokeOptions, assume it's the body
+          invokeOptions = { body: options };
+        }
+        return client.functions.invoke(functionName, invokeOptions);
+      },
     }
   };
 };

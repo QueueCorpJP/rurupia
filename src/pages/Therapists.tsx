@@ -30,7 +30,8 @@ const Therapists = () => {
     mood: "",
     therapistType: "",
     treatmentType: "",
-    therapistAge: ""
+    therapistAge: "",
+    rating: 0
   });
 
   // Parse URL parameters once when component mounts
@@ -59,6 +60,9 @@ const Therapists = () => {
       const therapistType = params.get('therapistType');
       const treatmentType = params.get('treatmentType');
       const therapistAge = params.get('therapistAge');
+      
+      // Get rating filter
+      const rating = params.get('rating');
       
       // Get budget parameter and convert to price range if needed
       const budget = params.get('budget');
@@ -101,7 +105,8 @@ const Therapists = () => {
           mood: mood || '',
           therapistType: therapistType || '',
           treatmentType: treatmentType || '',
-          therapistAge: therapistAge || ''
+          therapistAge: therapistAge || '',
+          rating: rating ? parseFloat(rating) : 0
         };
         
         console.log('Therapists: Initialized filters from URL params', newFilters);
@@ -148,6 +153,9 @@ const Therapists = () => {
     const treatmentType = params.get('treatmentType');
     const therapistAge = params.get('therapistAge');
     
+    // Get rating filter
+    const rating = params.get('rating');
+    
     // Get budget parameter and convert to price range if needed
     const budget = params.get('budget');
     let priceRange = [0, 50000] as [number, number];
@@ -189,7 +197,8 @@ const Therapists = () => {
         mood: mood || '',
         therapistType: therapistType || '',
         treatmentType: treatmentType || '',
-        therapistAge: therapistAge || ''
+        therapistAge: therapistAge || '',
+        rating: rating ? parseFloat(rating) : 0
       };
       
       console.log('Therapists: Updated filters from URL params after init', newFilters);
@@ -262,11 +271,15 @@ const Therapists = () => {
           // Apply min price (if it's greater than 0)
           if (filters.priceRange[0] > 0) {
             query = query.gte('price', filters.priceRange[0]);
+            // Also ensure price is not null when specific price range is selected
+            query = query.not('price', 'is', null);
           }
           
           // Apply max price (if it's less than the max possible value)
           if (filters.priceRange[1] < 50000) {
             query = query.lte('price', filters.priceRange[1]);
+            // Also ensure price is not null when specific price range is selected
+            query = query.not('price', 'is', null);
           }
         }
         
@@ -278,6 +291,14 @@ const Therapists = () => {
         // Apply MBTI filter if provided
         if (filters.mbtiType && filters.mbtiType !== 'unknown') {
           query = query.eq('mbti_type', filters.mbtiType);
+        }
+        
+        // Apply rating filter if provided (only show therapists with rating >= selected value)
+        if (filters.rating && filters.rating > 0) {
+          // Only include therapists that have a rating >= the selected minimum rating
+          // This will exclude therapists with 0 rating or null rating when a specific rating is selected
+          query = query.gte('rating', filters.rating);
+          console.log('Applied rating filter: rating >=', filters.rating);
         }
 
         console.log('Questionnaire filters:', filters);
@@ -384,7 +405,7 @@ const Therapists = () => {
       params.set('maxPrice', newFilters.priceRange[1].toString());
     }
     
-    // Update questionnaire filters
+    // Update questionnaire filters and rating
     const questionnaireParams = ['mbtiType', 'mood', 'therapistType', 'treatmentType', 'therapistAge'];
     questionnaireParams.forEach(param => {
       if (newFilters[param] && newFilters[param] !== 'unknown') {
@@ -393,6 +414,13 @@ const Therapists = () => {
         params.delete(param);
       }
     });
+    
+    // Update rating filter
+    if (newFilters.rating && newFilters.rating > 0) {
+      params.set('rating', newFilters.rating.toString());
+    } else {
+      params.delete('rating');
+    }
     
     // Keep the search parameter if it exists
     const search = params.get('search');

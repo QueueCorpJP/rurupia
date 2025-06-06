@@ -42,6 +42,7 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 5. ✅ **Footer logo consistency**: Updated footer logo sizing to match header: `h-8 w-auto sm:h-12 md:h-14`
 6. ✅ **Therapist rating consistency**: Fixed display logic to show "未評価" when rating > 0 but reviews = 0, and corrected database inconsistency
 7. ✅ **Admin new account functionality**: Added complete new account creation dialog with email, password, name, and user type selection
+8. ✅ **Therapist filtering mechanism**: Fixed critical bug where therapists without ratings/prices remained visible when specific filters were applied
 
 **Technical Changes**:
 - Created `RegistrationPending.tsx` component with user-friendly waiting message
@@ -51,6 +52,7 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 - Added admin account creation functionality to `AdminAccounts.tsx` with proper form validation
 - Updated footer logo sizing in `Layout.tsx` for consistency
 - Fixed therapist database record (ID: 8958d10b-f6c8-481f-9ec7-b36afcb8195e) rating/review inconsistency
+- **Fixed therapist filtering**: Added missing rating filter implementation to Supabase query logic in `Therapists.tsx`, ensuring therapists with 0 ratings are excluded when rating filters are applied
 
 ## Recent Major Fixes (Previous Updates)
 

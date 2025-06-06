@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { PlusCircle, Users } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -51,10 +52,41 @@ export default function AdminAccounts() {
   // New state variables for new account creation
   const [showNewAccountDialog, setShowNewAccountDialog] = useState(false);
   const [newAccountData, setNewAccountData] = useState({
+    // Required fields
     name: '',
     email: '',
     password: '',
-    userType: 'customer'
+    userType: 'customer',
+    
+    // Optional profile fields
+    nickname: '',
+    phone: '',
+    address: '',
+    age: '',
+    hobbies: [],
+    mbti: '',
+    lineId: '',
+    
+    // Therapist-specific fields (only shown when userType is therapist)
+    specialties: [],
+    experience: '',
+    location: '',
+    price: '',
+    description: '',
+    longDescription: '',
+    qualifications: [],
+    height: '',
+    weight: '',
+    detailedArea: '',
+    serviceStyle: [],
+    facialFeatures: '',
+    bodyType: [],
+    personalityTraits: [],
+    workingDays: [],
+    
+    // Settings
+    isVerified: false,
+    status: 'active'
   });
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
@@ -228,14 +260,28 @@ export default function AdminAccounts() {
         return;
       }
 
-      // Update the profile with user type and name
+      // Update the profile with all provided data
+      const profileData: any = {
+        name: newAccountData.name,
+        nickname: newAccountData.nickname || null,
+        phone: newAccountData.phone || null,
+        address: newAccountData.address || null,
+        age: newAccountData.age || null,
+        mbti: newAccountData.mbti || null,
+        line_id: newAccountData.lineId || null,
+        user_type: newAccountData.userType,
+        status: newAccountData.status,
+        is_verified: newAccountData.isVerified
+      };
+
+      // Add hobbies if provided
+      if (newAccountData.hobbies.length > 0) {
+        profileData.hobbies = newAccountData.hobbies;
+      }
+
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .update({
-          name: newAccountData.name,
-          user_type: newAccountData.userType,
-          status: 'active'
-        })
+        .update(profileData)
         .eq('id', authData.user.id);
 
       if (profileError) {
@@ -244,9 +290,82 @@ export default function AdminAccounts() {
         return;
       }
 
+      // If user type is therapist, create therapist record
+      if (newAccountData.userType === 'therapist') {
+        const therapistData: any = {
+          id: authData.user.id,
+          name: newAccountData.name,
+          experience: parseInt(newAccountData.experience) || 0,
+          location: newAccountData.location || '',
+          price: parseInt(newAccountData.price) || null,
+          description: newAccountData.description || '',
+          long_description: newAccountData.longDescription || null,
+          height: newAccountData.height || null,
+          weight: parseInt(newAccountData.weight) || null,
+          detailed_area: newAccountData.detailedArea || '',
+          facial_features: newAccountData.facialFeatures || '',
+          specialties: newAccountData.specialties,
+          qualifications: newAccountData.qualifications,
+          service_style: newAccountData.serviceStyle,
+          body_type: newAccountData.bodyType,
+          personality_traits: newAccountData.personalityTraits,
+          working_days: newAccountData.workingDays,
+          hobbies: newAccountData.hobbies,
+          rating: 0,
+          reviews: 0,
+          availability: []
+        };
+
+        const { error: therapistError } = await supabaseAdmin
+          .from('therapists')
+          .insert(therapistData);
+
+        if (therapistError) {
+          console.error('Therapist creation error:', therapistError);
+          toast.error(`セラピスト情報の作成エラー: ${therapistError.message}`);
+          return;
+        }
+      }
+
       toast.success('新しいアカウントが正常に作成されました');
       setShowNewAccountDialog(false);
-      setNewAccountData({ name: '', email: '', password: '', userType: 'customer' });
+      setNewAccountData({
+        // Required fields
+        name: '',
+        email: '',
+        password: '',
+        userType: 'customer',
+        
+        // Optional profile fields
+        nickname: '',
+        phone: '',
+        address: '',
+        age: '',
+        hobbies: [],
+        mbti: '',
+        lineId: '',
+        
+        // Therapist-specific fields
+        specialties: [],
+        experience: '',
+        location: '',
+        price: '',
+        description: '',
+        longDescription: '',
+        qualifications: [],
+        height: '',
+        weight: '',
+        detailedArea: '',
+        serviceStyle: [],
+        facialFeatures: '',
+        bodyType: [],
+        personalityTraits: [],
+        workingDays: [],
+        
+        // Settings
+        isVerified: false,
+        status: 'active'
+      });
       fetchAccounts(); // Refresh the accounts list
       
     } catch (error) {
@@ -516,55 +635,239 @@ export default function AdminAccounts() {
 
       {/* New Dialog for Account Creation */}
       <Dialog open={showNewAccountDialog} onOpenChange={setShowNewAccountDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新規アカウント作成</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="new-account-name">名前 *</Label>
-              <Input
-                id="new-account-name"
-                value={newAccountData.name}
-                onChange={(e) => setNewAccountData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="ユーザー名を入力"
-              />
+          <div className="space-y-6">
+            {/* Required Fields Section */}
+            <div className="space-y-4 border-b pb-4">
+              <h3 className="text-lg font-semibold text-primary">必須情報</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="new-account-name">名前 *</Label>
+                  <Input
+                    id="new-account-name"
+                    value={newAccountData.name}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="ユーザー名を入力"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-email">メールアドレス *</Label>
+                  <Input
+                    id="new-account-email"
+                    type="email"
+                    value={newAccountData.email}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-password">パスワード *</Label>
+                  <Input
+                    id="new-account-password"
+                    type="password"
+                    value={newAccountData.password}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="パスワードを入力"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-type">ユーザータイプ</Label>
+                  <Select value={newAccountData.userType} onValueChange={(value) => setNewAccountData(prev => ({ ...prev, userType: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="ユーザータイプを選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="customer">お客様</SelectItem>
+                      <SelectItem value="therapist">セラピスト</SelectItem>
+                      <SelectItem value="store">店舗</SelectItem>
+                      <SelectItem value="admin">管理者</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="new-account-email">メールアドレス *</Label>
-              <Input
-                id="new-account-email"
-                type="email"
-                value={newAccountData.email}
-                onChange={(e) => setNewAccountData(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="email@example.com"
-              />
+
+            {/* Optional Profile Fields Section */}
+            <div className="space-y-4 border-b pb-4">
+              <h3 className="text-lg font-semibold text-primary">基本情報 (任意)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="new-account-nickname">ニックネーム</Label>
+                  <Input
+                    id="new-account-nickname"
+                    value={newAccountData.nickname}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, nickname: e.target.value }))}
+                    placeholder="ニックネームを入力"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-phone">電話番号</Label>
+                  <Input
+                    id="new-account-phone"
+                    value={newAccountData.phone}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="090-1234-5678"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-address">住所</Label>
+                  <Input
+                    id="new-account-address"
+                    value={newAccountData.address}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="住所を入力"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-age">年齢</Label>
+                  <Input
+                    id="new-account-age"
+                    value={newAccountData.age}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, age: e.target.value }))}
+                    placeholder="年齢を入力"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-mbti">MBTI</Label>
+                  <Input
+                    id="new-account-mbti"
+                    value={newAccountData.mbti}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, mbti: e.target.value }))}
+                    placeholder="例: INFP"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-line">LINE ID</Label>
+                  <Input
+                    id="new-account-line"
+                    value={newAccountData.lineId}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, lineId: e.target.value }))}
+                    placeholder="LINE IDを入力"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="new-account-password">パスワード *</Label>
-              <Input
-                id="new-account-password"
-                type="password"
-                value={newAccountData.password}
-                onChange={(e) => setNewAccountData(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="パスワードを入力"
-              />
+
+            {/* Therapist-specific Fields Section */}
+            {newAccountData.userType === 'therapist' && (
+              <div className="space-y-4 border-b pb-4">
+                <h3 className="text-lg font-semibold text-primary">セラピスト専用情報</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="new-account-experience">経験年数</Label>
+                    <Input
+                      id="new-account-experience"
+                      value={newAccountData.experience}
+                      onChange={(e) => setNewAccountData(prev => ({ ...prev, experience: e.target.value }))}
+                      placeholder="例: 3年"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-account-location">勤務エリア</Label>
+                    <Input
+                      id="new-account-location"
+                      value={newAccountData.location}
+                      onChange={(e) => setNewAccountData(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="例: 東京都"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-account-price">料金</Label>
+                    <Input
+                      id="new-account-price"
+                      type="number"
+                      value={newAccountData.price}
+                      onChange={(e) => setNewAccountData(prev => ({ ...prev, price: e.target.value }))}
+                      placeholder="例: 8000"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-account-height">身長</Label>
+                    <Input
+                      id="new-account-height"
+                      value={newAccountData.height}
+                      onChange={(e) => setNewAccountData(prev => ({ ...prev, height: e.target.value }))}
+                      placeholder="例: 165cm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-account-weight">体重</Label>
+                    <Input
+                      id="new-account-weight"
+                      type="number"
+                      value={newAccountData.weight}
+                      onChange={(e) => setNewAccountData(prev => ({ ...prev, weight: e.target.value }))}
+                      placeholder="例: 55"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-account-detailed-area">詳細エリア</Label>
+                    <Input
+                      id="new-account-detailed-area"
+                      value={newAccountData.detailedArea}
+                      onChange={(e) => setNewAccountData(prev => ({ ...prev, detailedArea: e.target.value }))}
+                      placeholder="例: 渋谷区、新宿区"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="new-account-description">自己紹介</Label>
+                  <Textarea
+                    id="new-account-description"
+                    value={newAccountData.description}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="自己紹介文を入力"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-account-long-description">詳細説明</Label>
+                  <Textarea
+                    id="new-account-long-description"
+                    value={newAccountData.longDescription}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, longDescription: e.target.value }))}
+                    placeholder="詳細な説明を入力"
+                    rows={4}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Account Settings Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-primary">アカウント設定</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="new-account-status">ステータス</Label>
+                  <Select value={newAccountData.status} onValueChange={(value) => setNewAccountData(prev => ({ ...prev, status: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="ステータスを選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">アクティブ</SelectItem>
+                      <SelectItem value="pending">認証待ち</SelectItem>
+                      <SelectItem value="inactive">無効</SelectItem>
+                      <SelectItem value="rejected">拒否</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="new-account-verified"
+                    checked={newAccountData.isVerified}
+                    onChange={(e) => setNewAccountData(prev => ({ ...prev, isVerified: e.target.checked }))}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="new-account-verified">認証済み</Label>
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="new-account-type">ユーザータイプ</Label>
-              <Select value={newAccountData.userType} onValueChange={(value) => setNewAccountData(prev => ({ ...prev, userType: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="ユーザータイプを選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="customer">お客様</SelectItem>
-                  <SelectItem value="therapist">セラピスト</SelectItem>
-                  <SelectItem value="store">店舗</SelectItem>
-                  <SelectItem value="admin">管理者</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end space-x-2">
+
+            <div className="flex justify-end space-x-2 pt-4 border-t">
               <Button variant="outline" onClick={() => setShowNewAccountDialog(false)} disabled={isCreatingAccount}>
                 キャンセル
               </Button>

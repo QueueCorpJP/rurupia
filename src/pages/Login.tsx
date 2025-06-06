@@ -27,8 +27,18 @@ const Login = () => {
       });
 
       if (error) {
-        toast.error(error.message, {
-          duration: 3000,
+        // Provide more specific error messages in Japanese
+        let errorMessage = error.message;
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'メールアドレスまたはパスワードが正しくありません';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'メールアドレスの認証が完了していません。受信したメールのリンクをクリックして認証を完了してください。';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'ログイン試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。';
+        }
+        
+        toast.error(errorMessage, {
+          duration: 5000,
         });
         return;
       }

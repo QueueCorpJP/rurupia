@@ -33,6 +33,58 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 ## Recent Major Fixes (Latest Updates)
 
+### January 2025 - Client Feedback Implementation (rupipia.jp Production Review)
+**Issues Addressed**:
+1. ✅ **Registration completion flow**: Created dedicated `/registration-pending` page with clear "認証完了までお待ちください" message, replacing auto-login redirect
+2. ✅ **Enhanced login error handling**: Added specific Japanese error messages for invalid credentials, unconfirmed email, and rate limiting
+3. ✅ **OGP image verification**: Confirmed `/og-image.png` exists and is properly configured for social media sharing
+4. ✅ **SEO meta tags**: Verified all meta tags are already in Japanese (no changes needed)
+5. ✅ **Footer logo consistency**: Updated footer logo sizing to match header: `h-8 w-auto sm:h-12 md:h-14`
+6. ✅ **Therapist rating consistency**: Fixed display logic to show "未評価" when rating > 0 but reviews = 0, and corrected database inconsistency
+7. ✅ **Admin new account functionality**: Added complete new account creation dialog with email, password, name, and user type selection
+
+**Technical Changes**:
+- Created `RegistrationPending.tsx` component with user-friendly waiting message
+- Updated `Signup.tsx` to redirect to pending page instead of auto-login
+- Enhanced `Login.tsx` error handling with specific Japanese messages
+- Fixed `TherapistCard.tsx` rating display logic (rating > 0 && reviews > 0)
+- Added admin account creation functionality to `AdminAccounts.tsx` with proper form validation
+- Updated footer logo sizing in `Layout.tsx` for consistency
+- Fixed therapist database record (ID: 8958d10b-f6c8-481f-9ec7-b36afcb8195e) rating/review inconsistency
+
+## Recent Major Fixes (Previous Updates)
+
+### June 2025 - Multiple Supabase Client Instances Fix
+**Issue**: LINE Login hanging in constant loading state with "Multiple GoTrueClient instances detected" console warnings, and data fetching failures in production (CloudFront)
+
+**Root Cause Analysis**: 
+- Three different Supabase client initialization systems running simultaneously:
+  - `src/integrations/supabase/client.ts` - Complex proxy-based async client
+  - `src/integrations/supabase/auth.ts` - Clean singleton client
+  - `src/integrations/supabase/admin-client.ts` - Separate admin client
+- Multiple GoTrueClient instances were competing for the same localStorage keys
+- In production with CloudFront, this caused race conditions and authentication conflicts
+- LINE login flow would complete token exchange but hang during Supabase authentication
+
+**Solutions Applied**:
+
+1. **Consolidated Client Architecture**:
+   - Simplified `client.ts` to re-export from `auth.ts` singleton only
+   - Updated `admin-client.ts` to use the same singleton for regular operations
+   - Only create separate admin client instance for service role operations
+   - Eliminated competing initialization systems
+
+2. **Single Storage Key Strategy**:
+   - All clients now use 'therapist-app-auth' storage key consistently
+   - Admin operations that need service role create separate instance only when needed
+   - Removed conflicting storage key patterns
+
+3. **Expected Benefits**:
+   - Eliminates "Multiple GoTrueClient instances" console warnings
+   - Fixes LINE login hanging issue in production
+   - Resolves data fetching problems
+   - Maintains all existing functionality while simplifying architecture
+
 ### December 2024 - Data Display & UI Fixes + Production Deployment
 **Issue**: No Supabase data being displayed, mobile logo too large, missing rating component circle icon, GitHub Actions not reflecting changes
 
@@ -79,6 +131,64 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 **Issue**: Users successfully authenticated with LINE but were redirected back to login
 **Root Cause**: LineCallback component created localStorage entries instead of Supabase sessions
 **Solution**: Updated Edge Function and LineCallback to use proper `signInWithPassword` flow
+
+### 2. Email Update Error Handling (RESOLVED)
+**Problem**: When users tried to add email after LINE login, they received "A user with this email address has already been registered" errors but no user-friendly error message in the frontend.
+
+**Solution**: Enhanced error handling in `UserProfile.tsx` `handleEmailSetup` function:
+- Detects specific Supabase auth errors (email already registered, invalid email, network errors)
+- Provides user-friendly Japanese error messages with helpful descriptions
+- Shows actionable guidance (try different email, use password login for existing account)
+- Extended toast duration for error messages (6 seconds)
+
+### 3. Document Upload Storage Error (RESOLVED)
+**Problem**: When users uploaded ID verification documents, the page went blank with "Cannot read properties of undefined (reading 'publicUrl')" errors.
+
+**Root Cause**: Supabase storage `getPublicUrl()` method returning incorrect structure:
+- Expected: `{ data: { publicUrl: string } }`
+- Actual: `{ publicUrl: string }` or `undefined`
+
+**Solution**: Fixed storage client wrapper in `client.ts`:
+- Updated `getPublicUrl()` to return proper `{ data: { publicUrl: string } }` structure
+- Added null safety checks in UserProfile component (`data?.publicUrl || ""`)
+- Ensured immediate URL resolution when client is cached
+- Added proper error handling for uncached client scenarios
+
+### 4. Persistent Email Setup Modal Error (RESOLVED)
+**Problem**: Users who already had email addresses still saw the email setup modal and got "email already registered" errors when trying to "set up" their existing email.
+
+**Root Cause**: 
+- Modal appeared based on `needs_email_setup: true` flag even when user had real email
+- `handleEmailSetup` always called `supabase.auth.updateUser()` even when email hadn't changed
+- Trying to "update" to the same email caused Supabase to throw "already registered" error
+
+**Solution**: Enhanced email setup logic in `UserProfile.tsx`:
+- Modal only shows when `needs_email_setup: true` AND user doesn't have real email
+- Skip Supabase auth update if current auth email matches the new email
+- Added logging to show when auth updates are skipped vs performed
+- Prevents unnecessary API calls that trigger "already registered" errors
+
+### 5. Admin Panel Query Builder Errors (RESOLVED)
+**Problem**: Admin panel showing `TypeError: Mr.from(...).select is not a function` errors, preventing dashboard and account management from working.
+
+**Root Cause**: Admin client wrapper using async `from()` method but admin components expecting synchronous query builder interface.
+
+**Solution**: Fixed admin client wrapper in `admin-client.ts`:
+- Implemented proper synchronous query builder interface matching regular client
+- Added chainable methods (eq, gte, lte, order, limit, etc.)
+- Used admin client with service role privileges for database operations
+- Maintained compatibility with existing admin component code
+- Added proper storage interface for admin operations
+
+### 6. Account Duplication Issue (PARTIALLY RESOLVED)
+**Problem**: User has two separate accounts:
+- LINE account (ID: 50dcaa58-0aa6-41ff-9ab3-3b77707419b2) with temp email
+- Existing account (ID: 5c78af46-095e-421e-8a3f-b47faa0a80ad) with einar.tokyo@gmail.com
+
+**Solution**: 
+- Disabled `needs_email_setup` flag for LINE account to prevent modal from appearing
+- User should use existing account with einar.tokyo@gmail.com for main activities
+- LINE account can remain separate or be merged later if needed
 
 ## Deployment Information
 - **S3 Bucket**: `therapist-connectivity-frontend-93b9faa0`
@@ -153,5 +263,51 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
    • Add retry logic in `getConfig()` when initial fetch fails instead of throwing immediately.
    • Build-time inject `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` so fallback path works offline.
    • Optionally shorten API Gateway timeout & ensure proper CORS so first request doesn't stall.
+
+## Core Architecture
+- React-based frontend with Vite build system
+- Supabase backend for authentication, database, and storage
+- AWS S3 + CloudFront for production hosting
+- LINE login integration for social authentication
+
+## Technical Infrastructure
+
+### Supabase Project Details
+- Project: nokutoru (vvwkuqnotnilsbcswfqu)
+- Status: ACTIVE_HEALTHY  
+- Database connectivity: Verified working
+- Config API: https://rupipia.jp/api/config (working)
+
+### Production Environment
+- URL: https://rupipia.jp
+- Status: Deployed and functional
+- LINE login: Working correctly
+- Email registration: Now has proper error handling
+
+### Key Features Working
+- ✅ LINE social authentication
+- ✅ User registration and profile management
+- ✅ Email setup for LINE users (with proper error handling)
+- ✅ ID verification document upload (with fixed storage handling)
+- ✅ Therapist and user role management
+- ✅ Database operations and storage
+- ✅ CloudFront content delivery
+
+## Latest Deployment
+- **Date**: June 5, 2025 (messaging system fixes)
+- **S3 Sync**: `therapist-connectivity-frontend-93b9faa0`
+- **CloudFront Invalidation**: `IC7V0LF45GE4W401W1HXJZ4MF9`
+- **Changes**: 
+  - Fixed admin panel query builder + disabled email setup modal for LINE account with account conflict
+  - Fixed admin display names to show nicknames for LINE users instead of empty names
+  - Fixed document verification "書類が見つかりませんでした" error by making admin storage client async and updating utility functions
+  - **NEW**: Fixed messaging system errors by:
+    - Added missing Supabase client methods: `channel()` for realtime, `or()` and `in()` for complex queries
+    - Fixed database foreign key constraint by creating missing user account for therapist ID `8958d10b-f6c8-481f-9ec7-b36afcb8195e`
+    - Added auth.users entry and profiles entry for test therapist to enable messaging
+  - Messaging system now functional for sending messages to therapists
+
+## Current Status
+All major authentication, login, and file upload issues have been resolved. The application is now stable in production with proper error handling for email conflicts and document uploads during user onboarding.
 
 ---

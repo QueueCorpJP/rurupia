@@ -62,6 +62,7 @@ import VerificationDocument from './pages/admin/VerificationDocument';
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import TherapistPublicPosts from './pages/TherapistPublicPosts';
 import AllTherapistPosts from './pages/AllTherapistPosts';
+import RegistrationPending from './pages/RegistrationPending';
 
 // Create a wrapper component that applies scroll restoration
 function ScrollToTop({ children }: { children: React.ReactNode }) {
@@ -77,6 +78,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/registration-pending" element={<RegistrationPending />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />

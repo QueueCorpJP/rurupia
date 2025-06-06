@@ -106,7 +106,8 @@ export default function AdminAccountsFix() {
     }
 
     try {
-      const { error } = await supabaseAdmin.from("profiles").delete().eq("id", id);
+      const profilesTable = await supabaseAdmin.from("profiles");
+      const { error } = await profilesTable.delete().eq("id", id);
 
       if (error) {
         toast.error("アカウントの削除に失敗しました");

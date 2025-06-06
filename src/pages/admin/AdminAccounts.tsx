@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { PlusCircle, Users } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // User account type mapping in Japanese
 const USER_TYPE_MAP = {
@@ -46,6 +47,16 @@ export default function AdminAccounts() {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [userToChangeStatus, setUserToChangeStatus] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('active');
+  
+  // New state variables for new account creation
+  const [showNewAccountDialog, setShowNewAccountDialog] = useState(false);
+  const [newAccountData, setNewAccountData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    userType: 'customer'
+  });
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
   useEffect(() => {
     if (isAdminAuthenticated) {
@@ -55,16 +66,18 @@ export default function AdminAccounts() {
 
   const fetchAccounts = async () => {
     try {
-      const { data, error } = await supabaseAdmin
+      const response = await supabaseAdmin
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      const { data, error } = response;
 
       if (error) throw error;
 
       const formattedAccounts: FormattedAccount[] = data.map((account) => ({
         id: account.id,
-        name: account.name || 'N/A',
+        name: account.nickname || account.name || 'N/A', // Show nickname first, then name, then N/A
         email: account.email || 'N/A',
         phone: account.phone || 'N/A',
         address: account.address || 'N/A',
@@ -186,6 +199,61 @@ export default function AdminAccounts() {
     if (userToChangeStatus && selectedStatus) {
       handleStatusChange(userToChangeStatus, selectedStatus);
       setShowStatusDialog(false);
+    }
+  };
+
+  // New function to handle account creation
+  const handleCreateAccount = async () => {
+    if (!newAccountData.name || !newAccountData.email || !newAccountData.password) {
+      toast.error('すべての必須フィールドを入力してください');
+      return;
+    }
+
+    try {
+      setIsCreatingAccount(true);
+      
+      // Create the user account using Supabase Admin API
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: newAccountData.email,
+        password: newAccountData.password,
+        email_confirm: true,
+        user_metadata: {
+          name: newAccountData.name
+        }
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        toast.error(`アカウント作成エラー: ${authError.message}`);
+        return;
+      }
+
+      // Update the profile with user type and name
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          name: newAccountData.name,
+          user_type: newAccountData.userType,
+          status: 'active'
+        })
+        .eq('id', authData.user.id);
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        toast.error(`プロフィール更新エラー: ${profileError.message}`);
+        return;
+      }
+
+      toast.success('新しいアカウントが正常に作成されました');
+      setShowNewAccountDialog(false);
+      setNewAccountData({ name: '', email: '', password: '', userType: 'customer' });
+      fetchAccounts(); // Refresh the accounts list
+      
+    } catch (error) {
+      console.error('Account creation error:', error);
+      toast.error('アカウント作成中にエラーが発生しました');
+    } finally {
+      setIsCreatingAccount(false);
     }
   };
 
@@ -326,7 +394,7 @@ export default function AdminAccounts() {
           <Users className="h-5 w-5 text-muted-foreground" />
           <span className="text-muted-foreground">全ユーザー: {filteredAccounts.length}</span>
         </div>
-        <Button variant="default">
+        <Button variant="default" onClick={() => setShowNewAccountDialog(true)}>
           <PlusCircle className="w-4 h-4 mr-2" />
           新規アカウント
         </Button>
@@ -441,6 +509,68 @@ export default function AdminAccounts() {
             </RadioGroup>
             <div className="flex justify-end">
               <Button onClick={confirmStatusChange}>変更する</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Dialog for Account Creation */}
+      <Dialog open={showNewAccountDialog} onOpenChange={setShowNewAccountDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新規アカウント作成</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new-account-name">名前 *</Label>
+              <Input
+                id="new-account-name"
+                value={newAccountData.name}
+                onChange={(e) => setNewAccountData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="ユーザー名を入力"
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-account-email">メールアドレス *</Label>
+              <Input
+                id="new-account-email"
+                type="email"
+                value={newAccountData.email}
+                onChange={(e) => setNewAccountData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="email@example.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-account-password">パスワード *</Label>
+              <Input
+                id="new-account-password"
+                type="password"
+                value={newAccountData.password}
+                onChange={(e) => setNewAccountData(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="パスワードを入力"
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-account-type">ユーザータイプ</Label>
+              <Select value={newAccountData.userType} onValueChange={(value) => setNewAccountData(prev => ({ ...prev, userType: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="ユーザータイプを選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customer">お客様</SelectItem>
+                  <SelectItem value="therapist">セラピスト</SelectItem>
+                  <SelectItem value="store">店舗</SelectItem>
+                  <SelectItem value="admin">管理者</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowNewAccountDialog(false)} disabled={isCreatingAccount}>
+                キャンセル
+              </Button>
+              <Button onClick={handleCreateAccount} disabled={isCreatingAccount}>
+                {isCreatingAccount ? '作成中...' : 'アカウント作成'}
+              </Button>
             </div>
           </div>
         </DialogContent>

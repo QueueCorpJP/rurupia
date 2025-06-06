@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { getConfig } from '../../lib/config';
+import { getSupabaseAuth } from './auth';
 
 // ⚠️ WARNING: SECURITY RISK ⚠️
 // This admin client bypasses Row Level Security (RLS) policies using the service role key.
@@ -11,85 +12,19 @@ import { getConfig } from '../../lib/config';
 // NEVER use this client in client-side code that runs for all visitors
 // Misuse could expose sensitive data or allow unauthorized database operations
 
-// Actual Supabase admin client instance
+// Admin client singleton - uses service role key for admin operations
 let adminClient: any = null;
-let isInitializing = false;
 
-// Initialize admin client synchronously
-function getSupabaseAdminClient() {
+// Initialize admin client with service role key
+async function initializeAdminClient() {
   if (adminClient) {
     return adminClient;
   }
   
-  if (!isInitializing) {
-    isInitializing = true;
-    
-    // Start initialization in background
-    initializeAdminClientAsync().then(client => {
-      adminClient = client;
-      isInitializing = false;
-    }).catch(error => {
-      console.error('Failed to initialize Supabase admin client:', error);
-      isInitializing = false;
-    });
-  }
-  
-  // Return a temporary client that will be replaced once initialization is complete
-  return createTemporaryAdminClient();
-}
-
-// Function to create a temporary admin client that logs errors but doesn't break the app
-function createTemporaryAdminClient() {
-  // Create a proxy that logs errors for all operations until the real client is ready
-  return new Proxy({}, {
-    get(target, prop) {
-      // For most properties, return a function that logs but doesn't break
-      if (prop === 'auth') {
-        return createAdminAuthProxy();
-      } else if (prop === 'from') {
-        return function() {
-          return createAdminQueryProxy();
-        };
-      } else {
-        return function() {
-          console.log(`Supabase admin client not ready yet, operation '${String(prop)}' queued`);
-          return Promise.resolve({ data: null, error: new Error('Admin client not initialized') });
-        };
-      }
-    }
-  });
-}
-
-// Special proxy for admin auth operations
-function createAdminAuthProxy() {
-  return new Proxy({}, {
-    get(target, prop) {
-      return function() {
-        console.log(`Supabase admin auth not ready yet, operation '${String(prop)}' queued`);
-        return Promise.resolve({ data: { session: null, user: null }, error: null });
-      };
-    }
-  });
-}
-
-// Special proxy for admin query operations
-function createAdminQueryProxy() {
-  return new Proxy({}, {
-    get(target, prop) {
-      return function() {
-        console.log(`Supabase admin query not ready yet, operation '${String(prop)}' queued`);
-        return createAdminQueryProxy(); // Return another proxy for chaining
-      };
-    }
-  });
-}
-
-// Initialize admin client asynchronously
-async function initializeAdminClientAsync() {
   try {
     const config = await getConfig();
     const SUPABASE_URL = config.VITE_SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = config.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    const SUPABASE_SERVICE_ROLE_KEY = config.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
     // Validation to ensure environment variables are loaded
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -98,7 +33,7 @@ async function initializeAdminClientAsync() {
       );
     }
 
-    return createClient<Database>(
+    adminClient = createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
       {
@@ -116,11 +51,182 @@ async function initializeAdminClientAsync() {
         }
       }
     );
+
+    return adminClient;
   } catch (error) {
     console.error('Failed to initialize Supabase admin client:', error);
     throw error;
   }
 }
 
-// Export the admin client directly - it will initialize lazily
-export const supabaseAdmin = getSupabaseAdminClient(); 
+// For admin operations, we need service role privileges, so use admin client
+// But provide synchronous interface like the regular client
+export const supabaseAdmin = {
+  from: (table: string) => {
+    // Return an object that provides the query builder interface for admin operations
+    return {
+      select: (...args: any[]) => {
+        // Return a chainable object
+        const createChain = (operations: Array<[string, any[]]>) => ({
+          eq: (...eqArgs: any[]) => createChain([...operations, ['eq', eqArgs]]),
+          gte: (...gteArgs: any[]) => createChain([...operations, ['gte', gteArgs]]),
+          lte: (...lteArgs: any[]) => createChain([...operations, ['lte', lteArgs]]),
+          order: (...orderArgs: any[]) => createChain([...operations, ['order', orderArgs]]),
+          limit: (...limitArgs: any[]) => createChain([...operations, ['limit', limitArgs]]),
+          single: async () => {
+            const client = await initializeAdminClient();
+            let query = client.from(table).select(...args);
+            for (const [method, methodArgs] of operations) {
+              query = query[method](...methodArgs);
+            }
+            return query.single();
+          },
+          maybeSingle: async () => {
+            const client = await initializeAdminClient();
+            let query = client.from(table).select(...args);
+            for (const [method, methodArgs] of operations) {
+              query = query[method](...methodArgs);
+            }
+            return query.maybeSingle();
+          },
+          // Make it thenable so it can be awaited directly
+          then: async (resolve: any, reject: any) => {
+            try {
+              const client = await initializeAdminClient();
+              let query = client.from(table).select(...args);
+              for (const [method, methodArgs] of operations) {
+                query = query[method](...methodArgs);
+              }
+              const result = await query;
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          }
+        });
+        
+        return createChain([]);
+      },
+      
+      insert: (...args: any[]) => ({
+        select: async (...selectArgs: any[]) => {
+          const client = await initializeAdminClient();
+          return client.from(table).insert(...args).select(...selectArgs);
+        },
+        then: async (resolve: any, reject: any) => {
+          try {
+            const client = await initializeAdminClient();
+            const result = await client.from(table).insert(...args);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        }
+      }),
+      
+      update: (...args: any[]) => ({
+        eq: (...eqArgs: any[]) => ({
+          select: async (...selectArgs: any[]) => {
+            const client = await initializeAdminClient();
+            return client.from(table).update(...args).eq(...eqArgs).select(...selectArgs);
+          },
+          then: async (resolve: any, reject: any) => {
+            try {
+              const client = await initializeAdminClient();
+              const result = await client.from(table).update(...args).eq(...eqArgs);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          }
+        }),
+        then: async (resolve: any, reject: any) => {
+          try {
+            const client = await initializeAdminClient();
+            const result = await client.from(table).update(...args);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        }
+      }),
+      
+      delete: () => ({
+        eq: async (...eqArgs: any[]) => {
+          const client = await initializeAdminClient();
+          return client.from(table).delete().eq(...eqArgs);
+        }
+      }),
+      
+      upsert: async (...args: any[]) => {
+        const client = await initializeAdminClient();
+        return client.from(table).upsert(...args);
+      }
+    };
+  },
+  
+  rpc: async (functionName: string, params: any) => {
+    const client = await initializeAdminClient();
+    return client.rpc(functionName, params);
+  },
+  
+  storage: {
+    from: (bucket: string) => ({
+      upload: async (path: string, file: File, options?: any) => {
+        const client = await initializeAdminClient();
+        return client.storage.from(bucket).upload(path, file, options);
+      },
+      getPublicUrl: async (path: string) => {
+        try {
+          const client = await initializeAdminClient();
+          const urlResult = client.storage.from(bucket).getPublicUrl(path);
+          return {
+            data: {
+              publicUrl: urlResult.data.publicUrl
+            }
+          };
+        } catch (error) {
+          console.error('Error getting public URL:', error);
+          return {
+            data: {
+              publicUrl: ''
+            }
+          };
+        }
+      },
+      download: async (path: string) => {
+        const client = await initializeAdminClient();
+        return client.storage.from(bucket).download(path);
+      },
+      remove: async (paths: string[]) => {
+        const client = await initializeAdminClient();
+        return client.storage.from(bucket).remove(paths);
+      }
+    })
+  },
+  
+  // Admin-specific operations that require service role
+  auth: {
+    admin: {
+      createUser: async (userData: any) => {
+        const client = await initializeAdminClient();
+        return client.auth.admin.createUser(userData);
+      },
+      
+      updateUserById: async (userId: string, userData: any) => {
+        const client = await initializeAdminClient();
+        return client.auth.admin.updateUserById(userId, userData);
+      },
+      
+      deleteUser: async (userId: string) => {
+        const client = await initializeAdminClient();
+        return client.auth.admin.deleteUser(userId);
+      },
+      
+      listUsers: async (options?: any) => {
+        const client = await initializeAdminClient();
+        return client.auth.admin.listUsers(options);
+      }
+    }
+  }
+}; 

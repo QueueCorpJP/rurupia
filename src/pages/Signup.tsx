@@ -112,20 +112,8 @@ const Signup = () => {
       console.log("Signup process completed successfully");
       toast.success("登録が完了しました！");
       
-      // Sign in the user with the credentials they just used for signup
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (signInError) {
-        console.error("Error signing in after signup:", signInError);
-        // If there's an error signing in, still redirect to login
-        navigate("/login");
-      } else {
-        // Successfully signed in, redirect to user profile
-        navigate("/user-profile");
-      }
+      // Redirect to registration pending page instead of auto-login
+      navigate("/registration-pending");
       
     } catch (error) {
       console.error("Signup process error:", error);

@@ -53,7 +53,7 @@ export default function VerificationDocument() {
       }
       
       // Always use admin client to get the document URL
-      const publicUrl = getVerificationDocumentUrl(userData.verification_document, true);
+      const publicUrl = await getVerificationDocumentUrl(userData.verification_document, true);
       setDocumentUrl(publicUrl);
     } catch (error) {
       console.error('Error fetching document:', error);

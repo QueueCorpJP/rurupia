@@ -106,7 +106,9 @@ const UserProfile = () => {
           });
           
           // Show email setup modal if user needs to set up email
-          if (data.needs_email_setup || (!data.email || data.email.includes('@temp.rupipia.jp'))) {
+          // Only show if they actually need email setup AND don't have a real email
+          const hasRealEmail = user.email && !user.email.includes('@temp.rupipia.jp');
+          if (data.needs_email_setup && !hasRealEmail) {
             setShowEmailSetup(true);
           }
         }
@@ -215,7 +217,7 @@ const UserProfile = () => {
 
       setProfile({
         ...profile,
-        avatar_url: publicUrlData.publicUrl,
+        avatar_url: publicUrlData?.publicUrl || "",
       });
 
       toast.success("プロフィール画像をアップロードしました！", {
@@ -313,7 +315,7 @@ const UserProfile = () => {
       .from('verification')
       .getPublicUrl(filePath);
       
-    return data.publicUrl;
+    return data?.publicUrl || "";
   };
 
   const mbtiTypes = [
@@ -364,6 +366,29 @@ const UserProfile = () => {
     setIsUpdatingEmail(true);
     
     try {
+      // First check if the email is already taken by another user
+      const { data: existingProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', newEmail);
+
+      // Filter out current user if found
+      const otherUsersWithEmail = existingProfiles?.filter(existingProfile => existingProfile.id !== profile.id) || [];
+
+      if (otherUsersWithEmail.length > 0) {
+        toast.error("このメールアドレスは既に使用されています", {
+          description: "別のメールアドレスをお試しください。または、そのメールアドレスでアカウントを作成済みの場合は、パスワードログインをご利用ください。",
+          duration: 6000,
+        });
+        setIsUpdatingEmail(false);
+        return;
+      }
+    } catch (error) {
+      console.warn("Could not check email availability:", error);
+      // Continue with the update - the auth service will catch duplicates anyway
+    }
+    
+    try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -371,14 +396,23 @@ const UserProfile = () => {
         return;
       }
 
-      // Update user email in auth
-      const { error: emailError } = await supabase.auth.updateUser({
-        email: newEmail
-      });
+      // Only update Supabase auth email if it's different from current auth email
+      const currentAuthEmail = user.email;
+      const needsAuthUpdate = currentAuthEmail !== newEmail;
+      
+      if (needsAuthUpdate) {
+        console.log("Updating auth email from", currentAuthEmail, "to", newEmail);
+        
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: newEmail
+        });
 
-      if (emailError) {
-        console.error("Error updating user email:", emailError);
-        throw emailError;
+        if (emailError) {
+          console.error("Error updating user email:", emailError);
+          throw emailError;
+        }
+      } else {
+        console.log("Auth email already matches, skipping auth update");
       }
 
       // Update profile with new email and remove needs_email_setup flag
@@ -423,8 +457,34 @@ const UserProfile = () => {
       }
     } catch (error) {
       console.error("Error setting up email:", error);
-      const errorMessage = isEmailChange ? "メールアドレスの変更に失敗しました" : "メールアドレスの設定に失敗しました";
-      toast.error(errorMessage);
+      
+      // Check for specific error messages and provide user-friendly feedback
+      let errorMessage = isEmailChange ? "メールアドレスの変更に失敗しました" : "メールアドレスの設定に失敗しました";
+      let errorDescription = "";
+      
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMsg = (error as any).message;
+        
+        if (errorMsg.includes('A user with this email address has already been registered') || 
+            errorMsg.includes('already been registered')) {
+          errorMessage = "このメールアドレスは既に使用されています";
+          errorDescription = "別のメールアドレスをお試しください。または、そのメールアドレスでアカウントを作成済みの場合は、パスワードログインをご利用ください。";
+        } else if (errorMsg.includes('Invalid email')) {
+          errorMessage = "無効なメールアドレスです";
+          errorDescription = "正しい形式のメールアドレスを入力してください。";
+        } else if (errorMsg.includes('network') || errorMsg.includes('Network')) {
+          errorMessage = "ネットワークエラーが発生しました";
+          errorDescription = "インターネット接続を確認して、もう一度お試しください。";
+        } else {
+          // For other errors, show the original error message if it's user-friendly
+          errorDescription = errorMsg;
+        }
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 6000, // Show longer for error messages
+      });
     } finally {
       setIsUpdatingEmail(false);
     }

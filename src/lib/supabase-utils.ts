@@ -8,13 +8,18 @@ import { supabaseAdmin } from '@/integrations/supabase/admin-client';
  * @param useAdmin Whether to use the admin client (bypassing RLS)
  * @returns The public URL for the file
  */
-export const getStorageUrl = (bucket: string, path: string, useAdmin = false) => {
+export const getStorageUrl = async (bucket: string, path: string, useAdmin = false) => {
   if (!path) return null;
   
-  const client = useAdmin ? supabaseAdmin : supabase;
-  const { data } = client.storage.from(bucket).getPublicUrl(path);
-  
-  return data.publicUrl;
+  if (useAdmin) {
+    // Admin client getPublicUrl is async
+    const { data } = await supabaseAdmin.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  } else {
+    // Regular client getPublicUrl is sync
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  }
 };
 
 /**
@@ -23,9 +28,9 @@ export const getStorageUrl = (bucket: string, path: string, useAdmin = false) =>
  * @param useAdmin Whether to use the admin client (bypassing RLS)
  * @returns The public URL for the verification document
  */
-export const getVerificationDocumentUrl = (documentPath: string, useAdmin = true) => {
+export const getVerificationDocumentUrl = async (documentPath: string, useAdmin = true) => {
   if (!documentPath) return null;
-  return getStorageUrl('verification', documentPath, useAdmin);
+  return await getStorageUrl('verification', documentPath, useAdmin);
 };
 
 /**

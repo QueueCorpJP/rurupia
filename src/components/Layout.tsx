@@ -326,7 +326,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                 <img 
                   src="/rupipia-logo.png" 
                   alt="るぴぴあ" 
-                  className="h-6 w-auto sm:h-8 md:h-10"
+                  className="h-8 w-auto sm:h-12 md:h-14"
                   onError={(e) => {
                     // Fallback to text logo if image fails to load
                     const target = e.currentTarget as HTMLImageElement;

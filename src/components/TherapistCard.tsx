@@ -250,7 +250,7 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
           </Link>
           <div className="flex items-center gap-1">
             <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-            {therapist.rating > 0 ? (
+            {therapist.rating > 0 && therapist.reviews > 0 ? (
               <>
                 <span className="text-sm font-medium">{therapist.rating.toFixed(1)}</span>
                 <span className="text-sm text-muted-foreground">({therapist.reviews})</span>

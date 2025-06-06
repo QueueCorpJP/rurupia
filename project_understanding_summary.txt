@@ -375,4 +375,27 @@ All major authentication, login, and file upload issues have been resolved. The 
 - Admin form now supports creating detailed user profiles for both customers and therapists
 - Analytics provide meaningful insights into platform growth trends
 
+## Recent Updates and Issues (Latest)
+
+### Meta Tags and SEO Updates ✅
+- Updated og:image and twitter:image meta tags to use rupipia logo: `https://rupipia.jp/logo/rupipia_logo.png`
+- Updated sitemap.xml to use production domain rupipia.jp instead of old vercel domain
+- Meta tags are already properly configured in Japanese for Japan-based service
+
+### OAuth Redirect Issue 🚨
+- **Problem**: Google OAuth authentication redirects to `http://localhost:3000` instead of production domain `https://rupipia.jp`
+- **Root Cause**: Supabase Auth Site URL configuration likely set to localhost instead of production URL
+- **Code Status**: Application code is correct - uses `window.location.origin + '/google-auth-callback'` dynamically
+- **Google OAuth Settings**: User has correct redirect URIs configured:
+  - `https://vvwkuqnotnilsbcswfqu.supabase.co/auth/v1/callback`
+  - `https://rupipia.jp/google-auth-callback`  
+  - `https://dqv3ckdbgwb1i.cloudfront.net/google-auth-callback`
+- **Solution Required**: Update Supabase Auth Settings > URL Configuration > Site URL to `https://rupipia.jp`
+
+### Current Production Setup
+- Domain: rupipia.jp (properly configured with SSL)
+- CloudFront Distribution: dqv3ckdbgwb1i.cloudfront.net
+- Supabase Project: nokutoru (ID: vvwkuqnotnilsbcswfqu)
+- Status: ACTIVE_HEALTHY in ap-northeast-1 region
+
 ---

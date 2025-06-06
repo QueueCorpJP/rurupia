@@ -324,7 +324,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
               {/* Logo */}
               <div className="mb-4">
                 <img 
-                  src="/rupipia-logo.png" 
+                  src="/logo/rupipia_logo.png" 
                   alt="るぴぴあ" 
                   className="h-8 w-auto sm:h-12 md:h-14"
                   onError={(e) => {

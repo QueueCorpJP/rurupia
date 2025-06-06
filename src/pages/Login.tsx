@@ -107,7 +107,7 @@ const Login = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://rupipia.jp/auth/callback',
+          redirectTo: window.location.origin + '/google-auth-callback',
         },
       });
 

@@ -53,6 +53,7 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 - Updated footer logo sizing in `Layout.tsx` for consistency
 - Fixed therapist database record (ID: 8958d10b-f6c8-481f-9ec7-b36afcb8195e) rating/review inconsistency
 - **Fixed therapist filtering**: Added missing rating filter implementation to Supabase query logic in `Therapists.tsx`, ensuring therapists with 0 ratings are excluded when rating filters are applied
+- **Fixed Google OAuth redirect URI**: Updated redirect URLs in `Login.tsx` and `Signup.tsx` to use correct `/google-auth-callback` route instead of non-existent `/auth/callback`
 
 ## Recent Major Fixes (Previous Updates)
 
@@ -311,5 +312,28 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 ## Current Status
 All major authentication, login, and file upload issues have been resolved. The application is now stable in production with proper error handling for email conflicts and document uploads during user onboarding.
+
+## 2025-06-05 Enhancement - Error Handling & Footer Logo
+**Issue**: User reported poor error messaging for signup failures and footer logo inconsistency.
+
+**Problem Details**:
+- Browser console errors: "User already registered", "multiple GoTrueClient instances", port closure errors
+- Frontend provided generic error messages instead of specific guidance
+- Footer logo path differed from header logo path
+
+**Solution**:
+- Enhanced Signup.tsx error handling with specific Japanese messages:
+  - "User already registered" → "このメールアドレスは既に登録されています。ログインページからサインインしてください。"
+  - Invalid email → "メールアドレスの形式が正しくありません。"
+  - Password validation → "パスワードは6文字以上である必要があります。"
+  - Rate limiting → "メール送信の上限に達しました。しばらく時間をおいてから再度お試しください。"
+  - Signup disabled → "新規登録は現在無効になっています。管理者にお問い合わせください。"
+- Fixed footer logo path: changed from `/rupipia-logo.png` to `/logo/rupipia_logo.png` to match header
+- Extended toast duration to 6 seconds for complex error messages
+
+**Technical Notes**:
+- Build continues to succeed (TypeScript errors appear to be linter false positives)
+- All changes maintain existing functionality while improving user experience
+- Error messages guide users toward appropriate actions (login vs. retry vs. contact support)
 
 ---

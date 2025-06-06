@@ -56,7 +56,24 @@ const Signup = () => {
       
       if (authError) {
         console.error("Auth error:", authError);
-        toast.error(`登録エラー: ${authError.message}`);
+        
+        // Provide specific Japanese error messages for common scenarios
+        let errorMessage = authError.message;
+        if (authError.message.includes('User already registered')) {
+          errorMessage = 'このメールアドレスは既に登録されています。ログインページからサインインしてください。';
+        } else if (authError.message.includes('Invalid email')) {
+          errorMessage = 'メールアドレスの形式が正しくありません。';
+        } else if (authError.message.includes('Password should be')) {
+          errorMessage = 'パスワードは6文字以上である必要があります。';
+        } else if (authError.message.includes('email rate limit')) {
+          errorMessage = 'メール送信の上限に達しました。しばらく時間をおいてから再度お試しください。';
+        } else if (authError.message.includes('signup is disabled')) {
+          errorMessage = '新規登録は現在無効になっています。管理者にお問い合わせください。';
+        }
+        
+        toast.error(errorMessage, {
+          duration: 6000, // Show error longer for complex messages
+        });
         setIsLoading(false);
         return;
       }
@@ -129,7 +146,7 @@ const Signup = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://rupipia.jp/auth/callback',
+          redirectTo: window.location.origin + '/google-auth-callback',
         },
       });
 

@@ -550,4 +550,18 @@ All major authentication, login, and file upload issues have been resolved. The 
   - Ensures admin users have full access to all tables while maintaining RLS for regular users
 - **Status**: Admin accounts page should now work properly
 
+### User Registration Nickname Fix 📝
+- **Issue**: When users register, their nickname/name is not saved to Supabase profiles table, so it doesn't appear in admin page or user pages
+- **Root Cause**: The `handle_new_user()` database trigger was not properly extracting user metadata during registration:
+  - Signup form sends user name as `data: { name: name }`
+  - Old trigger was looking for `full_name` instead of `name` in metadata
+  - Recent trigger was too minimal and didn't extract any user metadata at all
+- **Solution**: Created `fix_user_registration_profile.sql` migration:
+  - Updated `handle_new_user()` trigger to properly extract `name`, `nickname`, `avatar_url`, etc.
+  - Handles both `name` and `full_name` metadata keys for compatibility
+  - Sets `nickname` to the user's name initially (user can change it later)
+  - Properly handles LINE users with `needs_email_setup` flag
+  - Adds comprehensive logging for debugging
+- **Status**: New user registrations should now properly save nickname/name to profiles table
+
 ---

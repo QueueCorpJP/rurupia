@@ -8,7 +8,7 @@
     },
     "DefaultRootObject": "index.html",
     "Origins": {
-        "Quantity": 2,
+        "Quantity": 3,
         "Items": [
             {
                 "Id": "S3-therapist-connectivity-frontend-93b9faa0",
@@ -51,7 +51,35 @@
                 "ConnectionTimeout": 10,
                 "OriginShield": {
                     "Enabled": false
-                }
+                },
+                "OriginAccessControlId": ""
+            },
+            {
+                "Id": "Supabase-nokutoru",
+                "DomainName": "vvwkuqnotnilsbcswfqu.supabase.co",
+                "OriginPath": "",
+                "CustomHeaders": {
+                    "Quantity": 0
+                },
+                "CustomOriginConfig": {
+                    "HTTPPort": 80,
+                    "HTTPSPort": 443,
+                    "OriginProtocolPolicy": "https-only",
+                    "OriginSslProtocols": {
+                        "Quantity": 1,
+                        "Items": [
+                            "TLSv1.2"
+                        ]
+                    },
+                    "OriginReadTimeout": 30,
+                    "OriginKeepaliveTimeout": 5
+                },
+                "ConnectionAttempts": 3,
+                "ConnectionTimeout": 10,
+                "OriginShield": {
+                    "Enabled": false
+                },
+                "OriginAccessControlId": ""
             }
         ]
     },
@@ -112,7 +140,7 @@
         "MaxTTL": 31536000
     },
     "CacheBehaviors": {
-        "Quantity": 1,
+        "Quantity": 2,
         "Items": [
             {
                 "PathPattern": "/api/*",
@@ -129,13 +157,13 @@
                 "AllowedMethods": {
                     "Quantity": 7,
                     "Items": [
-                        "GET",
                         "HEAD",
+                        "DELETE",
+                        "POST",
+                        "GET",
                         "OPTIONS",
                         "PUT",
-                        "POST",
-                        "PATCH",
-                        "DELETE"
+                        "PATCH"
                     ],
                     "CachedMethods": {
                         "Quantity": 2,
@@ -166,9 +194,75 @@
                         "Quantity": 4,
                         "Items": [
                             "Authorization",
-                            "Content-Type",
+                            "Origin",
                             "Accept",
-                            "Origin"
+                            "Content-Type"
+                        ]
+                    },
+                    "QueryStringCacheKeys": {
+                        "Quantity": 0
+                    }
+                },
+                "MinTTL": 0,
+                "DefaultTTL": 0,
+                "MaxTTL": 31536000
+            },
+            {
+                "PathPattern": "/functions/v1/*",
+                "TargetOriginId": "Supabase-nokutoru",
+                "TrustedSigners": {
+                    "Enabled": false,
+                    "Quantity": 0
+                },
+                "TrustedKeyGroups": {
+                    "Enabled": false,
+                    "Quantity": 0
+                },
+                "ViewerProtocolPolicy": "redirect-to-https",
+                "AllowedMethods": {
+                    "Quantity": 7,
+                    "Items": [
+                        "HEAD",
+                        "DELETE",
+                        "POST",
+                        "GET",
+                        "OPTIONS",
+                        "PUT",
+                        "PATCH"
+                    ],
+                    "CachedMethods": {
+                        "Quantity": 2,
+                        "Items": [
+                            "HEAD",
+                            "GET"
+                        ]
+                    }
+                },
+                "SmoothStreaming": false,
+                "Compress": false,
+                "LambdaFunctionAssociations": {
+                    "Quantity": 0
+                },
+                "FunctionAssociations": {
+                    "Quantity": 0
+                },
+                "FieldLevelEncryptionId": "",
+                "GrpcConfig": {
+                    "Enabled": false
+                },
+                "ForwardedValues": {
+                    "QueryString": true,
+                    "Cookies": {
+                        "Forward": "all"
+                    },
+                    "Headers": {
+                        "Quantity": 5,
+                        "Items": [
+                            "Authorization",
+                            "Origin",
+                            "Accept",
+                            "Content-Type",
+                            "apikey"
                         ]
                     },
                     "QueryStringCacheKeys": {
@@ -182,8 +276,14 @@
         ]
     },
     "CustomErrorResponses": {
-        "Quantity": 1,
+        "Quantity": 2,
         "Items": [
+            {
+                "ErrorCode": 403,
+                "ResponsePagePath": "/index.html",
+                "ResponseCode": "200",
+                "ErrorCachingMinTTL": 300
+            },
             {
                 "ErrorCode": 404,
                 "ResponsePagePath": "/index.html",
@@ -192,7 +292,7 @@
             }
         ]
     },
-    "Comment": "CloudFront distribution for therapist-connectivity-frontend with SPA support and API Gateway",
+    "Comment": "CloudFront distribution for therapist-connectivity-frontend with SPA support, API Gateway, and Supabase Edge Functions",
     "Logging": {
         "Enabled": false,
         "IncludeCookies": false,

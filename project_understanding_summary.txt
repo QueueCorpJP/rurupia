@@ -33,6 +33,39 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 ## Recent Major Fixes (Latest Updates)
 
+### June 2025 - Account Deletion Fix (rupipia.jp Production)
+**Issue**: Users getting "403 Forbidden" error when trying to delete their accounts, with error "User not allowed" from Supabase admin API.
+
+**Root Cause Analysis**: 
+- Frontend was calling `supabase.auth.admin.deleteUser()` directly from client-side code
+- Admin functions require service role key, but client only has anon key
+- Users cannot delete themselves using admin functions - this requires elevated privileges
+
+**Solutions Applied**:
+
+1. **Created Supabase Edge Function** (`delete-user-account`):
+   - Deployed secure Edge Function with service role privileges
+   - Validates user authentication and password before deletion
+   - Properly cleans up related data (profiles, bookings, posts, comments, likes)
+   - Uses admin client to delete user account safely
+
+2. **Updated CloudFront Configuration**:
+   - Added new Supabase origin (`Supabase-nokutoru`) pointing to `vvwkuqnotnilsbcswfqu.supabase.co`
+   - Added cache behavior for `/functions/v1/*` pattern to route Edge Function requests
+   - Updated distribution `E2P3Q41GY0N3CJ` with proper headers forwarding (Authorization, apikey, etc.)
+
+3. **Updated Frontend Code** (`DeleteAccount.tsx`):
+   - Replaced direct admin API call with Edge Function request
+   - Added proper session token handling for authentication
+   - Enhanced error handling with specific Japanese error messages
+   - Maintained password verification flow for security
+
+**Technical Details**:
+- Edge Function ID: `c1168bf6-bae3-436c-9822-ab4e2c96b944`
+- CloudFront distribution updated with ETag: `E1KH7E65SJQA28`
+- Function accessible via `/functions/v1/delete-user-account` on production domain
+- Deployment status: InProgress (typically takes 10-15 minutes for CloudFront)
+
 ### January 2025 - Client Feedback Implementation (rupipia.jp Production Review)
 **Issues Addressed**:
 1. ✅ **Registration completion flow**: Created dedicated `/registration-pending` page with clear "認証完了までお待ちください" message, replacing auto-login redirect
@@ -245,7 +278,7 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 2. The API Gateway exposes a single **Lambda function** (code in `lambda-api/index.js`) that returns `/api/config` plus post-likes, comments, etc.
    • Lambda reads env vars `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` and injects them into `/api/config` response.
-   • Live call (`curl https://rupipia.jp/api/config`) confirmed the function is active and returns the expected Supabase URL + keys for project **nokutoru** (id `vvwkuqnotnilsbcswfqu`).
+   - Live call (`curl https://rupipia.jp/api/config`) confirmed the function is active and returns the expected Supabase URL + keys for project **nokutoru** (id `vvwkuqnotnilsbcswfqu`).
 
 3. Confirmed direct REST query to Supabase from terminal succeeds:
    ```bash

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
@@ -46,23 +45,40 @@ const DeleteAccount = () => {
         return;
       }
       
-      const { error } = await supabase.auth.signInWithPassword({
+      // Verify password by attempting to sign in
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
         email: userEmail,
         password: password,
       });
       
-      if (error) {
+      if (verifyError) {
         toast.error("パスワードが正しくありません");
         return;
       }
-      
-      // Instead of calling a non-existent RPC function, use the Supabase auth API to delete the user
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(
-        (await supabase.auth.getUser()).data.user?.id || ""
-      );
-      
-      if (deleteError) {
-        throw deleteError;
+
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("認証セッションが見つかりません");
+        return;
+      }
+
+      // Call the Edge Function to delete the user account
+      const response = await fetch('/functions/v1/delete-user-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          password: password
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'アカウント削除に失敗しました');
       }
       
       toast.success("アカウントが削除されました");
@@ -70,7 +86,7 @@ const DeleteAccount = () => {
       navigate("/");
     } catch (error) {
       console.error("Delete account error:", error);
-      toast.error("アカウント削除中にエラーが発生しました");
+      toast.error(error instanceof Error ? error.message : "アカウント削除中にエラーが発生しました");
     } finally {
       setIsLoading(false);
     }

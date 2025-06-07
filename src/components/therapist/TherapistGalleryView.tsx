@@ -153,7 +153,7 @@ export const TherapistGalleryView = ({
         </div>
         
         {displayImages.length > 0 ? (
-          <div className="relative w-full h-80 mb-4">
+          <div className="relative w-full h-96 sm:h-[400px] md:h-[500px] mb-4">
             <img
               src={displayImages[currentIndex]}
               alt={`Gallery image ${currentIndex + 1}`}

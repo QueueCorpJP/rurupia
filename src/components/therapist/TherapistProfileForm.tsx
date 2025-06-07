@@ -407,102 +407,45 @@ export const TherapistProfileForm = ({
   };
 
   const uploadFile = async (file: File, bucket: string, path: string) => {
-    if (!userId) {
-      console.error("No user ID available for upload");
-      return null;
-    }
-    
+    if (!userId) return null;
+
     try {
-      console.log(`Preparing to upload file to path: "${path}"`);
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}/${Date.now()}.${fileExt}`;
       const filePath = `${path}/${fileName}`;
+
+      console.log(`Preparing to upload file to path: "${filePath}"`);
+
+      // Use the correct bucket name for therapists
+      const bucketName = "therapists";
       
-      // Get a list of all buckets and try them in order
-      let bucketToUse = "";
-      let bucketError = null;
+      console.log(`Attempting upload to bucket: ${bucketName}, file path: ${filePath}`);
       
-      try {
-        const { data: buckets, error } = await supabase.storage.listBuckets();
+      const { data, error } = await supabase
+        .storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
         
-        if (error) {
-          console.error("Error listing buckets:", error);
-          throw error;
-        }
-        
-        console.log("Available buckets:", buckets ? buckets.map(b => `${b.name} (ID: ${b.id})`) : "No buckets found");
-        
-        // Try to find the Therapist files bucket by name or any bucket that contains "therapist"
-        const therapistBucket = buckets?.find(b => b.name === "Therapist files") || 
-                               buckets?.find(b => b.name.toLowerCase().includes("therapist")) ||
-                               buckets?.[0]; // Fallback to first bucket if none found
-        
-        if (therapistBucket) {
-          bucketToUse = therapistBucket.id; // Use the bucket ID, not the name
-          console.log(`Found appropriate bucket: ${therapistBucket.name} with ID: ${bucketToUse}`);
-        } else {
-          throw new Error("No suitable bucket found for upload");
-        }
-      } catch (error) {
-        bucketError = error;
-        console.error("Error finding buckets:", error);
-        // Default fallback
-        bucketToUse = "therapists";
+      if (error) {
+        console.error(`Upload failed:`, error);
+        throw error;
       }
       
-      // Potential bucket IDs to try
-      const bucketOptions = [
-        bucketToUse,            // Try the found bucket ID first
-        "therapists",           // Then try the assumed ID
-        "Therapist files",      // Then try the display name
-        "therapist-files",      // Then try a hyphenated version
-        "Therapist_files",      // Then try an underscore version
-        "therapist_files",      // Then try lowercase with underscore
-      ];
+      console.log(`File uploaded successfully to ${bucketName}/${filePath}`);
       
-      let uploadResult = null;
-      let uploadError = null;
+      // Get public URL
+      const { data: urlData } = supabase
+        .storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
       
-      // Try each bucket option until one works
-      for (const bucketName of bucketOptions) {
-        try {
-          console.log(`Attempting upload to bucket: ${bucketName}, file path: ${filePath}`);
-          
-          const { data, error } = await supabase
-            .storage
-            .from(bucketName)
-            .upload(filePath, file, {
-              cacheControl: '3600',
-              upsert: true
-            });
-            
-          if (error) {
-            console.log(`Upload to ${bucketName} failed:`, error);
-            continue; // Try next bucket
-          }
-          
-          console.log(`File uploaded successfully to ${bucketName}/${filePath}`);
-          
-          // Get public URL
-          const { data: urlData } = supabase
-            .storage
-            .from(bucketName)
-            .getPublicUrl(filePath);
-          
-          uploadResult = urlData.publicUrl;
-          console.log(`Public URL for ${path}:`, uploadResult);
-          break; // Stop trying once successful
-        } catch (error) {
-          console.log(`Error trying bucket ${bucketName}:`, error);
-          uploadError = error;
-        }
-      }
+      const uploadResult = urlData.publicUrl;
+      console.log(`Public URL for ${path}:`, uploadResult);
       
-      if (uploadResult) {
-        return uploadResult;
-      } else {
-        throw uploadError || new Error("Failed to upload to any bucket");
-      }
+      return uploadResult;
     } catch (error) {
       console.error(`Error uploading file for ${path}:`, error);
       toast.error(`ファイルのアップロードに失敗しました: ${file.name}`);

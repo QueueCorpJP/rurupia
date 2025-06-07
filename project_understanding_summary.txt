@@ -65,6 +65,9 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 - **Image Management**: Individual image removal with thumbnail grid view
 - **Profile vs Gallery**: Clear separation between main profile image and gallery
 - **Real-time Updates**: Immediate database updates with optimistic UI
+- **Improved Dimensions**: Gallery images now display with better height (h-96 to h-[500px] on desktop)
+- **Fixed Upload Issues**: Resolved Supabase storage listBuckets error
+- **Enhanced Debugging**: Better logging for gallery image display troubleshooting
 
 ### Store Registration Improvements  
 - **Representative Field**: Store registration now properly saves 責任者名 in dedicated field
@@ -76,11 +79,18 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 - **Actual Values**: Height filtering uses real numeric values
 - **Better Matching**: More accurate therapist-customer matching based on actual heights
 
+### Technical Bug Fixes
+- **Upload Error Resolution**: Fixed `listBuckets is not a function` error by simplifying upload logic
+- **Gallery Display**: Enhanced gallery image visibility in TherapistDetail page
+- **Image Dimensions**: Improved gallery image sizes for better mobile and desktop experience
+- **Storage Integration**: Streamlined Supabase storage bucket usage
+
 ### UI/UX Enhancements
 - **Mobile-First Approach**: All components designed for mobile first, enhanced for desktop
 - **Visual Feedback**: Immediate state updates for user actions (follow/like/upload)
 - **Error Handling**: Comprehensive error recovery with user-friendly messages
 - **Loading States**: Clear indication of ongoing operations
+- **Responsive Images**: Better image scaling across all screen sizes
 
 ## Technical Achievements
 

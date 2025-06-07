@@ -22,6 +22,13 @@ const TherapistGallery = ({ therapist }: TherapistGalleryProps) => {
 
   useEffect(() => {
     // Check if therapist has gallery images
+    console.log("TherapistGallery: Checking therapist data:", {
+      therapistId: therapist.id,
+      galleryImages: therapist.galleryImages,
+      galleryImagesLength: therapist.galleryImages?.length,
+      imageUrl: therapist.imageUrl
+    });
+    
     if (therapist.galleryImages && therapist.galleryImages.length > 0) {
       console.log("Using gallery images from therapist:", therapist.galleryImages);
       // Always include the therapist's profile image as the first image
@@ -36,7 +43,7 @@ const TherapistGallery = ({ therapist }: TherapistGalleryProps) => {
     }
     // Reset index when images change
     setCurrentIndex(0);
-  }, [therapist.galleryImages, therapist.imageUrl]);
+  }, [therapist.galleryImages, therapist.imageUrl, therapist.id]);
 
   const goToPrevious = () => {
     const isFirstSlide = currentIndex === 0;
@@ -62,7 +69,7 @@ const TherapistGallery = ({ therapist }: TherapistGalleryProps) => {
   };
 
   return (
-    <div className="relative w-full h-96 bg-gray-100">
+    <div className="relative w-full h-96 sm:h-[400px] md:h-[500px] bg-gray-100">
       <img
         src={getGalleryImageUrl(images[currentIndex])}
         alt={`Photo of ${therapist.name}`}

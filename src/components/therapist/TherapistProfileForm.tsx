@@ -697,12 +697,34 @@ export const TherapistProfileForm = ({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4">
-          <TabsTrigger value="basic">基本情報</TabsTrigger>
-          <TabsTrigger value="services">サービス</TabsTrigger>
-          <TabsTrigger value="enhanced">詳細プロフィール</TabsTrigger>
-          <TabsTrigger value="images">画像</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto mb-6">
+          <TabsList className="inline-flex h-12 sm:h-10 p-1 rounded-lg bg-muted min-w-full w-max">
+            <TabsTrigger 
+              value="basic" 
+              className="text-sm sm:text-base font-medium px-4 sm:px-6 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+            >
+              基本情報
+            </TabsTrigger>
+            <TabsTrigger 
+              value="services" 
+              className="text-sm sm:text-base font-medium px-4 sm:px-6 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+            >
+              サービス
+            </TabsTrigger>
+            <TabsTrigger 
+              value="enhanced" 
+              className="text-sm sm:text-base font-medium px-3 sm:px-4 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+            >
+              詳細プロフィール
+            </TabsTrigger>
+            <TabsTrigger 
+              value="images" 
+              className="text-sm sm:text-base font-medium px-4 sm:px-6 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+            >
+              画像
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="basic">
           <div className="space-y-4">
@@ -952,83 +974,7 @@ export const TherapistProfileForm = ({
               </div>
             </div>
             
-            <div>
-              <Label htmlFor="gallery-images" className="block text-sm font-medium mb-1">
-                ギャラリー画像
-              </Label>
-              {/* Only show file input if total images is less than 5 */}
-              {(galleryPreviews.length + (profile.galleryImages?.length || 0) < 5) ? (
-                <>
-                  <Input
-                    id="gallery-images"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleGalleryImagesChange}
-                    className="w-full"
-                    multiple
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    最大5枚まで選択できます。現在 {galleryPreviews.length + (profile.galleryImages?.length || 0)}/5 枚。
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-amber-500 font-medium mt-1 mb-2">
-                  画像の最大数（5枚）に達しています。新しい画像を追加するには、既存の画像を削除してください。
-                </p>
-              )}
-              
-              {/* Gallery image previews */}
-              {(galleryPreviews.length > 0 || profile.galleryImages?.length > 0) && (
-                <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {/* Show new uploads */}
-                  {galleryPreviews.map((url, index) => (
-                    <div key={`preview-${index}`} className="relative aspect-square rounded-md overflow-hidden border">
-                      <img 
-                        src={url} 
-                        alt={`Gallery preview ${index + 1}`} 
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newPreviews = [...galleryPreviews];
-                          URL.revokeObjectURL(newPreviews[index]);
-                          newPreviews.splice(index, 1);
-                          setGalleryPreviews(newPreviews);
-                          
-                          const newImages = [...galleryImages];
-                          newImages.splice(index, 1);
-                          setGalleryImages(newImages);
-                        }}
-                        className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"
-                        aria-label="Remove image"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  
-                  {/* Show existing gallery images */}
-                  {profile.galleryImages && profile.galleryImages.map((url, index) => (
-                    <div key={`existing-${index}`} className="relative aspect-square rounded-md overflow-hidden border">
-                      <img 
-                        src={url} 
-                        alt={`Gallery image ${index + 1}`} 
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveExistingImage(index)}
-                        className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"
-                        aria-label="Remove existing image"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Gallery images section removed - now only available in dedicated Images tab */}
           </div>
         </TabsContent>
         
@@ -1050,79 +996,42 @@ export const TherapistProfileForm = ({
         <TabsContent value="images">
           <div className="space-y-4">
             <div className="mb-4">
-              <Label htmlFor="gallery-images" className="block text-sm font-medium mb-1">
-                ギャラリー画像
+              <Label htmlFor="profile-image-main" className="block text-sm font-medium mb-1">
+                プロフィール画像
               </Label>
-              {/* Only show file input if total images is less than 5 */}
-              {(galleryPreviews.length + (profile.galleryImages?.length || 0) < 5) ? (
-                <>
-                  <Input
-                    id="gallery-images"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleGalleryImagesChange}
-                    className="w-full"
-                    multiple
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    最大5枚まで選択できます。現在 {galleryPreviews.length + (profile.galleryImages?.length || 0)}/5 枚。
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-amber-500 font-medium mt-1 mb-2">
-                  画像の最大数（5枚）に達しています。新しい画像を追加するには、既存の画像を削除してください。
-                </p>
-              )}
+              <Input
+                id="profile-image-main"
+                type="file"
+                accept="image/*"
+                onChange={handleProfileImageChange}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                メインのプロフィール画像を設定してください。ギャラリー画像は別のギャラリータブで管理できます。
+              </p>
               
-              {/* Gallery image previews */}
-              {(galleryPreviews.length > 0 || profile.galleryImages?.length > 0) && (
-                <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {/* Show new uploads */}
-                  {galleryPreviews.map((url, index) => (
-                    <div key={`preview-${index}`} className="relative aspect-square rounded-md overflow-hidden border">
-                      <img 
-                        src={url} 
-                        alt={`Gallery preview ${index + 1}`} 
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newPreviews = [...galleryPreviews];
-                          URL.revokeObjectURL(newPreviews[index]);
-                          newPreviews.splice(index, 1);
-                          setGalleryPreviews(newPreviews);
-                          
-                          const newImages = [...galleryImages];
-                          newImages.splice(index, 1);
-                          setGalleryImages(newImages);
-                        }}
-                        className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"
-                        aria-label="Remove image"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  
-                  {/* Show existing gallery images */}
-                  {profile.galleryImages && profile.galleryImages.map((url, index) => (
-                    <div key={`existing-${index}`} className="relative aspect-square rounded-md overflow-hidden border">
-                      <img 
-                        src={url} 
-                        alt={`Gallery image ${index + 1}`} 
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveExistingImage(index)}
-                        className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"
-                        aria-label="Remove existing image"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
+              {/* Profile image preview */}
+              {profilePreviewUrl && (
+                <div className="mt-3 w-32 h-32 relative rounded-md overflow-hidden border">
+                  <img 
+                    src={profilePreviewUrl} 
+                    alt="Profile preview" 
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (profilePreviewUrl && !profilePreviewUrl.startsWith('http')) {
+                        URL.revokeObjectURL(profilePreviewUrl);
+                      }
+                      setProfilePreviewUrl(null);
+                      setProfileImage(null);
+                    }}
+                    className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"
+                    aria-label="Remove image"
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
               )}
             </div>

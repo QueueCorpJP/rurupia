@@ -13,18 +13,141 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 ## Key Features
 
 ### Multi-User System
-- **Customers**: Browse/search therapists, book appointments, write reviews
-- **Therapists**: Manage profile, availability, bookings
-- **Stores**: Manage multiple therapists, view analytics
-- **Admins**: Platform-wide management and oversight
+- **Customers**: Browse/search therapists, book appointments, manage bookings
+- **Therapists**: Manage profile, view bookings, handle availability
+- **Store Owners**: Manage therapist onboarding, store profile, invite therapists
+- **Super Admin**: Platform management, user oversight
 
-### Core Functionality
-- **Therapist Search**: Advanced filtering by location, specialties, availability
-- **Booking System**: Real-time availability, calendar integration
-- **Review System**: Customer feedback and ratings
-- **Messaging**: Real-time chat between customers and therapists
-- **Payment**: Integrated payment processing
-- **Blog**: Content management system for articles
+### Mobile-First Design
+- **Responsive Dashboard**: Admin dashboards optimized for mobile with proper grid layouts
+- **Touch-Friendly Interface**: 44px minimum touch targets, improved spacing
+- **Flexible Tab System**: Therapist profile tabs with horizontal scrolling on mobile
+- **Mobile Chat Interface**: Full-screen messages page with dedicated mobile UI
+
+### Therapist Profile System
+- **Enhanced Profiles**: Comprehensive therapist information with multiple data tabs
+- **Flexible Mobile Tabs**: Horizontal scrolling tabs that adjust to content width
+  - 基本情報 (Basic Info): Core therapist details and profile image
+  - サービス (Services): Service offerings and pricing
+  - 詳細プロフィール (Detailed Profile): Enhanced characteristics and preferences
+  - 画像 (Images): Dedicated gallery management with upload/delete functionality
+- **Gallery Management**: Separate gallery tab with drag-and-drop, image previews
+- **Height Management**: Actual height values instead of ranges for better filtering
+- **Profile Image Separation**: Main profile image separate from gallery images
+
+## Database Schema
+
+### Core Tables
+- `therapists`: Main therapist profiles with enhanced fields
+- `stores`: Store information with representative field for proper identification
+- `customers`: Customer profiles and preferences
+- `appointments`: Booking management system
+- `blog_likes`: Like system with RLS policies
+- `messages`: Chat system for therapist-customer communication
+
+### Key Recent Schema Changes
+- **stores.representative**: Added to separate store name from 責任者名 (representative name)
+- **therapists.gallery_images**: Array of image URLs for therapist galleries
+- **Height handling**: Moved from range-based to actual numeric values
+- **Enhanced profile fields**: Service style, facial features, body type, personality traits
+
+## Recent Improvements (Latest Updates)
+
+### Mobile Responsive Tab System
+- **Flexible Width Tabs**: Tabs adjust width based on character length
+- **Horizontal Scrolling**: Mobile users can scroll horizontally to see all tabs
+- **Better Typography**: Responsive text sizes (sm:text-base) for mobile vs desktop
+- **Touch Optimization**: Proper padding and spacing for touch interfaces
+
+### Gallery Functionality Overhaul
+- **Dedicated Gallery Tab**: Separated from other tabs for better organization
+- **Direct Upload**: Users can upload images directly in gallery tab
+- **Image Management**: Individual image removal with thumbnail grid view
+- **Profile vs Gallery**: Clear separation between main profile image and gallery
+- **Real-time Updates**: Immediate database updates with optimistic UI
+
+### Store Registration Improvements  
+- **Representative Field**: Store registration now properly saves 責任者名 in dedicated field
+- **Store Name Priority**: Therapist invitations show store name, not representative name
+- **Data Separation**: Clear distinction between store identity and representative identity
+
+### Height System Optimization
+- **Removed Range Dropdown**: No longer using height ranges in detailed profile
+- **Actual Values**: Height filtering uses real numeric values
+- **Better Matching**: More accurate therapist-customer matching based on actual heights
+
+### UI/UX Enhancements
+- **Mobile-First Approach**: All components designed for mobile first, enhanced for desktop
+- **Visual Feedback**: Immediate state updates for user actions (follow/like/upload)
+- **Error Handling**: Comprehensive error recovery with user-friendly messages
+- **Loading States**: Clear indication of ongoing operations
+
+## Technical Achievements
+
+### Performance Optimizations
+- **Parallel Tool Calls**: Multiple independent operations run simultaneously
+- **Optimistic Updates**: UI updates immediately, rollback on errors
+- **Image Management**: Efficient gallery handling with preview generation
+- **Database Efficiency**: Proper indexing and query optimization
+
+### Mobile Responsiveness
+- **Breakpoint System**: sm(640px), md(768px), lg(1024px), xl(1280px)
+- **Container Queries**: Responsive layouts adapt to content size
+- **Touch Targets**: All interactive elements meet accessibility standards
+- **Horizontal Scrolling**: Proper implementation for tab overflow on mobile
+
+### Type Safety & Error Handling
+- **TypeScript Integration**: Strong typing throughout the application
+- **Supabase Type Issues**: Resolved with strategic type casting where needed
+- **Error Boundaries**: Graceful error handling with user feedback
+- **Data Validation**: Input validation at multiple levels
+
+## Current Architecture
+
+### Component Structure
+```
+src/
+├── components/
+│   ├── therapist/
+│   │   ├── TherapistProfileForm.tsx (Enhanced with mobile tabs)
+│   │   ├── TherapistGalleryView.tsx (Full gallery management)
+│   │   └── TherapistProfileEnhanced.tsx (Simplified, no height ranges)
+│   ├── ui/ (shadcn/ui components)
+│   └── Layout components (Mobile-responsive)
+├── pages/
+│   ├── TherapistProfile.tsx (Multi-tab interface)
+│   ├── Messages.tsx (Mobile-optimized chat)
+│   └── Admin dashboards (Mobile-responsive)
+└── utils/ (Type definitions and helpers)
+```
+
+### Deployment Pipeline
+- **GitHub Actions**: Automated CI/CD pipeline
+- **CloudFront**: CDN with Edge Functions support
+- **S3 Static Hosting**: Primary frontend hosting
+- **Supabase**: Backend services and database
+
+## Key Learnings & Best Practices
+
+### Mobile Development
+- **Touch-First Design**: Design for mobile, enhance for desktop
+- **Flexible Layouts**: Use CSS Grid and Flexbox for adaptive layouts  
+- **Content-Aware Sizing**: Components that adjust to their content
+- **Progressive Enhancement**: Core functionality works on all devices
+
+### React/TypeScript Patterns
+- **Component Composition**: Reusable, single-purpose components
+- **State Management**: Local state with strategic lifting
+- **Error Boundaries**: Comprehensive error handling strategies
+- **Type Safety**: Strong typing with strategic escape hatches
+
+### Database Design
+- **Normalized Schema**: Proper separation of concerns
+- **RLS Policies**: Row-level security for data protection
+- **Migration Strategy**: Safe, backwards-compatible schema changes
+- **Performance**: Proper indexing and query optimization
+
+This platform successfully demonstrates modern web development practices with a focus on mobile-first design, type safety, and user experience optimization.
 
 ## Recent Updates
 

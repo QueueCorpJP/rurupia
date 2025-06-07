@@ -52,6 +52,7 @@ interface ProfileState {
     detailedArea?: string;
   };
   height: number | string;
+  weight: number | string;
   mbtiType?: string;
   hobbies: string[];
   specialties: string[];
@@ -150,6 +151,7 @@ const mapDatabaseToComponentFormat = (data: any) => {
     bio: data.description || '',
     serviceAreas,
     height: data.height || '',
+    weight: data.weight || '',
     mbtiType: data.mbti_type || '',
     hobbies,
     specialties,
@@ -187,6 +189,8 @@ const mapComponentToDatabase = (state: ProfileState) => {
     location: state.serviceAreas.prefecture,
     detailed_area: state.serviceAreas.detailedArea,
     height: state.height,
+    weight: state.weight,
+    image_url: state.previewUrl,
     mbti_type: state.mbtiType,
     hobbies: state.hobbies,
     specialties: state.specialties,
@@ -215,6 +219,7 @@ export const TherapistProfileForm = ({
     bio: "",
     serviceAreas: { prefecture: '', cities: [] },
     height: '',
+    weight: '',
     mbtiType: '',
     hobbies: [],
     specialties: [],
@@ -457,10 +462,7 @@ export const TherapistProfileForm = ({
     setUploading(true);
 
     try {
-      // Convert component state to database fields
-      const dbFields = mapComponentToDatabase(profile);
-      
-      // Create a copy of the fields for updates
+      // Create a copy of the profile for updates
       const updatedProfile = { ...profile };
       
       // Upload profile image if provided
@@ -474,6 +476,9 @@ export const TherapistProfileForm = ({
           console.warn("Profile image upload failed, continuing without updating avatar");
         }
       }
+      
+      // Convert component state to database fields (after updating profile image URL)
+      const dbFields = mapComponentToDatabase(updatedProfile);
       
       // Upload final data to database
       const { data, error } = await supabase

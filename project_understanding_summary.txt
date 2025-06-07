@@ -452,4 +452,48 @@ All major authentication, login, and file upload issues have been resolved. The 
 - /store-pending: Waiting screen for stores awaiting approval
 - Modified existing store routes to respect status checks
 
+### Admin Panel Store Management Final Improvements ✅
+- **Stores Removed from Accounts Tab**: Excluded stores (user_type='store') from admin accounts listing since they're managed in requests tab
+- **Store Request Details Dialog**: Replaced bottom-right toast alert with proper static dialog popup showing:
+  - Store name, status, email, phone
+  - Address and description fields  
+  - Application date/time
+  - Read-only formatted layout with proper styling
+
+### Authentication System Fixes ✅
+- **Password Reset Function Fixed**: Added missing `resetPasswordForEmail` method to Supabase client wrapper
+- **Error Resolution**: Fixed "resetPasswordForEmail is not a function" error in ForgotPassword component
+- **Client Wrapper Enhancement**: Extended auth interface to include password reset functionality
+
+### Admin Panel Store Management Improvements ✅
+- **Table Display**: Store names now shown in table rows instead of owner names
+- **Details Popup Enhanced**: 
+  - Shows both 店舗名 (store name) and 責任者 (person in charge/owner name) for stores
+  - Regular users still show just name field
+  - Separate email field layout for stores
+- **Data Fetching**: Modified fetchAccounts to properly retrieve store names from stores table
+- **Interface Update**: Added storeName and ownerName optional fields to FormattedAccount interface
+
+### Mobile UI Improvements ✅  
+- **Therapist Header**: Hidden "るぴぴあセラピストページ" text on mobile screens in TherapistLayout
+- **Responsive Design**: Added `hidden md:inline` class to hide header text on small screens while keeping it visible on desktop
+
+### LINE Login and UI Improvements ✅
+- **LINE Email 404 Error Fix**: Improved error handling for LINE email API - 404 errors are expected when users haven't granted email permission
+- **Better Console Logging**: Added user-friendly console messages instead of error logs for normal LINE behavior
+- **Logo Size Adjustment**: Reduced rupipia_logo.png size on desktop from `md:h-14` to `md:h-10` for better proportions
+
+### Password Reset Troubleshooting 📝
+- **Method Available**: `resetPasswordForEmail` is properly defined in Supabase client wrapper
+- **Potential Caching Issue**: If users still see the error, they may need to hard refresh (Ctrl+F5) to clear cached JavaScript
+- **Edge Function Enhancement**: Improved error handling in both client and server-side LINE authentication
+
+### Admin Panel Store Management Final Improvements ✅
+- **Stores Removed from Accounts Tab**: Excluded stores (user_type='store') from admin accounts listing since they're managed in requests tab
+- **Store Request Details Dialog**: Replaced bottom-right toast alert with proper static dialog popup showing:
+  - Store name, status, email, phone
+  - Address and description fields  
+  - Application date/time
+  - Read-only formatted layout with proper styling
+
 ---

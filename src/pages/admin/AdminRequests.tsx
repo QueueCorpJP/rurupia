@@ -6,6 +6,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseAdmin } from '@/integrations/supabase/admin-client';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { format } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface StoreRequest {
   id: string;
@@ -25,6 +35,8 @@ const AdminRequests = () => {
   const [storeRequests, setStoreRequests] = useState<StoreRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<StoreRequest[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<StoreRequest | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     if (isAdminAuthenticated) {
@@ -194,16 +206,8 @@ const AdminRequests = () => {
     { 
       label: '詳細を見る', 
       onClick: (request: StoreRequest) => {
-        toast({
-          title: "リクエスト詳細",
-          description: `
-            店舗名: ${request.name}
-            メール: ${request.email}
-            電話: ${request.phone || '未設定'}
-            住所: ${request.address || '未設定'}
-            説明: ${request.description || '未設定'}
-          `,
-        });
+        setSelectedRequest(request);
+        setShowDetailsDialog(true);
       } 
     },
     { 
@@ -288,6 +292,65 @@ const AdminRequests = () => {
         actionMenuItems={actionMenuItems}
         isLoading={isLoading}
       />
+
+      {/* Store Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>店舗リクエスト詳細</DialogTitle>
+            <DialogDescription>
+              店舗登録リクエストの詳細情報です
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRequest && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>店舗名</Label>
+                  <Input value={selectedRequest.name} readOnly className="bg-gray-50" />
+                </div>
+                <div>
+                  <Label>ステータス</Label>
+                  <div className="flex items-center h-10 px-3 border rounded-md bg-gray-50">
+                    <StatusBadge status={selectedRequest.status} />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>メールアドレス</Label>
+                  <Input value={selectedRequest.email} readOnly className="bg-gray-50" />
+                </div>
+                <div>
+                  <Label>電話番号</Label>
+                  <Input value={selectedRequest.phone || '未設定'} readOnly className="bg-gray-50" />
+                </div>
+              </div>
+              
+              <div>
+                <Label>住所</Label>
+                <Input value={selectedRequest.address || '未設定'} readOnly className="bg-gray-50" />
+              </div>
+              
+              <div>
+                <Label>店舗説明</Label>
+                <Textarea 
+                  value={selectedRequest.description || '未設定'} 
+                  readOnly 
+                  className="bg-gray-50 min-h-[100px]"
+                />
+              </div>
+              
+              <div>
+                <Label>申請日時</Label>
+                <Input value={selectedRequest.date} readOnly className="bg-gray-50" />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

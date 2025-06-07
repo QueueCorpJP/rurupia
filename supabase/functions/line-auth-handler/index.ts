@@ -84,7 +84,12 @@ const getLineEmail = async (accessToken: string): Promise<string | undefined> =>
     });
 
     if (!response.ok) {
-      console.warn('Could not fetch LINE email:', response.status, response.statusText);
+      // 404 is expected when user hasn't granted email permission or doesn't have email registered
+      if (response.status === 404) {
+        console.log('LINE email not available (user may not have granted email permission)');
+      } else {
+        console.warn('Could not fetch LINE email:', response.status, response.statusText);
+      }
       return undefined;
     }
 

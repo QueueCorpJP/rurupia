@@ -103,6 +103,7 @@ export default function AdminAccounts() {
       const response = await supabaseAdmin
         .from('profiles')
         .select('*')
+        .neq('user_type', 'store') // Exclude stores from accounts tab
         .order('created_at', { ascending: false });
       
       const { data, error } = response;

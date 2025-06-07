@@ -146,6 +146,9 @@ const LineCallback = () => {
             const emailData = await emailResponse.json();
             email = emailData.email;
             console.log('LINE email data:', emailData);
+          } else {
+            // Don't log error for 404 - it's expected when user hasn't provided email permission
+            console.log('No email available from LINE (user may not have granted email permission)');
           }
         } catch (emailError) {
           console.log('No email from LINE (expected for some accounts)');

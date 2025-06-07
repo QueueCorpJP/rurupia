@@ -16,15 +16,108 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 - **Customers**: Browse/search therapists, book appointments, write reviews
 - **Therapists**: Manage profile, availability, bookings
 - **Stores**: Manage multiple therapists, view analytics
-- **Admins**: System-wide management and analytics
+- **Admins**: Platform-wide management and oversight
 
 ### Core Functionality
-- **Therapist Discovery**: Search, filter, and browse therapist profiles
-- **Booking System**: Real-time availability, appointment scheduling
+- **Therapist Search**: Advanced filtering by location, specialties, availability
+- **Booking System**: Real-time availability, calendar integration
 - **Review System**: Customer feedback and ratings
-- **Payment Integration**: Secure payment processing
-- **Blog System**: Content management with like functionality
-- **Analytics**: Comprehensive dashboards for all user types
+- **Messaging**: Real-time chat between customers and therapists
+- **Payment**: Integrated payment processing
+- **Blog**: Content management system for articles
+
+## Recent Updates
+
+### Mobile Responsiveness Improvements (Latest)
+1. **Admin Dashboards**:
+   - Enhanced grid layouts with responsive breakpoints
+   - Improved typography scaling (text-2xl sm:text-3xl)
+   - Better padding and spacing for mobile devices
+   - Card components optimized for touch interfaces
+   - Background styling and container wrapping
+
+2. **Store Admin Dashboard**:
+   - Mobile-first responsive design approach
+   - Optimized chart heights for small screens
+   - Improved table layouts for mobile viewing
+   - Better navigation and touch targets
+
+3. **Messages Page Complete Redesign**:
+   - **Mobile Layout**: Full-screen chat interface on mobile devices
+   - **Desktop Layout**: Sidebar with message list (hidden on mobile)
+   - **Touch-Friendly Interface**: Larger tap targets (44px minimum)
+   - **Mobile Header**: Dedicated mobile header with back navigation
+   - **Responsive Images**: Optimized image sizes for mobile viewing
+   - **Better Typography**: Improved text sizing and line spacing
+   - **Input Optimization**: Larger text inputs for mobile keyboards
+
+### Account Deletion Fix
+1. **Edge Function Implementation**: 
+   - Created `delete-user-account` Edge Function with proper service role permissions
+   - Implemented proper auth validation and error handling
+   - Added CORS support for frontend integration
+
+2. **CloudFront Configuration**: 
+   - Added Supabase origin for Edge Functions
+   - Created cache behavior for `/functions/v1/*` paths
+   - Updated distribution E2P3Q41GY0N3CJ for rupipia.jp
+
+3. **Frontend Integration**: 
+   - Updated DeleteAccount component to use Edge Function
+   - Added proper error handling and user feedback
+   - Implemented loading states and success/error toasts
+
+### Like Functionality Improvements
+1. **Blog Detail Page**: 
+   - Created `blog_likes` table with proper RLS policies
+   - Implemented persistent like/unlike functionality
+   - Added like counts display
+   - Enhanced UI with visual feedback for liked state
+
+2. **TherapistCard Fix**: 
+   - Fixed Supabase client type issues with follow/unfollow
+   - Added proper error handling for edge cases
+   - Maintained existing toggle functionality
+
+## Architecture
+
+### Database Schema
+- **Users**: Authentication via Supabase Auth
+- **Profiles**: Extended user information
+- **Therapists**: Professional profiles and availability
+- **Bookings**: Appointment scheduling and management
+- **Messages**: Real-time messaging system
+- **Reviews**: Customer feedback system
+- **Blog**: Content management
+- **Blog_likes**: User likes on blog posts (new)
+- **Followed_therapists**: User follows on therapists
+
+### API Structure
+- **Supabase Functions**: `/functions/v1/*`
+- **AWS API Gateway**: `/api/*` 
+- **Real-time**: Supabase subscriptions for live updates
+
+### Deployment
+- **S3 Bucket**: Static asset hosting
+- **CloudFront**: CDN with multiple origins
+- **Domain**: rupipia.jp (production)
+
+## Mobile-First Approach
+The application now follows a mobile-first design philosophy:
+1. **Responsive Breakpoints**: sm (640px), md (768px), lg (1024px), xl (1280px)
+2. **Touch Optimization**: Minimum 44px touch targets
+3. **Progressive Enhancement**: Desktop features enhance mobile base
+4. **Performance**: Optimized for mobile networks and devices
+
+## Known Issues
+- Some Supabase TypeScript type definitions need updates
+- Linter warnings related to client typing (non-breaking)
+
+## Future Enhancements
+- Push notifications for mobile apps
+- Advanced search filters
+- Multi-language support
+- Enhanced analytics dashboard
 
 ## Recent Updates & Fixes
 

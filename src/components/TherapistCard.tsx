@@ -150,7 +150,7 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
     try {
       if (isFollowing) {
         // Unfollow: Delete the record
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('followed_therapists')
           .delete()
           .eq('user_id', String(user.id))
@@ -161,7 +161,7 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
         toast.success(`${therapist.name}のフォローを解除しました`);
       } else {
         // Follow: Insert a new record
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('followed_therapists')
           .insert({
             user_id: String(user.id),

@@ -163,7 +163,7 @@ const Messages = () => {
           
           if (unreadMessages.length > 0) {
             const messageIds = unreadMessages.map(msg => msg.id);
-            await supabase
+            await (supabase as any)
               .from('messages')
               .update({ is_read: true })
               .in('id', messageIds);
@@ -364,69 +364,212 @@ const Messages = () => {
 
   return (
     <Layout>
-      <div className="container py-6 space-y-4">
-        <Breadcrumb 
-          items={[
-            { label: 'マイページ', href: '/user-profile' },
-            { label: 'メッセージ', href: '/messages' },
-            { label: therapist?.name || '', href: `/messages/${therapist?.id}`, current: true }
-          ]}
-        />
+      <div className="container py-2 sm:py-6 space-y-2 sm:space-y-4 px-2 sm:px-4">
+        {/* Mobile-optimized breadcrumb */}
+        <div className="hidden sm:block">
+          <Breadcrumb 
+            items={[
+              { label: 'マイページ', href: '/user-profile' },
+              { label: 'メッセージ', href: '/messages' },
+              { label: therapist?.name || '', href: `/messages/${therapist?.id}`, current: true }
+            ]}
+          />
+        </div>
         
-        <div className="bg-card rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100vh-200px)]">
-          {/* Always show MessageList first on mobile and left side on desktop */}
-          <div className="order-2 md:order-1">
-            <MessageList activeConversationId={id} />
-          </div>
-          
-          <div className="flex-1 flex flex-col order-1 md:order-2">
-            <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <img
-                  src={therapist?.imageUrl}
-                  alt={therapist?.name}
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-                <div>
-                  <h2 className="font-semibold">{therapist?.name}</h2>
-                  <div className="flex items-center gap-1.5">
-                    <Badge variant="outline" className="px-1.5 py-0 text-xs font-normal bg-muted/50">
-                      {therapist?.specialties[0]}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      通常2時間以内に返信
-                    </span>
-                  </div>
-                </div>
+        {/* Mobile back button */}
+        <div className="sm:hidden flex items-center gap-3 p-3 bg-white border-b">
+          <button
+            onClick={() => navigate('/messages')}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <img
+              src={therapist?.imageUrl}
+              alt={therapist?.name}
+              className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+            />
+            <div className="min-w-0">
+              <h2 className="font-semibold text-sm truncate">{therapist?.name}</h2>
+              <div className="flex items-center gap-1">
+                <Badge variant="outline" className="px-1 py-0 text-xs font-normal bg-muted/50">
+                  {therapist?.specialties[0]}
+                </Badge>
               </div>
-              
-              <button
-                onClick={() => navigate(`/therapist/${therapist?.id}`)}
-                className="text-sm text-primary hover:underline"
-              >
-                プロフィールを見る
-              </button>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(`/therapist/${therapist?.id}`)}
+            className="text-xs text-primary hover:underline flex-shrink-0"
+          >
+            プロフィール
+          </button>
+        </div>
+        
+        <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+          {/* Desktop layout with sidebar */}
+          <div className="hidden lg:flex h-[calc(100vh-200px)]">
+            {/* Message list sidebar */}
+            <div className="w-80 border-r bg-muted/20">
+              <MessageList activeConversationId={id} />
             </div>
             
-            <div className="p-4 flex-1 overflow-y-auto bg-muted/20 flex flex-col space-y-4">
+            {/* Chat area */}
+            <div className="flex-1 flex flex-col">
+              {/* Desktop header */}
+              <div className="p-4 border-b flex items-center justify-between bg-white">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={therapist?.imageUrl}
+                    alt={therapist?.name}
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                  <div>
+                    <h2 className="font-semibold">{therapist?.name}</h2>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="outline" className="px-1.5 py-0 text-xs font-normal bg-muted/50">
+                        {therapist?.specialties[0]}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        通常2時間以内に返信
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => navigate(`/therapist/${therapist?.id}`)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  プロフィールを見る
+                </button>
+              </div>
+              
+              {/* Messages area */}
+              <div className="p-4 flex-1 overflow-y-auto bg-muted/20 flex flex-col space-y-4">
+                {messages.map((message) => (
+                  <div 
+                    key={message.id} 
+                    className={`flex ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div 
+                      className={`rounded-2xl p-3 max-w-[80%] ${
+                        message.sender_id === userId 
+                          ? 'bg-primary text-primary-foreground rounded-br-none' 
+                          : 'bg-card border rounded-tl-none'
+                      }`}
+                    >
+                      {message.content && (
+                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                      )}
+                      
+                      {message.image_url && (
+                        <div className="mt-2 max-w-[240px]">
+                          <img 
+                            src={message.image_url} 
+                            alt="Shared" 
+                            className="rounded-lg w-full h-auto object-cover cursor-pointer"
+                            onClick={() => window.open(message.image_url || '', '_blank')}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-end gap-0.5 mt-1">
+                        <span className="text-[10px] opacity-70">
+                          {formatMessageDate(message.timestamp)}
+                        </span>
+                        {getMessageStatus(message)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+              
+              {/* Message input */}
+              <form onSubmit={handleSendMessage} className="p-4 border-t bg-white">
+                {imagePreview && (
+                  <div className="mb-3 relative bg-muted/20 p-2 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-20 h-20 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedImage(null);
+                          setImagePreview(null);
+                        }}
+                        className="p-1 bg-card rounded-full shadow-sm border"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="メッセージを入力..."
+                    value={newMessage}
+                    onChange={e => setNewMessage(e.target.value)}
+                    className="flex-1"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                  />
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted/50 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-primary text-primary-foreground p-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={(!newMessage.trim() && !selectedImage) || isSending}
+                  >
+                    {isSending ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+          {/* Mobile layout - full screen chat */}
+          <div className="lg:hidden flex flex-col h-[calc(100vh-120px)]">
+            {/* Messages area - mobile */}
+            <div className="flex-1 overflow-y-auto bg-muted/20 p-3 space-y-3">
               {messages.map((message) => (
                 <div 
                   key={message.id} 
                   className={`flex ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`rounded-2xl p-3 max-w-[80%] ${
+                    className={`rounded-2xl p-3 max-w-[85%] ${
                       message.sender_id === userId 
                         ? 'bg-primary text-primary-foreground rounded-br-none' 
-                        : 'bg-card border rounded-tl-none'
+                        : 'bg-card border rounded-tl-none shadow-sm'
                     }`}
                   >
                     {message.content && (
-                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
                     )}
                     
                     {message.image_url && (
-                      <div className="mt-2 max-w-[240px]">
+                      <div className="mt-2 max-w-[200px]">
                         <img 
                           src={message.image_url} 
                           alt="Shared" 
@@ -448,63 +591,68 @@ const Messages = () => {
               <div ref={messagesEndRef} />
             </div>
             
-            <form onSubmit={handleSendMessage} className="p-4 border-t">
-              {imagePreview && (
-                <div className="mb-3 relative bg-muted/20 p-2 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="w-20 h-20 object-cover rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedImage(null);
-                        setImagePreview(null);
-                      }}
-                      className="p-1 bg-card rounded-full shadow-sm border"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+            {/* Mobile message input */}
+            <div className="bg-white border-t">
+              <form onSubmit={handleSendMessage} className="p-3">
+                {imagePreview && (
+                  <div className="mb-3 relative bg-muted/20 p-2 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedImage(null);
+                          setImagePreview(null);
+                        }}
+                        className="p-1 bg-card rounded-full shadow-sm border"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
+                )}
+                
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="メッセージを入力..."
+                      value={newMessage}
+                      onChange={e => setNewMessage(e.target.value)}
+                      className="min-h-[44px] text-base"
+                    />
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                  />
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground p-3 rounded-md hover:bg-muted/50 transition-colors touch-manipulation"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-primary text-primary-foreground p-3 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                    disabled={(!newMessage.trim() && !selectedImage) || isSending}
+                  >
+                    {isSending ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
-              )}
-              
-              <div className="flex gap-2">
-                <Input
-                  placeholder="メッセージを入力..."
-                  value={newMessage}
-                  onChange={e => setNewMessage(e.target.value)}
-                  className="flex-1"
-                />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                />
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted/50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Paperclip className="h-5 w-5" />
-                </button>
-                <button
-                  type="submit"
-                  className="bg-primary text-primary-foreground p-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={(!newMessage.trim() && !selectedImage) || isSending}
-                >
-                  {isSending ? (
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
-                  ) : (
-                    <Send className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       </div>

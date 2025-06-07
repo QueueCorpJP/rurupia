@@ -397,8 +397,32 @@ export default function AdminAccounts() {
     }
   };
 
-  const openUserProfile = (user: FormattedAccount) => {
-    setSelectedUser(user);
+  const openUserProfile = async (user: FormattedAccount) => {
+    // If user is a store, fetch store details to show store name
+    if (user.user_type === 'store') {
+      try {
+        const { data: storeData, error: storeError } = await supabaseAdmin
+          .from('stores')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+          
+        if (!storeError && storeData) {
+          // Update the user object with store name
+          setSelectedUser({
+            ...user,
+            name: storeData.name, // Use store name instead of owner name
+          });
+        } else {
+          setSelectedUser(user);
+        }
+      } catch (error) {
+        console.error('Error fetching store data:', error);
+        setSelectedUser(user);
+      }
+    } else {
+      setSelectedUser(user);
+    }
     setShowProfileModal(true);
   };
 
@@ -455,6 +479,10 @@ export default function AdminAccounts() {
       accessorKey: 'is_verified',
       render: (data: any) => {
         if (!data || !data.row) return null;
+        // Don't show verification for stores
+        if (data.row.user_type === 'store') {
+          return <span className="text-gray-400">-</span>;
+        }
         return data.row.is_verified ? 
           <span className="text-green-600 font-medium">確認済み</span> : 
           data.row.verification_document ? 
@@ -567,34 +595,39 @@ export default function AdminAccounts() {
                   <StatusBadge status={selectedUser.status} />
                 </div>
               </div>
-              <div>
-                <Label>本人確認</Label>
-                <div className="mt-1">
-                  {selectedUser.is_verified ? (
-                    <span className="text-green-600">確認済み</span>
-                  ) : (
-                    selectedUser.verification_document ? (
-                      <span className="text-yellow-600">未確認（書類あり）</span>
-                    ) : (
-                      <span className="text-gray-400">未提出</span>
-                    )
-                  )}
-                </div>
-              </div>
-              {selectedUser.verification_document && (
-                <div>
-                  <Label>本人確認書類</Label>
-                  <div className="mt-1">
-                    <a
-                      href={`/admin/verification/${selectedUser.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      書類を確認
-                    </a>
+              {/* Only show verification for non-store users */}
+              {selectedUser.user_type !== 'store' && (
+                <>
+                  <div>
+                    <Label>本人確認</Label>
+                    <div className="mt-1">
+                      {selectedUser.is_verified ? (
+                        <span className="text-green-600">確認済み</span>
+                      ) : (
+                        selectedUser.verification_document ? (
+                          <span className="text-yellow-600">未確認（書類あり）</span>
+                        ) : (
+                          <span className="text-gray-400">未提出</span>
+                        )
+                      )}
+                    </div>
                   </div>
-                </div>
+                  {selectedUser.verification_document && (
+                    <div>
+                      <Label>本人確認書類</Label>
+                      <div className="mt-1">
+                        <a
+                          href={`/admin/verification/${selectedUser.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          書類を確認
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

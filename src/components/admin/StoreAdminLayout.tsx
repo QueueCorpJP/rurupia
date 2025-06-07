@@ -39,7 +39,7 @@ const StoreAdminLayout = () => {
           return;
         }
         
-        // Check if user is a store owner
+        // Check if user is a store owner and their status
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("user_type")
@@ -52,6 +52,26 @@ const StoreAdminLayout = () => {
         if (!profileData || profileData.user_type !== 'store') {
           toast.error("店舗管理者のみアクセス可能です");
           navigate("/");
+          return;
+        }
+
+        // Check store status
+        const { data: storeData, error: storeError } = await supabase
+          .from('stores')
+          .select('status')
+          .eq('id', user.id)
+          .single();
+          
+        if (storeError) throw storeError;
+        
+        // If store is pending or rejected, redirect appropriately
+        if (storeData.status === 'pending') {
+          toast.error("店舗の承認待ちです");
+          navigate("/store-pending");
+          return;
+        } else if (storeData.status === 'rejected') {
+          toast.error("申し訳ございませんが、店舗登録が承認されませんでした");
+          navigate("/store-signup");
           return;
         }
         

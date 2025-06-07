@@ -63,6 +63,7 @@ import GoogleAuthCallback from './pages/GoogleAuthCallback';
 import TherapistPublicPosts from './pages/TherapistPublicPosts';
 import AllTherapistPosts from './pages/AllTherapistPosts';
 import RegistrationPending from './pages/RegistrationPending';
+import StorePending from './pages/StorePending';
 
 // Create a wrapper component that applies scroll restoration
 function ScrollToTop({ children }: { children: React.ReactNode }) {
@@ -110,6 +111,7 @@ function App() {
             
             {/* Store Admin Routes */}
             <Route path="/store-signup" element={<StoreSignup />} />
+            <Route path="/store-pending" element={<StorePending />} />
             <Route path="/store-login" element={<StoreLogin />} />
             <Route path="/store-admin" element={<StoreAdminLayout />}>
               <Route index element={<StoreAdminDashboard />} />

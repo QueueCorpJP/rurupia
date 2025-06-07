@@ -398,4 +398,29 @@ All major authentication, login, and file upload issues have been resolved. The 
 - Supabase Project: nokutoru (ID: vvwkuqnotnilsbcswfqu)
 - Status: ACTIVE_HEALTHY in ap-northeast-1 region
 
+### Store Signup Flow Improvements ✅
+- Created new StorePending component for store waiting screen during verification
+- Modified StoreSignup to redirect to /store-pending after registration
+- Updated StoreLogin to check store status and redirect appropriately:
+  - pending → /store-pending
+  - rejected → show error and prevent login
+  - active → /store-admin
+- Modified StoreAdminLayout to prevent access to admin panel for pending/rejected stores
+
+### Admin Panel Store Management ✅
+- Modified AdminAccounts component to handle stores differently:
+  - Store names now displayed instead of owner names in details view
+  - Removed "本人確認" (identity verification) components for stores in table and details
+  - Added store name fetching in details dialog using store data
+- Stores no longer show verification status in admin panel since they don't require ID documents
+
+### Store Status Flow
+- **pending**: Store registered but waiting for admin approval → shown waiting screen
+- **active**: Store approved by admin → can access store dashboard
+- **rejected**: Store rejected by admin → cannot login, shown error message
+
+### Routes Added
+- /store-pending: Waiting screen for stores awaiting approval
+- Modified existing store routes to respect status checks
+
 ---

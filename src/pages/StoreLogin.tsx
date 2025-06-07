@@ -49,10 +49,10 @@ const StoreLogin = () => {
         return;
       }
 
-      // Check if the user is a store
+      // Check if the user is a store and their status
       const { data: storeData, error: storeError } = await supabase
         .from('stores')
-        .select('id')
+        .select('id, status')
         .eq('id', data.user?.id)
         .maybeSingle();
         
@@ -69,8 +69,18 @@ const StoreLogin = () => {
         return;
       }
 
-      toast.success("ログインしました");
-      navigate("/store-admin");
+      // Check store status and redirect accordingly
+      if (storeData.status === 'pending') {
+        toast.success("ログインしました");
+        navigate("/store-pending");
+      } else if (storeData.status === 'rejected') {
+        await supabase.auth.signOut();
+        toast.error("申し訳ございませんが、店舗登録が承認されませんでした。詳細については管理者にお問い合わせください。");
+        return;
+      } else {
+        toast.success("ログインしました");
+        navigate("/store-admin");
+      }
       
     } catch (error) {
       console.error("Login error:", error);

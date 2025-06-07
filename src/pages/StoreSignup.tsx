@@ -109,8 +109,8 @@ const StoreSignup = () => {
         dismissible: true,
       });
       
-      // Redirect to store admin after successful signup
-      navigate("/store-admin");
+      // Redirect to store pending page instead of store admin
+      navigate("/store-pending");
       
     } catch (error) {
       console.error("Signup error:", error);

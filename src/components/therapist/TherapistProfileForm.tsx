@@ -58,6 +58,7 @@ interface ProfileState {
   specialties: string[];
   image: File | null;
   previewUrl: string;
+  healthDocumentUrl: string;
   ageRange?: string;
   facialFeatures?: string;
   serviceStyle: string[];
@@ -156,6 +157,7 @@ const mapDatabaseToComponentFormat = (data: any) => {
     hobbies,
     specialties,
     previewUrl: data.image_url || '',
+    healthDocumentUrl: data.health_document_url || '',
     ageRange: data.age || '',
     facialFeatures: data.facial_features || '',
     serviceStyle,
@@ -225,6 +227,7 @@ export const TherapistProfileForm = ({
     specialties: [],
     image: null,
     previewUrl: '',
+    healthDocumentUrl: '',
     ageRange: '',
     facialFeatures: '',
     serviceStyle: [],
@@ -1024,8 +1027,8 @@ export const TherapistProfileForm = ({
                 STD検査結果や健康証明書をアップロードしてください。店舗側が確認できるようになります。
               </p>
               
-              {/* Health document preview */}
-              {healthDoc && (
+              {/* Health document preview - show new upload or existing document */}
+              {healthDoc ? (
                 <div className="mt-3 p-3 border rounded-md">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1035,7 +1038,7 @@ export const TherapistProfileForm = ({
                       <div>
                         <p className="text-sm font-medium">{healthDoc.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {(healthDoc.size / 1024 / 1024).toFixed(2)} MB
+                          {(healthDoc.size / 1024 / 1024).toFixed(2)} MB (新しいファイル)
                         </p>
                       </div>
                     </div>
@@ -1049,7 +1052,31 @@ export const TherapistProfileForm = ({
                     </button>
                   </div>
                 </div>
-              )}
+              ) : profile.healthDocumentUrl ? (
+                <div className="mt-3 p-3 border rounded-md bg-green-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
+                        ✅
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">健康証明書が登録済み</p>
+                        <p className="text-xs text-muted-foreground">
+                          新しいファイルをアップロードすると、既存のファイルが置き換えられます
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={profile.healthDocumentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:text-blue-700 text-sm underline"
+                    >
+                      表示
+                    </a>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </TabsContent>

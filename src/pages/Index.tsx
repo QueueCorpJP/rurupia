@@ -83,7 +83,17 @@ const Index = () => {
           rating: therapist.rating || 0,
           reviews: therapist.reviews || 0,
           workingDays: therapist.working_days || [],
-          workingHours: therapist.working_hours || null,
+          workingHours: (() => {
+            try {
+              if (typeof therapist.working_hours === 'string') {
+                return JSON.parse(therapist.working_hours);
+              }
+              return therapist.working_hours || null;
+            } catch (e) {
+              console.error('Error parsing working hours in index:', e);
+              return null;
+            }
+          })(),
           availability: therapist.availability || [],
           qualifications: therapist.qualifications || [],
           specialties: therapist.specialties || [],

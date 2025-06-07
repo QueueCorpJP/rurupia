@@ -95,19 +95,37 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
         let availableDates: Date[] = [];
         let hasAvailabilityInfo = false;
         
-        // Process specific working days if they exist
+        // Process working days as recurring weekly schedule
         if (therapistData.working_days && Array.isArray(therapistData.working_days) && therapistData.working_days.length > 0) {
-          console.log('Processing working_days:', therapistData.working_days);
+          console.log('Processing working_days as recurring schedule:', therapistData.working_days);
           hasAvailabilityInfo = true;
           
-          therapistData.working_days.forEach((dateStr: string) => {
-            try {
-              const date = new Date(dateStr);
-              if (!isNaN(date.getTime()) && isAfter(date, today) && isBefore(date, endDate)) {
-                availableDates.push(date);
-              }
-            } catch (e) {
-              console.error('Error parsing date:', dateStr, e);
+          // Map working days to Japanese characters for comparison
+          const dayNameToChar: { [key: string]: string } = {
+            'monday': '月',
+            'tuesday': '火',
+            'wednesday': '水',
+            'thursday': '木',
+            'friday': '金',
+            'saturday': '土',
+            'sunday': '日'
+          };
+          
+          // Convert working days to characters if they're day names
+          const workingDayChars = therapistData.working_days.map(day => {
+            if (day in dayNameToChar) {
+              return dayNameToChar[day];
+            }
+            return day; // Already a character
+          });
+          
+          // For each day in the next month, check if the day of week matches working days
+          const checkDays = eachDayOfInterval({ start: today, end: endDate });
+          
+          checkDays.forEach(day => {
+            const dayOfWeek = dayOfWeekMap[getDay(day)];
+            if (workingDayChars.includes(dayOfWeek)) {
+              availableDates.push(day);
             }
           });
         } else {
@@ -231,17 +249,25 @@ const AvailabilityCalendar = ({ therapistId }: AvailabilityCalendarProps) => {
         console.log(`Found working hours range: ${workingHours.start} - ${workingHours.end}`);
         
         // Check if the selected day is in working_days or availability
+        const dayNameToChar: { [key: string]: string } = {
+          'monday': '月',
+          'tuesday': '火',
+          'wednesday': '水',
+          'thursday': '木',
+          'friday': '金',
+          'saturday': '土',
+          'sunday': '日'
+        };
+        
+        const workingDayChars = therapistData.working_days ? therapistData.working_days.map(day => {
+          if (day in dayNameToChar) {
+            return dayNameToChar[day];
+          }
+          return day; // Already a character
+        }) : [];
+        
         const isWorkingDay = 
-          (therapistData.working_days && therapistData.working_days.some(day => {
-            try {
-              // Check if it's a date string that matches the selected date
-              const dateObj = new Date(day);
-              return !isNaN(dateObj.getTime()) && isSameDay(dateObj, date);
-            } catch (e) {
-              // Not a valid date, might be a day name
-              return false;
-            }
-          })) ||
+          workingDayChars.includes(dayOfWeekMap[getDay(date)]) ||
           (therapistData.availability && therapistData.availability.includes(dayOfWeekMap[getDay(date)]));
         
         if (isWorkingDay) {

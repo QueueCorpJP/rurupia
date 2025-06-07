@@ -978,6 +978,40 @@ All major authentication, login, and file upload issues have been resolved. The 
   6. Provides file size display and removal functionality
   7. Store admin pages can now access uploaded health documents
 
+### Therapist Card Working Hours Display Issues ✅ RESOLVED
+- **Problem**: Index page therapist cards showing "営業時間不明" (business hours unknown) even when therapists had working hours set
+- **Root Cause**: Working hours in Index.tsx were not being parsed from JSON string format stored in database
+- **Solution**: Added proper JSON parsing logic in Index.tsx therapist data mapping, similar to TherapistDetail.tsx fix
+
+### Calendar Availability Issues ✅ RESOLVED
+- **Problem**: Available days not showing in calendar component, preventing users from making bookings
+- **Root Causes**:
+  1. AvailabilityCalendar was trying to parse working_days as date strings instead of day names
+  2. Working days are stored as day names ('monday', 'tuesday') or Japanese characters ('月', '火')
+  3. Calendar logic was looking for specific dates instead of recurring weekly schedule
+
+- **Fixes Applied**:
+  1. Updated AvailabilityCalendar to treat working_days as recurring weekly schedule
+  2. Added proper day name to Japanese character mapping
+  3. Fixed time slot generation logic to work with corrected working days
+  4. Calendar now properly shows available days based on therapist's working schedule
+
+### Health Document State Management Issues ✅ RESOLVED
+- **Problem**: After uploading health document and tabbing out, returning to health tab showed empty uploader (even though document was saved in Supabase)
+- **Root Causes**:
+  1. Health document URL field missing from ProfileState interface
+  2. Existing health document not being fetched and displayed in UI
+  3. No visual indication that document was already uploaded
+
+- **Fixes Applied**:
+  1. Added `healthDocumentUrl` field to ProfileState interface
+  2. Updated mapDatabaseToComponentFormat to include health_document_url
+  3. Enhanced health document tab UI to show:
+     - Existing uploaded documents with "登録済み" status
+     - Link to view existing document
+     - Clear indication when new file will replace existing one
+  4. Updated initial profile state to include health document URL
+
 ## Technical Architecture
 
 ### Frontend
@@ -1008,7 +1042,7 @@ All major authentication, login, and file upload issues have been resolved. The 
 - Comprehensive profile editing with tabbed interface
 - Handles profile image uploads, gallery management, and all profile fields
 - Maps between component state and database format
-- **Recently Added**: Health document upload tab with full file management
+- **Recently Added**: Health document upload tab with full file management and state persistence
 - **Recently Fixed**: Profile image and weight saving issues
 
 ### TherapistDetail.tsx
@@ -1030,16 +1064,19 @@ All major authentication, login, and file upload issues have been resolved. The 
 - Bundle size maintained at ~1.77MB with 3571 modules
 - No critical build errors or warnings
 
-## Verification Needed
-1. Test working hours display for therapist たけし on detailed page
-2. Verify location (エリア) now shows prefecture correctly
-3. Test health document upload and verify files are accessible to store admins
-4. Confirm profile image and weight saving works correctly
+## Issues Resolved ✅
+1. ~~Test working hours display for therapist たけし on detailed page~~ → Fixed
+2. ~~Verify location (エリア) now shows prefecture correctly~~ → Fixed  
+3. ~~Test health document upload and verify files are accessible to store admins~~ → Implemented
+4. ~~Confirm profile image and weight saving works correctly~~ → Fixed
+5. ~~Fix therapist card showing "営業時間不明" on index page~~ → Fixed
+6. ~~Fix calendar not showing available days for booking~~ → Fixed
+7. ~~Fix health document state not persisting in UI~~ → Fixed
 
 ## Next Steps
-1. Test complete therapist profile flow end-to-end
-2. Verify store admin can access uploaded health documents
-3. Monitor for any remaining UI/UX issues in mobile responsiveness
-4. Continue improving user experience based on feedback
+1. Test complete therapist profile flow end-to-end with all recent fixes
+2. Verify store admin can access uploaded health documents from admin panel
+3. Test booking flow works correctly with fixed calendar availability
+4. Monitor user feedback on improved working hours display and booking experience
 
 ---

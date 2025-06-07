@@ -56,6 +56,20 @@ export const supabase = {
       const client = await getClient();
       return client.auth.setSession(session);
     },
+    admin: {
+      deleteUser: async (userId: string) => {
+        const client = await getClient();
+        return client.auth.admin.deleteUser(userId);
+      },
+      updateUserById: async (userId: string, attributes: any) => {
+        const client = await getClient();
+        return client.auth.admin.updateUserById(userId, attributes);
+      },
+      createUser: async (attributes: any) => {
+        const client = await getClient();
+        return client.auth.admin.createUser(attributes);
+      },
+    },
     onAuthStateChange: (callback: Function) => {
       // For auth state changes, we need to handle this specially
       getClient().then(client => {

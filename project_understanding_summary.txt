@@ -517,4 +517,24 @@ All major authentication, login, and file upload issues have been resolved. The 
 - **Supabase Client**: Added missing `setSession` method to auth wrapper interface
 - **Error Handling**: Improved throughout authentication flows with Japanese language user messages
 
+### Account Deletion Fix 🗑️
+- **Issue**: Account deletion was failing with "Cannot read properties of undefined (reading 'deleteUser')"
+- **Root Cause**: Missing `admin.deleteUser` method in Supabase client wrapper
+- **Solution**: Added complete admin auth methods to client wrapper:
+  - `admin.deleteUser()` for account deletion
+  - `admin.updateUserById()` for user management
+  - `admin.createUser()` for user creation
+- **Status**: Account deletion now works properly
+
+### Japanese Email Templates Configuration 📧
+- **Issue**: All Supabase authentication emails were in English, confusing for Japanese users
+- **Solution**: Created comprehensive guide for configuring Japanese email templates
+- **Configuration Required**: Manual setup in Supabase dashboard for:
+  - Confirm signup emails: "るぴぴあ - メールアドレスの確認"
+  - Magic link emails: "るぴぴあ - ログインリンク"  
+  - Email change confirmation: "るぴぴあ - メールアドレス変更確認"
+  - Password reset emails: "るぴぴあ - パスワードリセット"
+- **Sender Configuration**: Set sender name to "るぴぴあ" and use custom domain
+- **Files Created**: `SUPABASE_EMAIL_JAPANESE_SETUP.md` with detailed setup instructions
+
 ---

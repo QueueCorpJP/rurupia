@@ -26,14 +26,7 @@ const FAQ = () => {
           <AccordionItem value="item-3">
             <AccordionTrigger>支払い方法は何がありますか？</AccordionTrigger>
             <AccordionContent>
-              クレジットカード、デビットカード、各種電子決済に対応しています。すべての支払いは暗号化され、安全に処理されます。一部のセラピストは現金払いにも対応していますが、事前に確認が必要です。
-            </AccordionContent>
-          </AccordionItem>
-          
-          <AccordionItem value="item-4">
-            <AccordionTrigger>キャンセルポリシーはどうなっていますか？</AccordionTrigger>
-            <AccordionContent>
-              予約の24時間前までのキャンセルは無料です。それ以降のキャンセルについては、セッション料金の50%をキャンセル料として申し受けます。無断キャンセルの場合は100%のキャンセル料が発生します。
+              支払い方法は現地での現金払いのみになります。
             </AccordionContent>
           </AccordionItem>
           
@@ -47,35 +40,28 @@ const FAQ = () => {
           <AccordionItem value="item-6">
             <AccordionTrigger>セラピストとして登録するには？</AccordionTrigger>
             <AccordionContent>
-              セラピスト登録ページから必要事項を入力し、資格証明や経歴などの情報を提出してください。審査後、承認されると登録完了となります。詳細はセラピスト向けのガイドラインをご確認ください。
+              店舗から発行された登録リンクから、名前やセラピスト名などの情報を提出してください。審査後、承認されると登録完了となります。詳細な情報は登録後セラピスト用のプロフィールページから変更可能です。
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-7">
             <AccordionTrigger>予約のキャンセルや変更はできますか？</AccordionTrigger>
             <AccordionContent>
-              マイページから予約の管理が可能です。変更やキャンセルは、予約の24時間前までであれば手数料なしで行えます。それ以降の変更については、各セラピストのポリシーに従います。
+              マイページの予約タブから予約の管理が可能です。
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-8">
             <AccordionTrigger>サービス中に問題が発生した場合はどうすればいいですか？</AccordionTrigger>
             <AccordionContent>
-              お問い合わせフォームまたはカスタマーサポート（03-1234-5678）までご連絡ください。すべての問題に対して迅速に対応いたします。また、セッション後のフィードバックもサービス改善に役立てています。
+              お問い合わせフォームまでご連絡ください。すべての問題に対して迅速に対応いたします。また、セッション後のフィードバックもサービス改善に役立てています。
             </AccordionContent>
-          </AccordionItem>
-          
-          <AccordionItem value="item-9">
-            <AccordionTrigger>ギフトカードは利用できますか？</AccordionTrigger>
-            <AccordionContent>
-              はい、ギフトカードをご用意しています。大切な方へのプレゼントとして、リラクゼーションセッションをギフトすることができます。詳細はギフトカードページをご覧ください。
-            </AccordionContent>
-          </AccordionItem>
+          </AccordionItem>          
           
           <AccordionItem value="item-10">
             <AccordionTrigger>予約の確認方法はありますか？</AccordionTrigger>
             <AccordionContent>
-              予約完了後、確認メールが送信されます。また、マイページの予約履歴からもすべての予約を確認できます。予約日の24時間前にはリマインダーメールも送信されます。
+              予約完了後、確認メールが送信されます。また、マイページの予約履歴からもすべての予約を確認できます。
             </AccordionContent>
           </AccordionItem>
         </Accordion>

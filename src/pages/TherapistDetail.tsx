@@ -176,7 +176,7 @@ const TherapistDetail = () => {
       let therapistServices: Service[] = [];
       
       try {
-        const { data: servicesData, error: servicesError } = await supabase
+        const { data: servicesData, error: servicesError } = await (supabase as any)
           .from('therapist_services')
           .select('*, services(*)')
           .eq('therapist_id', id);
@@ -455,9 +455,14 @@ const TherapistDetail = () => {
     
     if (!therapist) return;
     
+    // Update the UI state immediately for better UX
+    const newFollowingState = !isFollowing;
+    setIsFollowing(newFollowingState);
+    
     try {
       if (isFollowing) {
-        const { error } = await supabase
+        // Unfollow: Delete the record
+        const { error } = await (supabase as any)
           .from('followed_therapists')
           .delete()
           .eq('user_id', String(user.id))
@@ -467,7 +472,8 @@ const TherapistDetail = () => {
         
         toast.success(`${therapist.name}のフォローを解除しました`);
       } else {
-        const { error } = await supabase
+        // Follow: Insert a new record
+        const { error } = await (supabase as any)
           .from('followed_therapists')
           .insert({
             user_id: String(user.id),
@@ -480,10 +486,10 @@ const TherapistDetail = () => {
         toast.success(`${therapist.name}をフォローしました`);
       }
       
-      setIsFollowing(prev => !prev);
-      
     } catch (error) {
       console.error('Error updating follow status:', error);
+      // Revert the UI state if the database operation failed
+      setIsFollowing(!newFollowingState);
       toast.error('エラーが発生しました。もう一度お試しください');
     }
   };
@@ -572,10 +578,25 @@ const TherapistDetail = () => {
               
               <div className="mt-8">
                 <Tabs defaultValue="profile">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="profile">プロフィール</TabsTrigger>
-                    <TabsTrigger value="info">詳細情報</TabsTrigger>
-                    <TabsTrigger value="reviews">レビュー</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-3 h-12 sm:h-10 p-1 rounded-lg bg-muted">
+                    <TabsTrigger 
+                      value="profile" 
+                      className="text-sm sm:text-base font-medium px-3 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                    >
+                      基本情報
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="info" 
+                      className="text-sm sm:text-base font-medium px-3 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                    >
+                      詳細情報
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="reviews" 
+                      className="text-sm sm:text-base font-medium px-3 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                    >
+                      レビュー
+                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="profile" className="space-y-6 mt-6">
                     {/* Use dl for definition list styling */}

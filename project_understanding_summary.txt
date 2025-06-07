@@ -28,7 +28,32 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 ## Recent Updates
 
-### Mobile Responsiveness Improvements (Latest)
+### Store Invite System Fix (Latest - January 2025)
+1. **Database Schema Enhancement**:
+   - Added `representative` column to `stores` table to store 責任者名 (representative name)
+   - Updated existing store data to populate representative field from profile names
+   - Separated store name from representative name for better data organization
+
+2. **Store Registration Process**:
+   - Modified StoreSignup.tsx to save 責任者名 (ownerName) in the new `representative` field
+   - Store name and representative name are now properly separated in database
+   - Maintains backward compatibility with existing registration flow
+
+3. **Therapist Invite Link Fix**:
+   - Updated TherapistSignup.tsx to prioritize `stores` table over `profiles` table
+   - Now displays actual store name instead of representative name in invitation
+   - Added fallback to profiles table for backward compatibility
+   - Improved error handling and logging for store information retrieval
+
+### TherapistDetail Mobile Tab Improvements
+1. **Enhanced Mobile Responsiveness**:
+   - Improved tab visibility and touch targets on mobile devices
+   - Increased tab height (h-12 on mobile, h-10 on desktop)
+   - Better typography scaling (text-sm on mobile, text-base on desktop)
+   - Enhanced visual design with proper active states and shadows
+   - Updated tab labels to more descriptive names (基本情報, 詳細情報, レビュー)
+
+### Mobile Responsiveness Improvements (Previous)
 1. **Admin Dashboards**:
    - Enhanced grid layouts with responsive breakpoints
    - Improved typography scaling (text-2xl sm:text-3xl)
@@ -74,10 +99,12 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
    - Added like counts display
    - Enhanced UI with visual feedback for liked state
 
-2. **TherapistCard Fix**: 
-   - Fixed Supabase client type issues with follow/unfollow
+2. **TherapistCard & TherapistDetail Fix**: 
+   - Fixed Supabase client type issues with follow/unfollow in both components
    - Added proper error handling for edge cases
-   - Maintained existing toggle functionality
+   - **Immediate UI feedback**: State updates instantly when follow button is pressed
+   - **Optimistic updates**: UI changes immediately, reverts only if database operation fails
+   - Enhanced user experience with instant visual feedback
 
 ## Architecture
 
@@ -452,7 +479,7 @@ The application now follows a mobile-first design philosophy:
 6. Suggested fix (to be implemented next):
    • Add retry logic in `getConfig()` when initial fetch fails instead of throwing immediately.
    • Build-time inject `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` so fallback path works offline.
-   • Optionally shorten API Gateway timeout & ensure proper CORS so first request doesn't stall.
+   - Optionally shorten API Gateway timeout & ensure proper CORS so first request doesn't stall.
 
 ## Core Architecture
 - React-based frontend with Vite build system

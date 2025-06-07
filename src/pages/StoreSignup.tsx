@@ -88,6 +88,7 @@ const StoreSignup = () => {
         .insert({
           id: authData.user.id,
           name: formData.storeName,
+          representative: formData.ownerName,
           email: formData.email,
           phone: formData.phone,
           address: formData.address,

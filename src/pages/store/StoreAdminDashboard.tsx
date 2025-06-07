@@ -980,7 +980,6 @@ const StoreAdminDashboard = () => {
       </div>
         </div>
       </div>
-    </div>
   );
 };
 

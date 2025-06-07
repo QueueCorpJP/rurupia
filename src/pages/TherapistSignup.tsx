@@ -65,25 +65,29 @@ const TherapistSignup = () => {
         // Try to get store info from the stores table
         const { data: storeData, error: storeError } = await supabase
           .from('stores')
-          .select('name, email')
+          .select('name, email, representative')
           .eq('id', storeId)
           .maybeSingle();
 
         if (storeData) {
           console.log("Found store:", storeData);
-          setStoreInfo(storeData);
+          setStoreInfo({
+            name: storeData.name, // Use store name, not representative name
+            email: storeData.email
+          });
           return;
         }
 
-        // If not found in stores, try profiles table for store admins
+        // If not found in stores, try profiles table for backward compatibility
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('name, email')
           .eq('id', storeId)
+          .eq('user_type', 'store')
           .maybeSingle();
 
         if (profileData) {
-          console.log("Found store in profiles:", profileData);
+          console.log("Found store in profiles (fallback):", profileData);
           setStoreInfo(profileData);
           return;
         }

@@ -52,6 +52,10 @@ export const supabase = {
       const client = await getClient();
       return client.auth.resetPasswordForEmail(email, options);
     },
+    setSession: async (session: any) => {
+      const client = await getClient();
+      return client.auth.setSession(session);
+    },
     onAuthStateChange: (callback: Function) => {
       // For auth state changes, we need to handle this specially
       getClient().then(client => {

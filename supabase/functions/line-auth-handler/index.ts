@@ -33,9 +33,7 @@ interface LineProfileResponse {
 }
 
 // Line Email Response Interface for Email API
-interface LineEmailResponse {
-  email: string;
-}
+
 
 // Function to create Supabase client with service role
 const createSupabaseClient = (req: Request) => {
@@ -74,32 +72,8 @@ const getLineProfile = async (accessToken: string): Promise<LineProfileResponse>
   return await response.json();
 };
 
-// Get LINE email from access token (separate API call)
-const getLineEmail = async (accessToken: string): Promise<string | undefined> => {
-  try {
-    const response = await fetch('https://api.line.me/v2/profile/email', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      // 404 is expected when user hasn't granted email permission or doesn't have email registered
-      if (response.status === 404) {
-        console.log('LINE email not available (user may not have granted email permission)');
-      } else {
-        console.warn('Could not fetch LINE email:', response.status, response.statusText);
-      }
-      return undefined;
-    }
-
-    const data: LineEmailResponse = await response.json();
-    return data.email;
-  } catch (error) {
-    console.warn('Error fetching LINE email:', error);
-    return undefined;
-  }
-};
+// Note: We no longer fetch email from LINE since users can set it in account settings
+// This simplifies the flow and avoids potential 404 errors when users don't grant email permission
 
 // Verify LINE ID token
 const verifyIdToken = (idToken: string, clientId: string): LineIdTokenPayload => {
@@ -180,17 +154,16 @@ Deno.serve(async (req) => {
     // Verify the ID token
     const payload = verifyIdToken(id_token, clientId);
     
-    // Get more user data from LINE APIs
+    // Get user profile from LINE API (skip email since users can set it in account settings)
     const profile = await getLineProfile(access_token);
-    const email = await getLineEmail(access_token);
 
-    // Combine profile data
+    // Combine profile data (no email since users can set it in account settings)
     const userData: LineProfile = {
       userId: payload.sub,
       displayName: profile.displayName || payload.name || 'LINE User',
       pictureUrl: profile.pictureUrl || payload.picture,
       statusMessage: profile.statusMessage,
-      email: email || payload.email,
+      email: undefined, // Will be set in account settings
     };
 
     // Create Supabase client
@@ -248,9 +221,10 @@ Deno.serve(async (req) => {
     } else {
       // Create new user with LINE credentials and set a consistent password
       const linePassword = `line_${userData.userId}_temp`; // Consistent password pattern
+      const tempEmail = `line_${userData.userId}@temp.rupipia.jp`; // Always use temp email
       
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email || `line_${userData.userId}@temp.rupipia.jp`,
+        email: tempEmail,
         password: linePassword,
         email_confirm: true,
         user_metadata: {
@@ -258,6 +232,7 @@ Deno.serve(async (req) => {
           avatar_url: userData.pictureUrl,
           provider: 'line',
           line_id: userData.userId,
+          needs_email_setup: true, // Always true since we don't fetch from LINE
         },
       });
 
@@ -299,12 +274,12 @@ Deno.serve(async (req) => {
           line_id: userData.userId,
           name: userData.displayName,
           picture: userData.pictureUrl,
-          email: userData.email || `line_${userData.userId}@temp.rupipia.jp`,
+          email: `line_${userData.userId}@temp.rupipia.jp`, // Always temp email
         },
         user_type: existingUser?.user_type || 'customer',
         is_new_user: isNewUser,
         auth_credentials: {
-          email: userData.email || `line_${userData.userId}@temp.rupipia.jp`,
+          email: `line_${userData.userId}@temp.rupipia.jp`, // Always temp email
           password: `line_${userData.userId}_temp`
         }
       }),

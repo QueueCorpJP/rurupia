@@ -6,6 +6,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { getConfig } from "@/lib/config";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 
+// Helper function to provide user-friendly error messages
+const getFriendlyErrorMessage = (error: string, description?: string | null): string => {
+  switch (error) {
+    case 'access_denied':
+      return 'LINEログインがキャンセルされました。再度お試しください。';
+    case 'invalid_request':
+      return 'LINE認証リクエストに問題があります。しばらく時間をおいて再度お試しください。';
+    case 'server_error':
+      return 'LINE側のサーバーエラーです。しばらく時間をおいて再度お試しください。';
+    default:
+      return `LINE認証エラー: ${description || error}`;
+  }
+};
+
+// Helper function to provide user-friendly messages for LINE profile API issues
+const getApiErrorMessage = (context: string, status: number): string => {
+  switch (context) {
+    case 'profile':
+      if (status === 401) {
+        return 'LINEアクセストークンの有効期限が切れています。再度ログインしてください。';
+      }
+      if (status === 403) {
+        return 'LINEプロフィール情報へのアクセス権限がありません。';
+      }
+      break;
+  }
+  return `${context}情報の取得中にエラーが発生しました (Status: ${status})`;
+};
+
 const LineCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,7 +51,8 @@ const LineCallback = () => {
         const errorDescription = searchParams.get("error_description");
 
         if (errorParam) {
-          setError(`LINE認証エラー: ${errorDescription || errorParam}`);
+          const friendlyErrorMessage = getFriendlyErrorMessage(errorParam, errorDescription);
+          setError(friendlyErrorMessage);
           setIsProcessing(false);
           return;
         }
@@ -126,7 +156,8 @@ const LineCallback = () => {
         });
 
         if (!profileResponse.ok) {
-          throw new Error('Failed to fetch LINE profile');
+          const friendlyMessage = getApiErrorMessage('profile', profileResponse.status);
+          throw new Error(friendlyMessage);
         }
 
         const profileData = await profileResponse.json();
@@ -134,25 +165,8 @@ const LineCallback = () => {
 
         console.log('LINE profile data:', profileData);
 
-        // Try to get email from LINE
-        let email;
-        try {
-          const emailResponse = await fetch('https://api.line.me/v2/profile/email', {
-            headers: {
-              Authorization: `Bearer ${access_token}`,
-            },
-          });
-          if (emailResponse.ok) {
-            const emailData = await emailResponse.json();
-            email = emailData.email;
-            console.log('LINE email data:', emailData);
-          } else {
-            // Don't log error for 404 - it's expected when user hasn't provided email permission
-            console.log('No email available from LINE (user may not have granted email permission)');
-          }
-        } catch (emailError) {
-          console.log('No email from LINE (expected for some accounts)');
-        }
+        // Skip email fetching from LINE since users can set email in account settings
+        console.log('Skipping LINE email fetch - users can set email in account settings later');
 
         // Use the Edge Function to handle authentication for both new and existing users
         const { data: authData, error: authError } = await supabase.functions.invoke('line-auth-handler', {
@@ -164,7 +178,7 @@ const LineCallback = () => {
 
         if (authError) {
           console.error('Edge Function error:', authError);
-          setError("認証処理中にエラーが発生しました。");
+          setError("LINE認証の処理中にサーバーエラーが発生しました。しばらく時間をおいて再度お試しください。");
           setIsProcessing(false);
           return;
         }
@@ -206,7 +220,7 @@ const LineCallback = () => {
 
         if (authResult.error) {
           console.error("Supabase auth error:", authResult.error);
-          setError(`認証エラー: ${authResult.error.message}`);
+          setError(`アカウント認証エラー: ${authResult.error.message}`);
           setIsProcessing(false);
           return;
         }
@@ -218,10 +232,10 @@ const LineCallback = () => {
             const supabaseUrl = config.VITE_SUPABASE_URL;
             const supabaseAnonKey = config.VITE_SUPABASE_ANON_KEY;
             
-            // Determine if we need to mark this user as needing email setup
+            // Since we're not fetching email from LINE, users will need to set email in settings
             const userMetadata = authResult.data.user.user_metadata || {};
-            const needsEmailSetup = userMetadata.needs_email_setup || false;
-            const userEmail = needsEmailSetup ? null : (email || userMetadata.email);
+            const needsEmailSetup = true; // Always true for LINE users since we don't fetch email
+            const userEmail = null; // Will be set later in account settings
 
             // Use direct fetch for profile upsert to avoid client issues
             const upsertResponse = await fetch(

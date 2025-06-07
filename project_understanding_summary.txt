@@ -537,4 +537,17 @@ All major authentication, login, and file upload issues have been resolved. The 
 - **Sender Configuration**: Set sender name to "るぴぴあ" and use custom domain
 - **Files Created**: `SUPABASE_EMAIL_JAPANESE_SETUP.md` with detailed setup instructions
 
+### Admin Accounts Page Fix 🔧
+- **Issue**: Admin accounts page failing with "neq is not a function" error
+- **Root Cause**: Missing query builder methods (`neq`, `gt`, `lt`, `like`, `ilike`, etc.) in both regular and admin Supabase client wrappers
+- **Solution**: 
+  - Added complete set of query methods to both `client.ts` and `admin-client.ts`
+  - Added: `neq`, `gt`, `lt`, `like`, `ilike`, `is`, `offset`, `not` methods
+  - Enhanced query chaining capabilities for complex admin queries
+- **Database Policies**: Created comprehensive admin policies via SQL migrations:
+  - `admin_policies_setup.sql` - Creates `is_admin()` function and admin access policies
+  - `create_migration_logs.sql` - Migration tracking table
+  - Ensures admin users have full access to all tables while maintaining RLS for regular users
+- **Status**: Admin accounts page should now work properly
+
 ---

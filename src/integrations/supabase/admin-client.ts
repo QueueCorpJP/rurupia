@@ -69,10 +69,20 @@ export const supabaseAdmin = {
         // Return a chainable object
         const createChain = (operations: Array<[string, any[]]>) => ({
           eq: (...eqArgs: any[]) => createChain([...operations, ['eq', eqArgs]]),
+          neq: (...neqArgs: any[]) => createChain([...operations, ['neq', neqArgs]]),
+          gt: (...gtArgs: any[]) => createChain([...operations, ['gt', gtArgs]]),
           gte: (...gteArgs: any[]) => createChain([...operations, ['gte', gteArgs]]),
+          lt: (...ltArgs: any[]) => createChain([...operations, ['lt', ltArgs]]),
           lte: (...lteArgs: any[]) => createChain([...operations, ['lte', lteArgs]]),
+          like: (...likeArgs: any[]) => createChain([...operations, ['like', likeArgs]]),
+          ilike: (...ilikeArgs: any[]) => createChain([...operations, ['ilike', ilikeArgs]]),
+          is: (...isArgs: any[]) => createChain([...operations, ['is', isArgs]]),
           order: (...orderArgs: any[]) => createChain([...operations, ['order', orderArgs]]),
           limit: (...limitArgs: any[]) => createChain([...operations, ['limit', limitArgs]]),
+          offset: (...offsetArgs: any[]) => createChain([...operations, ['offset', offsetArgs]]),
+          or: (...orArgs: any[]) => createChain([...operations, ['or', orArgs]]),
+          in: (...inArgs: any[]) => createChain([...operations, ['in', inArgs]]),
+          not: (...notArgs: any[]) => createChain([...operations, ['not', notArgs]]),
           single: async () => {
             const client = await initializeAdminClient();
             let query = client.from(table).select(...args);

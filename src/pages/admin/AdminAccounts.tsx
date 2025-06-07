@@ -34,6 +34,8 @@ interface FormattedAccount {
   created_at: string;
   is_verified: boolean;
   verification_document: string;
+  storeName?: string; // For stores - the actual store name
+  ownerName?: string; // For stores - the owner/responsible person name
 }
 
 export default function AdminAccounts() {
@@ -107,18 +109,45 @@ export default function AdminAccounts() {
 
       if (error) throw error;
 
-      const formattedAccounts: FormattedAccount[] = data.map((account) => ({
-        id: account.id,
-        name: account.nickname || account.name || 'N/A', // Show nickname first, then name, then N/A
-        email: account.email || 'N/A',
-        phone: account.phone || 'N/A',
-        address: account.address || 'N/A',
-        user_type: account.user_type || 'user',
-        status: account.status || 'active',
-        created_at: new Date(account.created_at).toLocaleDateString(),
-        is_verified: account.is_verified || false,
-        verification_document: account.verification_document || '',
-      }));
+      // Get store data for store users
+      const storeUserIds = data.filter(account => account.user_type === 'store').map(account => account.id);
+      let storeData: any[] = [];
+      
+      if (storeUserIds.length > 0) {
+        const { data: stores, error: storeError } = await supabaseAdmin
+          .from('stores')
+          .select('id, name')
+          .in('id', storeUserIds);
+          
+        if (!storeError && stores) {
+          storeData = stores;
+        }
+      }
+
+      const formattedAccounts: FormattedAccount[] = data.map((account) => {
+        // For stores, use store name instead of owner name
+        let displayName = account.nickname || account.name || 'N/A';
+        if (account.user_type === 'store') {
+          const store = storeData.find(s => s.id === account.id);
+          displayName = store?.name || account.name || 'N/A';
+        }
+
+        return {
+          id: account.id,
+          name: displayName,
+          email: account.email || 'N/A',
+          phone: account.phone || 'N/A',
+          address: account.address || 'N/A',
+          user_type: account.user_type || 'user',
+          status: account.status || 'active',
+          created_at: new Date(account.created_at).toLocaleDateString(),
+          is_verified: account.is_verified || false,
+          verification_document: account.verification_document || '',
+          // For stores, keep store name and owner name separate
+          storeName: account.user_type === 'store' ? (storeData.find(s => s.id === account.id)?.name || account.name || 'N/A') : undefined,
+          ownerName: account.user_type === 'store' ? (account.nickname || account.name || 'N/A') : undefined,
+        };
+      });
 
       setAccounts(formattedAccounts);
       setFilteredAccounts(formattedAccounts);
@@ -397,32 +426,8 @@ export default function AdminAccounts() {
     }
   };
 
-  const openUserProfile = async (user: FormattedAccount) => {
-    // If user is a store, fetch store details to show store name
-    if (user.user_type === 'store') {
-      try {
-        const { data: storeData, error: storeError } = await supabaseAdmin
-          .from('stores')
-          .select('name')
-          .eq('id', user.id)
-          .single();
-          
-        if (!storeError && storeData) {
-          // Update the user object with store name
-          setSelectedUser({
-            ...user,
-            name: storeData.name, // Use store name instead of owner name
-          });
-        } else {
-          setSelectedUser(user);
-        }
-      } catch (error) {
-        console.error('Error fetching store data:', error);
-        setSelectedUser(user);
-      }
-    } else {
-      setSelectedUser(user);
-    }
+  const openUserProfile = (user: FormattedAccount) => {
+    setSelectedUser(user);
     setShowProfileModal(true);
   };
 
@@ -565,16 +570,41 @@ export default function AdminAccounts() {
           </DialogHeader>
           {selectedUser && (
             <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>名前</Label>
-                  <Input value={selectedUser.name} readOnly />
+              {/* Show store name and owner name for stores, just name for others */}
+              {selectedUser.user_type === 'store' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>店舗名</Label>
+                    <Input value={selectedUser.storeName || selectedUser.name} readOnly />
+                  </div>
+                  <div>
+                    <Label>責任者</Label>
+                    <Input value={selectedUser.ownerName || selectedUser.name} readOnly />
+                  </div>
                 </div>
-                <div>
-                  <Label>メールアドレス</Label>
-                  <Input value={selectedUser.email} readOnly />
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>名前</Label>
+                    <Input value={selectedUser.name} readOnly />
+                  </div>
+                  <div>
+                    <Label>メールアドレス</Label>
+                    <Input value={selectedUser.email} readOnly />
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {/* Email field for stores */}
+              {selectedUser.user_type === 'store' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>メールアドレス</Label>
+                    <Input value={selectedUser.email} readOnly />
+                  </div>
+                  <div></div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>電話番号</Label>

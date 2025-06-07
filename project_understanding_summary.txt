@@ -411,8 +411,37 @@ All major authentication, login, and file upload issues have been resolved. The 
 - Modified AdminAccounts component to handle stores differently:
   - Store names now displayed instead of owner names in details view
   - Removed "本人確認" (identity verification) components for stores in table and details
-  - Added store name fetching in details dialog using store data
-- Stores no longer show verification status in admin panel since they don't require ID documents
+  - Added conditional rendering for store vs regular user information
+  - Enhanced user experience for managing different account types
+
+### Admin Panel Store Management Improvements ✅
+- **Table Display**: Store names now shown in table rows instead of owner names
+- **Details Popup Enhanced**: 
+  - Shows both 店舗名 (store name) and 責任者 (person in charge/owner name) for stores
+  - Regular users still show just name field
+  - Separate email field layout for stores
+- **Data Fetching**: Modified fetchAccounts to properly retrieve store names from stores table
+- **Interface Update**: Added storeName and ownerName optional fields to FormattedAccount interface
+
+### Mobile UI Improvements ✅  
+- **Therapist Header**: Hidden "るぴぴあセラピストページ" text on mobile screens in TherapistLayout
+- **Responsive Design**: Added `hidden md:inline` class to hide header text on small screens while keeping it visible on desktop
+
+### Store Signup Flow Improvements ✅
+- Created new StorePending component for store waiting screen during verification
+- Modified StoreSignup to redirect to /store-pending after registration
+- Updated StoreLogin to check store status and redirect appropriately:
+  - pending → /store-pending
+  - rejected → show error and prevent login
+  - active → /store-admin
+- Modified StoreAdminLayout to prevent access to admin panel for pending/rejected stores
+
+### Admin Panel Store Management ✅
+- Modified AdminAccounts component to handle stores differently:
+  - Store names now displayed instead of owner names in details view
+  - Removed "本人確認" (identity verification) components for stores in table and details
+  - Added conditional rendering for store vs regular user information
+  - Enhanced user experience for managing different account types
 
 ### Store Status Flow
 - **pending**: Store registered but waiting for admin approval → shown waiting screen

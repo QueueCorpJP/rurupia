@@ -260,13 +260,23 @@ const TherapistDetail = () => {
         galleryImages: (data as any).gallery_images || [],
         height: (data as any).height,
         weight: (data as any).weight,
-        workingHours: (data as any).working_hours,
-        workingDays: (data as any).working_days,
+        workingHours: (() => {
+          try {
+            if (typeof (data as any).working_hours === 'string') {
+              return JSON.parse((data as any).working_hours);
+            }
+            return (data as any).working_hours || { start: '', end: '' };
+          } catch (e) {
+            console.error('Error parsing working hours:', e);
+            return { start: '', end: '' };
+          }
+        })(),
+        workingDays: (data as any).working_days || [],
         hobbies: (data as any).hobbies,
         age: (data as any).age || '',
         mbtiType: (data as any).mbti_type,
-        area: (data as any).service_areas?.prefecture,
-        detailedArea: (data as any).detailed_area || (data as any).service_areas?.detailedArea || (data as any).service_areas?.cities?.join(', '),
+        area: (data as any).location || (data as any).service_areas?.prefecture || '',
+        detailedArea: (data as any).detailed_area || (data as any).service_areas?.detailedArea || (data as any).service_areas?.cities?.join(', ') || '',
         followers_count: typeof data.followers_count === 'number' ? data.followers_count : 
                          Array.isArray(data.followers_count) ? data.followers_count.length : 0
       };

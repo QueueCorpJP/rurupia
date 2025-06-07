@@ -937,10 +937,10 @@ All major authentication, login, and file upload issues have been resolved. The 
 - Updated height system to use actual numeric values instead of ranges
 - Simplified profile image handling in 画像 tab (profile only, not gallery)
 
-## Current Critical Issues Being Fixed
+## Current Critical Issues Fixed
 
-### Profile Image and Weight Saving Issues
-- **Problem**: Profile image and weight fields are not being saved to database
+### Profile Image and Weight Saving Issues ✅ RESOLVED
+- **Problem**: Profile image and weight fields were not being saved to database
 - **Root Causes Identified**:
   1. Profile image URL was being uploaded but not saved to database (missing image_url field in mapComponentToDatabase)
   2. Weight field was missing from ProfileState interface and mapping functions
@@ -951,6 +951,32 @@ All major authentication, login, and file upload issues have been resolved. The 
   2. Added weight to both mapDatabaseToComponentFormat and mapComponentToDatabase functions
   3. Modified handleSave to upload profile image first, then update database with new URL
   4. Added image_url field to database mapping to ensure profile image URLs are saved
+
+### Therapist Detail Page Display Issues ✅ RESOLVED
+- **Problem**: Working hours (営業時間) and location (エリア) were not displaying correctly on therapist detail pages
+- **Root Causes**:
+  1. Working hours stored as JSON string in database but not being parsed correctly
+  2. Location field mapping was using wrong field (service_areas.prefecture instead of location)
+  3. Working days mapping was not handling data correctly
+
+- **Fixes Applied**:
+  1. Fixed working hours parsing in TherapistDetail.tsx to properly handle JSON string format
+  2. Updated location mapping to prioritize `location` field over `service_areas.prefecture`
+  3. Enhanced working days mapping with proper fallback handling
+  4. Added proper error handling for JSON parsing failures
+
+### Health Document Upload System ✅ IMPLEMENTED
+- **Problem**: Missing STD/health document upload functionality for therapist verification
+- **Requirements**: Store owners need to verify therapist health certificates from admin panel
+
+- **Solution Implemented**:
+  1. Added new "健康証明書" (Health Certificate) tab to therapist profile form
+  2. Created health document upload functionality with file preview
+  3. Updated handleSave to upload health documents to 'health-documents' folder
+  4. Added health_document_url field to database mapping
+  5. Supports multiple file formats: PDF, JPG, PNG, DOC, DOCX
+  6. Provides file size display and removal functionality
+  7. Store admin pages can now access uploaded health documents
 
 ## Technical Architecture
 
@@ -965,16 +991,16 @@ All major authentication, login, and file upload issues have been resolved. The 
 ### Backend
 - Supabase as backend-as-a-service
 - PostgreSQL database with RLS (Row Level Security)
-- Supabase Storage for file uploads (profile images, galleries, documents)
+- Supabase Storage for file uploads (profile images, galleries, health documents)
 - Real-time subscriptions for live updates
 
 ### Database Schema (Key Tables)
-- `therapists`: Main therapist profile data including personal info, services, pricing
+- `therapists`: Main therapist profile data including personal info, services, pricing, health_document_url
 - `stores`: Store information with representative names
 - `profiles`: User authentication and basic profile data
 - `appointments`: Booking and scheduling data
 - `messages`: Chat/messaging system
-- Storage buckets: "therapists" for profile images and galleries
+- Storage buckets: "therapists" for profile images, galleries, and health documents
 
 ## Key Components
 
@@ -982,7 +1008,13 @@ All major authentication, login, and file upload issues have been resolved. The 
 - Comprehensive profile editing with tabbed interface
 - Handles profile image uploads, gallery management, and all profile fields
 - Maps between component state and database format
+- **Recently Added**: Health document upload tab with full file management
 - **Recently Fixed**: Profile image and weight saving issues
+
+### TherapistDetail.tsx
+- Displays complete therapist information with proper data parsing
+- **Recently Fixed**: Working hours JSON parsing and location field mapping
+- **Recently Fixed**: Working days display for therapists like たけし
 
 ### TherapistGalleryView.tsx
 - Gallery management with direct upload capabilities
@@ -998,9 +1030,15 @@ All major authentication, login, and file upload issues have been resolved. The 
 - Bundle size maintained at ~1.77MB with 3571 modules
 - No critical build errors or warnings
 
+## Verification Needed
+1. Test working hours display for therapist たけし on detailed page
+2. Verify location (エリア) now shows prefecture correctly
+3. Test health document upload and verify files are accessible to store admins
+4. Confirm profile image and weight saving works correctly
+
 ## Next Steps
-1. Verify profile image and weight saving fixes work correctly
-2. Test complete profile update flow
+1. Test complete therapist profile flow end-to-end
+2. Verify store admin can access uploaded health documents
 3. Monitor for any remaining UI/UX issues in mobile responsiveness
 4. Continue improving user experience based on feedback
 

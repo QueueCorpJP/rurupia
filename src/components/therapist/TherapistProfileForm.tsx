@@ -477,8 +477,23 @@ export const TherapistProfileForm = ({
         }
       }
       
+      // Upload health document if provided
+      let healthDocumentUrl = null;
+      if (healthDoc) {
+        healthDocumentUrl = await uploadFile(healthDoc, 'Therapist files', 'health-documents');
+        
+        if (healthDocumentUrl) {
+          console.log("Health document uploaded successfully, URL:", healthDocumentUrl);
+        } else {
+          console.warn("Health document upload failed, continuing without updating health document");
+        }
+      }
+      
       // Convert component state to database fields (after updating profile image URL)
-      const dbFields = mapComponentToDatabase(updatedProfile);
+      const dbFields = {
+        ...mapComponentToDatabase(updatedProfile),
+        ...(healthDocumentUrl && { health_document_url: healthDocumentUrl })
+      };
       
       // Upload final data to database
       const { data, error } = await supabase
@@ -670,6 +685,12 @@ export const TherapistProfileForm = ({
               className="text-sm sm:text-base font-medium px-4 sm:px-6 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
             >
               画像
+            </TabsTrigger>
+            <TabsTrigger 
+              value="health" 
+              className="text-sm sm:text-base font-medium px-3 sm:px-4 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+            >
+              健康証明書
             </TabsTrigger>
           </TabsList>
         </div>
@@ -980,6 +1001,53 @@ export const TherapistProfileForm = ({
                   >
                     <X size={14} />
                   </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="health">
+          <div className="space-y-4">
+            <div className="mb-4">
+              <Label htmlFor="health-document" className="block text-sm font-medium mb-1">
+                健康証明書 (STD検査結果など)
+              </Label>
+              <Input
+                id="health-document"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={handleHealthDocChange}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                STD検査結果や健康証明書をアップロードしてください。店舗側が確認できるようになります。
+              </p>
+              
+              {/* Health document preview */}
+              {healthDoc && (
+                <div className="mt-3 p-3 border rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+                        📄
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{healthDoc.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(healthDoc.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setHealthDoc(null)}
+                      className="text-red-500 hover:text-red-700"
+                      aria-label="Remove document"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -1072,11 +1072,12 @@ All major authentication, login, and file upload issues have been resolved. The 
 5. ~~Fix therapist card showing "営業時間不明" on index page~~ → Fixed
 6. ~~Fix calendar not showing available days for booking~~ → Fixed
 7. ~~Fix health document state not persisting in UI~~ → Fixed
+8. ~~Fix booking button availability logic in TherapistDetail.tsx~~ → Fixed
 
 ## Next Steps
 1. Test complete therapist profile flow end-to-end with all recent fixes
 2. Verify store admin can access uploaded health documents from admin panel
-3. Test booking flow works correctly with fixed calendar availability
+3. Test booking flow works correctly with fixed calendar availability and enabled booking buttons
 4. Monitor user feedback on improved working hours display and booking experience
 
 ---

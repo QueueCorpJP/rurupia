@@ -365,19 +365,39 @@ const TherapistDetail = () => {
           });
         }
         
-        // Case 2: Check specific working days
+        // Case 2: Check working days as recurring weekly schedule
         if (data.working_days && Array.isArray(data.working_days) && data.working_days.length > 0) {
           hasAvailabilityData = true;
           
-          data.working_days.forEach((day: string) => {
-            try {
-              const date = new Date(day);
-              if (!isNaN(date.getTime()) && isAfter(date, today) && isBefore(date, endDate)) {
-                validWorkingDays.push(date);
+          // Map working days to Japanese characters for comparison
+          const dayNameToChar: { [key: string]: string } = {
+            'monday': '月',
+            'tuesday': '火',
+            'wednesday': '水',
+            'thursday': '木',
+            'friday': '金',
+            'saturday': '土',
+            'sunday': '日'
+          };
+          
+          // Convert working days to characters if they're day names
+          const workingDayChars = data.working_days.map((day: string) => {
+            if (day in dayNameToChar) {
+              return dayNameToChar[day];
+            }
+            return day; // Already a character
+          });
+          
+          // For each day in the next month, check if the day of week matches working days
+          const checkDays = eachDayOfInterval({ start: today, end: endDate });
+          
+          checkDays.forEach(day => {
+            const dayOfWeek = dayOfWeekMap[getDay(day)];
+            if (workingDayChars.includes(dayOfWeek)) {
+              // Check if this date isn't already in validWorkingDays from availability array
+              if (!validWorkingDays.some(d => d.getTime() === day.getTime())) {
+                validWorkingDays.push(day);
               }
-            } catch (e) {
-              // Not a date string, might be a day name
-              console.log("Not a date string:", day);
             }
           });
         }

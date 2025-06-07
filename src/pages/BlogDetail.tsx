@@ -19,6 +19,9 @@ const BlogDetail = () => {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
+  const [isLikeProcessing, setIsLikeProcessing] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
   const [popularPosts, setPopularPosts] = useState<BlogPost[]>([]);
   const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
@@ -194,7 +197,45 @@ const BlogDetail = () => {
     };
     
     fetchPostAndRelated();
+    checkAuthAndLikes();
   }, [slug]);
+  
+  const checkAuthAndLikes = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+      
+      if (user && slug) {
+        // Check if user has already liked this post
+        const { data: likeData, error: likeError } = await supabase
+          .from('blog_likes')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('post_slug', slug)
+          .maybeSingle();
+        
+        if (likeError) {
+          console.error('Error checking like status:', likeError);
+        } else {
+          setIsLiked(!!likeData);
+        }
+        
+        // Get total likes count for this post
+        const { count, error: countError } = await supabase
+          .from('blog_likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_slug', slug);
+        
+        if (countError) {
+          console.error('Error getting likes count:', countError);
+        } else {
+          setLikesCount(count || 0);
+        }
+      }
+    } catch (error) {
+      console.error('Error in checkAuthAndLikes:', error);
+    }
+  };
   
   // Create structured data for BlogPosting
   const getBlogPostSchema = () => {
@@ -244,13 +285,67 @@ const BlogDetail = () => {
     }
   };
   
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    if (!isLiked) {
+  const handleLike = async () => {
+    if (!currentUser) {
       toast({
-        title: "投稿をいいねしました",
-        description: "この記事をお気に入りとして保存しました。",
+        title: "ログインが必要です",
+        description: "いいねするにはログインしてください。",
+        variant: "destructive"
       });
+      return;
+    }
+    
+    if (isLikeProcessing) return;
+    
+    try {
+      setIsLikeProcessing(true);
+      
+      if (isLiked) {
+        // Unlike: Remove from database
+        const { error } = await supabase
+          .from('blog_likes')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('post_slug', slug);
+        
+        if (error) throw error;
+        
+        setIsLiked(false);
+        setLikesCount(prev => Math.max(0, prev - 1));
+        
+        toast({
+          title: "いいねを取り消しました",
+          description: "この記事のいいねを削除しました。",
+        });
+      } else {
+        // Like: Add to database
+        const { error } = await supabase
+          .from('blog_likes')
+          .insert({
+            user_id: currentUser.id,
+            post_slug: slug,
+            created_at: new Date().toISOString()
+          });
+        
+        if (error) throw error;
+        
+        setIsLiked(true);
+        setLikesCount(prev => prev + 1);
+        
+        toast({
+          title: "投稿をいいねしました",
+          description: "この記事をお気に入りとして保存しました。",
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast({
+        title: "エラーが発生しました",
+        description: "もう一度お試しください。",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLikeProcessing(false);
     }
   };
   
@@ -479,9 +574,15 @@ const BlogDetail = () => {
                 </div>
                 
                 <div className="flex gap-2 pt-4 border-t">
-                  <Button variant="outline" size="sm" onClick={handleLike}>
-                    <Heart className={`mr-1 h-4 w-4 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
-                    いいね
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLike}
+                    disabled={isLikeProcessing}
+                    className={isLiked ? 'bg-red-50 border-red-200' : ''}
+                  >
+                    <Heart className={`mr-1 h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                    {isLikeProcessing ? '処理中...' : `いいね ${likesCount > 0 ? `(${likesCount})` : ''}`}
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleShare}>
                     <Share className="mr-1 h-4 w-4" />

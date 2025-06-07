@@ -15,10 +15,71 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 ### Multi-User System
 - **Customers**: Browse/search therapists, book appointments, write reviews
 - **Therapists**: Manage profile, availability, bookings
-- **Stores**: Manage multiple therapists, store information
-- **Admin**: Full system administration
+- **Stores**: Manage multiple therapists, view analytics
+- **Admins**: System-wide management and analytics
 
-### Authentication & Authorization
+### Core Functionality
+- **Therapist Discovery**: Search, filter, and browse therapist profiles
+- **Booking System**: Real-time availability, appointment scheduling
+- **Review System**: Customer feedback and ratings
+- **Payment Integration**: Secure payment processing
+- **Blog System**: Content management with like functionality
+- **Analytics**: Comprehensive dashboards for all user types
+
+## Recent Updates & Fixes
+
+### Account Deletion Fix (2025-01-27)
+- **Issue**: Users getting 403 Forbidden error when trying to delete accounts
+- **Root Cause**: Frontend was calling `supabase.auth.admin.deleteUser()` directly with anon key instead of service role key
+- **Solution**: 
+  - Created Edge Function `delete-user-account` with proper service role permissions
+  - Updated DeleteAccount component to use Edge Function endpoint
+  - Added CloudFront cache behavior for `/functions/v1/*` routes
+  - Updated CloudFront distribution E2P3Q41GY0N3CJ for rupipia.jp
+
+### Mobile Responsiveness Improvements (2025-01-27)
+- **Admin Dashboard**: Enhanced mobile layout with responsive grids and typography
+  - Changed from `md:grid-cols-3` to `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`
+  - Added responsive padding, spacing, and font sizes
+  - Improved DashboardCard component with mobile-first design
+- **Store Admin Dashboard**: Comprehensive mobile optimization
+  - Updated all grid layouts to be mobile-first
+  - Enhanced chart responsiveness with smaller heights on mobile
+  - Improved typography scaling and spacing
+  - Added proper container wrapping and background styling
+
+### Like Functionality Enhancement (2025-01-27)
+- **Existing Toggle Features**: Confirmed TherapistCard (follow/unfollow) and PostCard (like/unlike) already have proper toggle functionality
+- **BlogDetail Like Fix**: Enhanced blog post like functionality
+  - Created `blog_likes` table in database with proper RLS policies
+  - Implemented persistent like state with database storage
+  - Added like count display and proper toggle behavior
+  - Enhanced UI with processing states and visual feedback
+  - Users can now properly like/unlike blog posts with data persistence
+
+## Database Schema Updates
+- **blog_likes table**: Tracks user likes on blog posts
+  - `id` (UUID, primary key)
+  - `user_id` (UUID, references auth.users)
+  - `post_slug` (TEXT, references blog post)
+  - `created_at` (timestamp)
+  - Unique constraint on (user_id, post_slug)
+  - RLS policies for secure access
+
+## Infrastructure
+- **Supabase Project**: nokutoru (vvwkuqnotnilsbcswfqu.supabase.co)
+- **CloudFront Distribution**: E2P3Q41GY0N3CJ (rupipia.jp)
+- **Edge Functions**: delete-user-account for secure user deletion
+- **S3 Bucket**: therapist-connectivity-frontend-93b9faa0
+
+## Development Notes
+- Mobile-first responsive design approach implemented
+- Proper error handling and user feedback throughout
+- Database operations use optimistic UI updates for better UX
+- All like/follow functionality includes proper toggle behavior
+- Edge Functions used for operations requiring elevated permissions
+
+## Authentication & Authorization
 - LINE Login integration via Supabase Edge Functions
 - Traditional email/password authentication
 - Protected routes based on user types

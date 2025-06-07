@@ -218,13 +218,15 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">ダッシュボード</h1>
-        <p className="text-muted-foreground mt-2">アプリケーション全体の統計とアクティビティ</p>
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="container mx-auto space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">ダッシュボード</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">アプリケーション全体の統計とアクティビティ</p>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Mobile-first responsive grid for summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <DashboardCard
           icon={<Users />}
           title="アカウント数"
@@ -254,10 +256,12 @@ const AdminDashboard = () => {
             positive: true
           }}
           isLoading={isLoading}
+          className="sm:col-span-2 lg:col-span-1"
         />
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Mobile-first responsive grid for charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4">
         <LineChart 
           title="アクセス推移" 
           data={accessData}
@@ -270,6 +274,7 @@ const AdminDashboard = () => {
           color="#8b5cf6"
           isLoading={isLoading}
         />
+      </div>
       </div>
     </div>
   );

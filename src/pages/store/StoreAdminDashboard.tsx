@@ -691,24 +691,13 @@ const StoreAdminDashboard = () => {
 
   const hasData = monthlySales > 0 || monthlyBookings > 0 || therapistCount > 0 || courseCount > 0;
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">店舗ダッシュボード</h1>
-          <p className="text-muted-foreground mt-2">店舗の現状と統計情報</p>
-        </div>
-        <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="期間を選択" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="day">今日</SelectItem>
-            <SelectItem value="week">過去7日間</SelectItem>
-            <SelectItem value="month">過去30日間</SelectItem>
-            <SelectItem value="all">全期間</SelectItem>
-          </SelectContent>
-        </Select>
+      return (
+      <div className="min-h-screen bg-gray-50/50">
+        <div className="container mx-auto space-y-4 sm:space-y-6 p-4 sm:p-6">
+      {/* Header Section */}
+      <div className="space-y-2 mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">店舗管理ダッシュボード</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">店舗の運営状況と統計データの確認</p>
       </div>
 
       {!hasData && (
@@ -719,40 +708,40 @@ const StoreAdminDashboard = () => {
       )}
 
       {/* サマリーカード */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <DashboardCard
-          icon={<Store className="h-5 w-5" />}
+          icon={<Store className="h-4 w-4 sm:h-5 sm:w-5" />}
           title="今月の売上"
           value={`${monthlySales.toLocaleString()}円`}
           change={salesChange !== 0 ? { value: `${salesChange > 0 ? '+' : ''}${salesChange}%`, positive: salesChange >= 0 } : undefined}
         />
         <DashboardCard
-          icon={<Calendar className="h-5 w-5" />}
+          icon={<Calendar className="h-4 w-4 sm:h-5 sm:w-5" />}
           title="今月の予約数"
           value={monthlyBookings.toString()}
           change={bookingsChange !== 0 ? { value: `${bookingsChange > 0 ? '+' : ''}${bookingsChange}%`, positive: bookingsChange >= 0 } : undefined}
         />
         <DashboardCard
-          icon={<Users className="h-5 w-5" />}
+          icon={<Users className="h-4 w-4 sm:h-5 sm:w-5" />}
           title="セラピスト数"
           value={therapistCount.toString()}
           change={therapistChange !== 0 ? { value: `${therapistChange > 0 ? '+' : ''}${therapistChange}`, positive: therapistChange > 0 } : undefined}
         />
         <DashboardCard
-          icon={<BookOpen className="h-5 w-5" />}
+          icon={<BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />}
           title="コース数"
           value={courseCount.toString()}
         />
       </div>
 
       {/* グラフセクション */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
         {/* 売上推移グラフ */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-0">
-              <CardTitle>月次売上推移</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">月次売上推移</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 過去6ヶ月の売上推移
               </CardDescription>
             </div>
@@ -760,15 +749,15 @@ const StoreAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             {revenueData.length > 0 ? (
-              <div className="h-[300px]">
+              <div className="h-[250px] sm:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ReLineChart
                     data={revenueData}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
+                    <XAxis dataKey="date" fontSize={12} />
+                    <YAxis fontSize={12} />
                     <Tooltip formatter={(value) => `${value.toLocaleString()}円`} />
                     <Line 
                       type="monotone" 
@@ -780,7 +769,7 @@ const StoreAdminDashboard = () => {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex justify-center items-center h-[300px] text-muted-foreground">
+              <div className="flex justify-center items-center h-[250px] sm:h-[300px] text-muted-foreground">
                 <p>データがありません</p>
               </div>
             )}
@@ -791,8 +780,8 @@ const StoreAdminDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-0">
-              <CardTitle>曜日別予約数</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">曜日別予約数</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 曜日ごとの予約傾向
               </CardDescription>
             </div>
@@ -800,22 +789,22 @@ const StoreAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             {bookingData.some(item => item.bookings > 0) ? (
-              <div className="h-[300px]">
+              <div className="h-[250px] sm:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ReBarChart
                     data={bookingData}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
+                    <XAxis dataKey="day" fontSize={12} />
+                    <YAxis fontSize={12} />
                     <Tooltip formatter={(value) => `${value}件`} />
                     <Bar dataKey="bookings" fill="#82ca9d" />
                   </ReBarChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex justify-center items-center h-[300px] text-muted-foreground">
+              <div className="flex justify-center items-center h-[250px] sm:h-[300px] text-muted-foreground">
                 <p>データがありません</p>
               </div>
             )}
@@ -824,7 +813,7 @@ const StoreAdminDashboard = () => {
       </div>
 
       {/* 顧客分析セクション */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-0">
@@ -905,96 +894,91 @@ const StoreAdminDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-6">
-        <Card className="lg:col-span-4">
+      <div className="grid grid-cols-1 xl:grid-cols-7 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <Card className="xl:col-span-4">
           <CardHeader>
-            <CardTitle>最近の予約</CardTitle>
-            <CardDescription>最新の予約一覧</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">最近の予約</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">最新の予約一覧</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData.recentBookings.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {dashboardData.recentBookings.map((booking: any) => (
-                  <div key={booking.id} className="flex items-center">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={booking.clientAvatar || undefined} alt={booking.clientName} />
-                      <AvatarFallback>{booking.clientName.charAt(0)}</AvatarFallback>
+                  <div key={booking.id} className="flex items-center space-x-3 sm:space-x-4">
+                    <Avatar className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0">
+                      <AvatarImage src={booking.user?.avatar_url || "/avatars/01.png"} />
+                      <AvatarFallback className="text-xs sm:text-sm">
+                        {booking.user?.full_name?.charAt(0) || 'U'}
+                      </AvatarFallback>
                     </Avatar>
-                    <div className="ml-4 space-y-1">
-                      <p className="text-sm font-medium leading-none">{booking.clientName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {booking.date} {booking.time} / {booking.therapistName}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-none truncate">
+                        {booking.user?.full_name || 'ユーザー'}
+                      </p>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                        {booking.therapist?.name} - {booking.service?.name}
                       </p>
                     </div>
-                    <div className="ml-auto text-right">
-                      <p className="text-sm font-medium">
-                        {getStatusBadge(booking.status)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {booking.price.toLocaleString()}円
-                      </p>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-xs sm:text-sm font-medium">
+                        ¥{booking.total_amount?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(parseISO(booking.booking_date), 'MM/dd', { locale: ja })}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                表示できる予約がありません
+              <div className="flex justify-center items-center h-[200px] text-muted-foreground">
+                <p className="text-sm sm:text-base">最近の予約がありません</p>
               </div>
             )}
           </CardContent>
         </Card>
-        
-        <Card className="lg:col-span-3">
+
+        <Card className="xl:col-span-3">
           <CardHeader>
-            <CardTitle>サマリー</CardTitle>
-            <CardDescription>現在の店舗状況</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">今日の予約状況</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">本日の予約概要</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center">
-                <CalendarIcon className="h-5 w-5 text-muted-foreground mr-4" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium leading-none">今後の予約</p>
-                  <p className="text-sm text-muted-foreground">合計 {dashboardData.upcomingBookingsCount}件</p>
+                  <p className="text-xs sm:text-sm font-medium">今日の予約数</p>
+                  <p className="text-lg sm:text-2xl font-bold">{dashboardData.todayBookingsCount}件</p>
+                </div>
+                <div className="flex-shrink-0">
+                  <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                 </div>
               </div>
               <div className="flex items-center">
-                <Users className="h-5 w-5 text-muted-foreground mr-4" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium leading-none">総予約数</p>
-                  <p className="text-sm text-muted-foreground">
-                    {dashboardData.totalBookingsCount}件 ({timeRange === "all" 
-                    ? "全期間" 
-                    : timeRange === "month" 
-                      ? "過去30日間" 
-                      : timeRange === "week" 
-                        ? "過去7日間" 
-                        : "今日"})
-                  </p>
+                  <p className="text-xs sm:text-sm font-medium">待機中の予約</p>
+                  <p className="text-lg sm:text-2xl font-bold">{dashboardData.pendingBookingsCount}件</p>
+                </div>
+                <div className="flex-shrink-0">
+                  <Badge variant="secondary" className="text-xs">
+                    対応必要
+                  </Badge>
                 </div>
               </div>
               <div className="flex items-center">
-                <BadgeCheck className="h-5 w-5 text-muted-foreground mr-4" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium leading-none">店舗ステータス</p>
-                  <p className="text-sm text-muted-foreground">{storeInfo?.status === "active" ? "営業中" : "準備中"}</p>
+                  <p className="text-xs sm:text-sm font-medium">今月の総売上</p>
+                  <p className="text-lg sm:text-2xl font-bold">¥{dashboardData.totalRevenue.toLocaleString()}</p>
+                </div>
+                <div className="flex-shrink-0">
+                  <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
                 </div>
               </div>
-              {storeInfo?.subscription_status && (
-                <div className="flex items-center">
-                  <DollarSign className="h-5 w-5 text-muted-foreground mr-4" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium leading-none">プラン</p>
-                    <p className="text-sm text-muted-foreground">
-                      {storeInfo.subscription_status === "active" ? "プレミアム" : "無料プラン"}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
+      </div>
+        </div>
       </div>
     </div>
   );

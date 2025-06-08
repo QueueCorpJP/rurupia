@@ -8,16 +8,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Skeleton } from '@/components/ui/skeleton';
 import { getVerificationDocumentUrl, updateVerificationStatus, sendVerificationEmail } from '@/lib/supabase-utils';
 
-// Status translation mapping
+// Status translation mapping - keep original Japanese statuses but remove English translations
 const STATUS_TRANSLATIONS: Record<string, string> = {
-  'active': 'Active',
-  'pending': 'Pending',
-  'rejected': 'Rejected', 
-  'inactive': 'Inactive',
-  'バン': 'Banned',
-  '認証待ち': 'Pending Verification',
-  'アクティブ': 'Active',
-  '無効': 'Inactive'
+  'active': 'アクティブ',
+  'pending': '認証待ち',
+  'rejected': '拒否済み', 
+  'inactive': '無効',
+  'banned': 'バン',
+  'バン': 'バン',
+  '認証待ち': '認証待ち',
+  'アクティブ': 'アクティブ',
+  '無効': '無効'
 };
 
 const translateStatus = (status: string) => {
@@ -95,11 +96,11 @@ export default function VerificationDocument() {
         );
       }
       
-      toast.success('User approved and notification queued');
+      toast.success('ユーザーを承認し、通知メールを送信しました');
       navigate('/admin/accounts');
     } catch (error) {
       console.error('Error approving user:', error);
-      toast.error('Failed to approve user');
+      toast.error('ユーザーの承認に失敗しました');
     } finally {
       setApproving(false);
     }
@@ -123,11 +124,11 @@ export default function VerificationDocument() {
         );
       }
       
-      toast.success('User banned and notification queued');
+      toast.success('ユーザーを拒否し、通知メールを送信しました');
       navigate('/admin/accounts');
     } catch (error) {
       console.error('Error rejecting user:', error);
-      toast.error('Failed to ban user');
+      toast.error('ユーザーの拒否に失敗しました');
     } finally {
       setRejecting(false);
     }
@@ -136,37 +137,37 @@ export default function VerificationDocument() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Verification Document</h1>
+        <h1 className="text-3xl font-bold tracking-tight">書類確認</h1>
         <Button 
           variant="outline" 
           onClick={() => navigate('/admin/accounts')}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          戻る
         </Button>
       </div>
       
       {userDetails && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>User Information</CardTitle>
+            <CardTitle>ユーザー情報</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium">Name:</p>
+                <p className="text-sm font-medium">名前:</p>
                 <p>{userDetails.name || userDetails.nickname || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium">Email:</p>
+                <p className="text-sm font-medium">メールアドレス:</p>
                 <p>{userDetails.email || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium">User ID:</p>
+                <p className="text-sm font-medium">ユーザーID:</p>
                 <p className="truncate">{userDetails.id}</p>
               </div>
               <div>
-                <p className="text-sm font-medium">Status:</p>
+                <p className="text-sm font-medium">ステータス:</p>
                 <p>{translateStatus(userDetails.status)}</p>
               </div>
             </div>
@@ -186,7 +187,7 @@ export default function VerificationDocument() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Document not found</p>
+              <p className="text-muted-foreground">書類が見つかりません</p>
             </div>
           </CardContent>
         </Card>
@@ -196,7 +197,7 @@ export default function VerificationDocument() {
             <div className="max-w-3xl overflow-hidden">
               <img 
                 src={documentUrl} 
-                alt="Verification Document"
+                alt="身分証明書"
                 className="max-w-full h-auto object-contain mb-4 border border-gray-200 rounded-md"
               />
             </div>
@@ -208,14 +209,14 @@ export default function VerificationDocument() {
               disabled={rejecting || approving}
             >
               <XCircle className="h-4 w-4 mr-2" />
-              {rejecting ? 'Banning...' : 'Ban'}
+              {rejecting ? '拒否中...' : '拒否'}
             </Button>
             <Button
               onClick={handleApprove}
               disabled={rejecting || approving}
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              {approving ? 'Approving...' : 'Approve'}
+              {approving ? '承認中...' : '承認'}
             </Button>
           </CardFooter>
         </Card>

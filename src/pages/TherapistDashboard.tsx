@@ -79,20 +79,6 @@ const TherapistDashboard = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Count pending requests
-      const { count: pendingCount, error: pendingError } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('therapist_id', user.id)
-        .eq('status', 'pending');
-
-      // Count confirmed bookings
-      const { count: confirmedCount, error: confirmedError } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('therapist_id', user.id)
-        .eq('status', 'confirmed');
-
       // Count total bookings
       const { count: totalCount, error: totalError } = await supabase
         .from('bookings')
@@ -181,8 +167,8 @@ const TherapistDashboard = () => {
       // Update stats
       setStats({
         bookings: {
-          pending: pendingCount || 0,
-          confirmed: confirmedCount || 0,
+          pending: 0, // Removed pending requests
+          confirmed: 0, // Removed confirmed count  
           total: totalCount || 0,
           today: todayCount || 0
         },
@@ -244,7 +230,7 @@ const TherapistDashboard = () => {
           </h1>
         </div>
         
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">本日の予約</CardTitle>
@@ -254,19 +240,6 @@ const TherapistDashboard = () => {
               <div className="text-2xl font-bold">{stats.bookings.today}</div>
               <p className="text-xs text-muted-foreground">
                 合計予約数: {stats.bookings.total}
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">新規リクエスト</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.bookings.pending}</div>
-              <p className="text-xs text-muted-foreground">
-                確定済み: {stats.bookings.confirmed}
               </p>
             </CardContent>
           </Card>
@@ -333,14 +306,14 @@ const TherapistDashboard = () => {
                           {booking.profiles?.nickname || booking.profiles?.email || '予約者'}
                         </span>
                         <span className={`px-2 py-0.5 text-xs rounded-full ${
-                          booking.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                          booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                          booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          booking["status therapist"] === 'pending' ? 'bg-amber-100 text-amber-800' :
+                          booking["status therapist"] === 'confirmed' ? 'bg-green-100 text-green-800' :
+                          booking["status therapist"] === 'completed' ? 'bg-blue-100 text-blue-800' :
                           'bg-red-100 text-red-800'
                         }`}>
-                          {booking.status === 'pending' ? '承認待ち' :
-                           booking.status === 'confirmed' ? '確定' :
-                           booking.status === 'completed' ? '完了' :
+                          {booking["status therapist"] === 'pending' ? '承認待ち' :
+                           booking["status therapist"] === 'confirmed' ? '確定' :
+                           booking["status therapist"] === 'completed' ? '完了' :
                            'キャンセル'}
                         </span>
                       </div>
@@ -373,8 +346,24 @@ const TherapistDashboard = () => {
                 返信が必要なメッセージ
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-center py-10 text-muted-foreground">
-              未読メッセージはありません
+            <CardContent>
+              {stats.messages.unread === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  未読メッセージはありません
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <div className="text-2xl font-bold text-primary mb-2">
+                    {stats.messages.unread}件
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    未読メッセージがあります
+                  </p>
+                  <a href="/therapist-messages" className="text-primary hover:underline text-sm">
+                    メッセージを確認する
+                  </a>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

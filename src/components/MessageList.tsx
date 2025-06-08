@@ -37,11 +37,30 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
       }
     });
     
+    // Set up real-time subscription for message updates to refresh unread counts
+    const messageChannel = supabase
+      .channel('public:messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          console.log('[MessageList] Real-time message update:', payload);
+          // Refresh conversations to update unread counts
+          fetchConversations();
+        }
+      )
+      .subscribe();
+    
     // Initial fetch
     fetchConversations();
     
     return () => {
       subscription.unsubscribe();
+      messageChannel.unsubscribe();
     };
   }, [activeConversationId, location.pathname]);
 

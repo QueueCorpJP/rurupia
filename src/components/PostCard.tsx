@@ -92,7 +92,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
     return user;
   }, []);
 
-  // Effect to check authentication once on mount
+  // Effect to check authentication and load comment count on mount
   useEffect(() => {
     const initAuth = async () => {
       const user = await checkAuth();
@@ -101,10 +101,32 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
         // Check if user has liked this post
         checkUserLiked(user.id, post.id);
       }
+      
+      // Load comment count immediately
+      loadCommentCount();
     };
     
     initAuth();
   }, [post.id, checkAuth]);
+  
+  // Load comment count without loading full comments
+  const loadCommentCount = async () => {
+    try {
+      const { count, error } = await (supabase as any)
+        .from('post_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', post.id);
+        
+      if (!error && count !== null) {
+        setPost(prev => ({
+          ...prev,
+          comment_count: count
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading comment count:', error);
+    }
+  };
   
   // Format date
   const formatDate = (dateString: string) => {
@@ -214,11 +236,12 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
     }
     setShowComments(true);
     
-    // Focus the comment input field after the dialog opens (only on desktop)
-    if (!isMobile) {
+    // Ensure comments scroll area starts at top on mobile
+    if (isMobile) {
       setTimeout(() => {
-        if (commentInputRef.current) {
-          commentInputRef.current.focus();
+        const scrollArea = document.querySelector('[data-comments-scroll-area]');
+        if (scrollArea) {
+          scrollArea.scrollTop = 0;
         }
       }, 100);
     }
@@ -466,13 +489,30 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
         dismissible={false}
         shouldScaleBackground={false}
       >
-        <DrawerContent className="max-h-[90vh] min-h-[70vh] flex flex-col">
-          <DrawerHeader className="pb-2 shrink-0">
+        <DrawerContent 
+          className="max-h-[90vh] min-h-[70vh]" 
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            touchAction: 'none'
+          }}
+        >
+          <DrawerHeader className="pb-2 flex-shrink-0">
             <DrawerTitle>コメント</DrawerTitle>
             <DrawerDescription>この投稿へのコメント</DrawerDescription>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="p-4 space-y-4">
+          
+          {/* Scrollable comments area */}
+          <div 
+            className="flex-1 overflow-y-auto px-4"
+            data-comments-scroll-area
+            style={{ 
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+              minHeight: 0
+            }}
+          >
+            <div className="space-y-4 py-2">
               {isLoadingComments ? (
                 <div className="flex justify-center py-8">
                   <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -494,7 +534,9 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
               )}
             </div>
           </div>
-          <div className="p-4 border-t bg-white shrink-0">
+
+          {/* Input area */}
+          <div className="p-4 border-t bg-white flex-shrink-0">
             <div className="flex gap-2">
               <Textarea
                 ref={commentInputRef}
@@ -504,7 +546,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
                 className="min-h-10 resize-none flex-1"
                 rows={2}
                 style={{
-                  fontSize: '16px', // Prevents zoom on iOS
+                  fontSize: '16px',
                   WebkitAppearance: 'none',
                   WebkitBorderRadius: '0',
                   WebkitTapHighlightColor: 'transparent'
@@ -520,7 +562,9 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
               </Button>
             </div>
           </div>
-          <DrawerFooter className="pt-2 shrink-0 border-t bg-white">
+
+          {/* Close button */}
+          <div className="p-4 pt-2 border-t bg-white flex-shrink-0">
             <Button 
               variant="outline" 
               onClick={() => setShowComments(false)}
@@ -528,7 +572,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
             >
               閉じる
             </Button>
-          </DrawerFooter>
+          </div>
         </DrawerContent>
       </Drawer>
     ) : (
@@ -686,7 +730,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
           onClick={openComments}
         >
           <MessageSquare className="h-4 w-4" />
-          <span>{comments.length}</span>
+          <span>{post.comment_count || 0}</span>
         </Button>
         <Button
           variant="ghost"

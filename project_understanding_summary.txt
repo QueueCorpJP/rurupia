@@ -158,6 +158,29 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 **Expected Result**: Store management interface should now display 2 pending therapist requests for approval.
 
+### Booking Status Update Fix ✅ (January 2025)
+**Problem**: Therapists getting error when trying to accept bookings: `TypeError: B.from(...).update(...).eq(...).eq is not a function`
+
+**Root Cause**: Same chained `.eq()` issue in the booking system - custom Supabase client doesn't support multiple `.eq()` calls.
+
+**Location**: `TherapistBookingRequests.tsx` line 157-160:
+```typescript
+.from('bookings')
+.update({ ["status therapist"]: dbStatus })
+.eq('id', id)
+.eq('therapist_id', therapistId)  // This second .eq() caused the error
+```
+
+**Solution Applied**:
+1. **Validation Pattern**: Added booking validation before update (same pattern as therapist approval)
+2. **Single .eq() Call**: Removed chained `.eq()` and used single condition after validation
+3. **Type Casting**: Applied `(supabase as any)` for all multi-condition operations in the file
+4. **Security Enhancement**: Added check to ensure therapists can only update their own bookings
+
+**Files Modified**: `/src/components/therapist/TherapistBookingRequests.tsx`
+
+**Technical Pattern**: This reinforces the established pattern for the custom Supabase client - always validate with multi-conditions first, then update with single condition.
+
 ## Technical Achievements
 
 ### Performance Optimizations

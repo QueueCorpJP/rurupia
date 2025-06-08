@@ -39,7 +39,7 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
         console.log("Fetching bookings for therapist ID:", therapistId);
         
         // Step 1: Fetch bookings
-        const { data: bookingsData, error: bookingsError } = await supabase
+        const { data: bookingsData, error: bookingsError } = await (supabase as any)
           .from('bookings')
           .select('*')
           .eq('therapist_id', therapistId)
@@ -67,7 +67,7 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
         
         let profilesMap = new Map();
         if (userIds.length > 0) {
-          const { data: profilesData, error: profilesError } = await supabase
+          const { data: profilesData, error: profilesError } = await (supabase as any)
             .from('profiles')
             .select('id, nickname, email, avatar_url')
             .in('id', userIds);
@@ -154,12 +154,29 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
     }
 
     try {
+      // First validate that this booking belongs to this therapist
+      const { data: bookingCheck, error: checkError } = await (supabase as any)
+        .from('bookings')
+        .select('id, therapist_id')
+        .eq('id', id);
+        
+      if (checkError) {
+        console.error('Error checking booking:', checkError);
+        toast.error('予約の確認に失敗しました');
+        return;
+      }
+      
+      const validatedBooking = bookingCheck?.[0];
+      if (!validatedBooking || validatedBooking.therapist_id !== therapistId) {
+        toast.error('この予約を更新する権限がありません');
+        return;
+      }
+      
       // Update the 'status therapist' column
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('bookings')
         .update({ ["status therapist"]: dbStatus } as any)
-        .eq('id', id)
-        .eq('therapist_id', therapistId);
+        .eq('id', id);
 
       if (error) {
         console.error('Error updating booking therapist status:', error);
@@ -184,7 +201,7 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
           const bookingDate = parseISO(booking.requestTime.split(' ')[0] + 'T' + booking.requestTime.split(' ')[1]);
           
           // Get store ID for this therapist
-          const { data: storeData, error: storeError } = await supabase
+          const { data: storeData, error: storeError } = await (supabase as any)
             .from('store_therapists')
             .select('store_id')
             .eq('therapist_id', therapistId)

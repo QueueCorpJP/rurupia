@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
@@ -20,6 +20,7 @@ interface Conversation {
 
 const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +43,7 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [activeConversationId]);
+  }, [activeConversationId, location.pathname]);
 
   const fetchConversations = async () => {
     try {

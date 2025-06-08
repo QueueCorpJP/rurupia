@@ -81,12 +81,14 @@ serve(async (req) => {
   <meta charset="UTF-8">
   <title>るぴぴあ通知</title>
   <style>
-    body { font-family: 'Hiragino Sans', 'Yu Gothic UI', sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; }
-    .content { padding: 30px; }
-    .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
-    .button { display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+    body { font-family: 'Hiragino Sans', 'Yu Gothic UI', sans-serif; margin: 0; padding: 20px; background-color: #fdf2f8; }
+    .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(236,72,153,0.1); }
+    .header { background: linear-gradient(135deg, #f8bbd9, #fce7f3); color: #831843; padding: 20px; text-align: center; }
+    .content { padding: 30px; background-color: white; }
+    .footer { background-color: #fdf2f8; padding: 20px; text-align: center; font-size: 12px; color: #831843; }
+    .button { display: inline-block; background-color: #f8bbd9; color: #831843; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: 500; }
+    .button:hover { background-color: #f472b6; }
+    h2 { color: #831843; }
   </style>
 </head>
 <body>
@@ -101,7 +103,7 @@ serve(async (req) => {
     </div>
     <div class="footer">
       <p>このメールに心当たりがない場合は、お手数ですが削除してください。</p>
-      <p>© 2024 るぴぴあ. All rights reserved.</p>
+      <p>© 2025 るぴぴあ. All rights reserved.</p>
     </div>
   </div>
 </body>

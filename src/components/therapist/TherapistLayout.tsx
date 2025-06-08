@@ -9,9 +9,10 @@ import TherapistNavigation from "./TherapistNavigation";
 
 interface TherapistLayoutProps {
   children: ReactNode;
+  fullWidth?: boolean;
 }
 
-export const TherapistLayout = ({ children }: TherapistLayoutProps) => {
+export const TherapistLayout = ({ children, fullWidth = false }: TherapistLayoutProps) => {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -77,19 +78,37 @@ export const TherapistLayout = ({ children }: TherapistLayoutProps) => {
       </header>
 
       <div className="container py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="md:col-span-1">
-            <div className="bg-white rounded-lg border border-pink-100 p-4 sticky top-24">
-              <TherapistNavigation />
+        {fullWidth ? (
+          /* Full width layout for messages */
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {/* Sidebar */}
+            <div className="md:col-span-1">
+              <div className="bg-white rounded-lg border border-pink-100 p-4 sticky top-24">
+                <TherapistNavigation />
+              </div>
             </div>
+            
+            {/* Main content - full width */}
+            <main className="md:col-span-4">
+              {children}
+            </main>
           </div>
-          
-          {/* Main content */}
-          <main className="md:col-span-3 bg-white rounded-lg shadow-sm border border-pink-100 p-6">
-            {children}
-          </main>
-        </div>
+        ) : (
+          /* Default layout */
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Sidebar */}
+            <div className="md:col-span-1">
+              <div className="bg-white rounded-lg border border-pink-100 p-4 sticky top-24">
+                <TherapistNavigation />
+              </div>
+            </div>
+            
+            {/* Main content */}
+            <main className="md:col-span-3 bg-white rounded-lg shadow-sm border border-pink-100 p-6">
+              {children}
+            </main>
+          </div>
+        )}
       </div>
     </div>
   );

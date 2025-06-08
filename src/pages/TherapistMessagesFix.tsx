@@ -5,6 +5,7 @@ import MessageList from '@/components/MessageList';
 import { Send, Paperclip, ArrowLeft, Check, CheckCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -361,7 +362,7 @@ const TherapistMessagesFix = () => {
 
   if (isLoading) {
     return (
-      <TherapistLayout>
+      <TherapistLayout fullWidth>
         <div className="flex justify-center items-center h-96">
           <div className="flex space-x-2">
             <div className="w-3 h-3 rounded-full bg-primary loading-dot"></div>
@@ -375,7 +376,7 @@ const TherapistMessagesFix = () => {
 
   if (!customer || !id) {
     return (
-      <TherapistLayout>
+      <TherapistLayout fullWidth>
         <div className="container py-6 space-y-4">
           <Breadcrumb 
             items={[
@@ -410,7 +411,7 @@ const TherapistMessagesFix = () => {
   }
 
   return (
-    <TherapistLayout>
+    <TherapistLayout fullWidth>
       <div className="container py-6 space-y-4">
         <Breadcrumb 
           items={[
@@ -640,12 +641,13 @@ const TherapistMessagesFix = () => {
                     </div>
                   )}
                   
-                  <div className="flex gap-2">
-                    <Input
+                  <div className="flex gap-2 items-end">
+                    <Textarea
                       placeholder="メッセージを入力..."
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 min-h-[44px] max-h-[120px] resize-none"
+                      rows={1}
                     />
                     <input
                       type="file"

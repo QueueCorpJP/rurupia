@@ -92,7 +92,8 @@ export default function VerificationDocument() {
         await sendVerificationEmail(
           userDetails.email, 
           userDetails.name || userDetails.nickname || 'ユーザー',
-          true
+          true,
+          userId
         );
       }
       
@@ -120,7 +121,8 @@ export default function VerificationDocument() {
         await sendVerificationEmail(
           userDetails.email,
           userDetails.name || userDetails.nickname || 'ユーザー', 
-          false
+          false,
+          userId
         );
       }
       

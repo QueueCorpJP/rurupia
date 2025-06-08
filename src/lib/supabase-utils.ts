@@ -38,8 +38,9 @@ export const getVerificationDocumentUrl = async (documentPath: string, useAdmin 
  * @param userEmail User's email address
  * @param userName User's name
  * @param isApproved Whether the verification was approved or rejected
+ * @param userId Optional user ID - if provided, will be used instead of looking up by email
  */
-export const sendVerificationEmail = async (userEmail: string, userName: string, isApproved: boolean) => {
+export const sendVerificationEmail = async (userEmail: string, userName: string, isApproved: boolean, userId?: string) => {
   try {
     const subject = isApproved ? 'アカウント認証完了のお知らせ' : 'アカウント認証について';
     const message = isApproved 
@@ -54,38 +55,25 @@ export const sendVerificationEmail = async (userEmail: string, userName: string,
     console.log('Message:', message);
     console.log('=== END EMAIL NOTIFICATION ===');
 
-    // Call the edge function to send the actual email
-    // Use the config system to get the Supabase URL
-    const config = await import('@/lib/config').then(m => m.getConfig());
-    const supabaseUrl = config.VITE_SUPABASE_URL;
-    
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': config.VITE_SUPABASE_ANON_KEY,
-        'x-admin-auth': 'true', // Custom header to indicate admin request
-      },
-      body: JSON.stringify({
-        userId: null, // We'll find the user by email
-        userEmail: userEmail,
+    // Call the edge function to send the actual email using admin client
+    const { data, error } = await supabaseAdmin.functions.invoke('send-email-notification', {
+      body: {
+        userId: userId || null,
         title: subject,
         message: message,
         type: 'verification',
         data: {
           isApproved: isApproved,
-          userName: userName
+          userName: userName,
+          userEmail: userEmail // Include email in data for edge function to use
         }
-      })
+      }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Edge function HTTP error:', response.status, errorText);
-      throw new Error(`Edge function failed: ${response.status}`);
+    if (error) {
+      console.error('Edge function error:', error);
+      throw error;
     }
-
-    const data = await response.json();
     console.log('✅ Edge function response:', data);
     
   } catch (error) {

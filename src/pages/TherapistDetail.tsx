@@ -733,17 +733,31 @@ const TherapistDetail = () => {
                         このセラピストは現在予約可能日がありません。
                       </p>
                     )}
-                    <Link to={hasAvailability ? `/booking/${therapist?.id}` : "#"}>
-                      <Button 
-                        className="w-full" 
-                        size="lg"
-                        disabled={!hasAvailability}
-                        onClick={e => !hasAvailability && e.preventDefault()}
-                      >
-                        <Calendar className="mr-2 h-5 w-5" />
-                        予約ページへ進む
-                      </Button>
-                    </Link>
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      disabled={!hasAvailability}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (!hasAvailability) return;
+                        
+                        // Check if user is logged in
+                        const user = currentUser || await checkUserAuth();
+                        if (!user) {
+                          toast.error('予約するには会員登録が必要です。まずは会員登録をお願いします。', {
+                            duration: 4000,
+                          });
+                          navigate('/register');
+                          return;
+                        }
+                        
+                        // User is logged in, proceed to booking
+                        navigate(`/booking/${therapist?.id}`);
+                      }}
+                    >
+                      <Calendar className="mr-2 h-5 w-5" />
+                      予約ページへ進む
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

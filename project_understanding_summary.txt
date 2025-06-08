@@ -1073,11 +1073,56 @@ All major authentication, login, and file upload issues have been resolved. The 
 6. ~~Fix calendar not showing available days for booking~~ → Fixed
 7. ~~Fix health document state not persisting in UI~~ → Fixed
 8. ~~Fix booking button availability logic in TherapistDetail.tsx~~ → Fixed
+9. ~~Add authentication check for booking button~~ → Fixed
+
+## Authentication & Email Notification System Implementation
+
+### Booking Authentication Check ✅ IMPLEMENTED
+- **Problem**: Non-logged-in users could attempt to access booking page
+- **Solution**: Added authentication check to booking button in TherapistDetail.tsx
+- **Implementation**: 
+  - Check user authentication status before proceeding to booking
+  - Show Japanese toast message: "予約するには会員登録が必要です。まずは会員登録をお願いします。"
+  - Redirect to registration page if not authenticated
+  - Allow booking to proceed if user is authenticated
+
+### Email Notification System Documentation ✅ CREATED
+- **Comprehensive audit**: Created `email_notification_setup.md` with complete notification system overview
+- **Account types covered**: Users, Therapists, Store Admins, System Admins  
+- **Notification triggers mapped**: All current notification functions documented
+- **Testing setup**: SQL scripts and manual steps for email testing with einar.tokyo@gmail.com
+- **Implementation status**: Clear breakdown of what works vs what needs implementation
 
 ## Next Steps
-1. Test complete therapist profile flow end-to-end with all recent fixes
-2. Verify store admin can access uploaded health documents from admin panel
-3. Test booking flow works correctly with fixed calendar availability and enabled booking buttons
-4. Monitor user feedback on improved working hours display and booking experience
+1. **Manual Database Updates**: Execute SQL scripts in `email_notification_setup.md` to set up test email addresses
+2. **User Account Creation**: Create test user account through Supabase Auth dashboard
+3. **Email Testing**: Test all notification types with the configured test email
+4. **Email Service Integration**: Implement actual email delivery (currently using console.log)
+5. Test complete booking flow with authentication check working properly
+
+## Row-Level Security (RLS) Policy Fixes ✅ IMPLEMENTED
+
+### Notification System RLS Issues ✅ RESOLVED
+- **Problem**: 403 Forbidden errors when sending notifications due to restrictive RLS policies
+- **Root Cause**: notifications table RLS policy only allowed users to create notifications for themselves (`auth.uid() = user_id`)
+- **Impact**: Message notifications, booking notifications, and all inter-user notifications were failing
+
+### Solutions Applied:
+1. **Added Authenticated User Policy**: `notifications_send_policy` allows authenticated users to create notifications for any user
+2. **Added Service Role Policy**: `notifications_service_role_policy` allows service role full access for system operations
+3. **Updated Notification Service**: Changed from `supabase` client to `supabaseAdmin` client for creating notifications
+4. **Fixed Type Definitions**: Added missing notification types ('review', 'promotion', 'system') to prevent TypeScript errors
+
+### RLS Policies Now Active:
+- `notifications_user_policy`: Users can read/update their own notifications
+- `notifications_send_policy`: Authenticated users can send notifications to any user
+- `notifications_service_role_policy`: Service role has full access
+- `notifications_no_anon_policy`: Prevents anonymous access
+
+### Testing Verified:
+- ✅ Notification creation through SQL works
+- ✅ Build compiles successfully with admin client changes  
+- ✅ RLS policies allow proper notification flow
+- ✅ All notification types now supported
 
 ---

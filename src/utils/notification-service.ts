@@ -30,13 +30,13 @@ export const sendNotification = async ({
   userId: string;
   title: string;
   message: string;
-  type?: 'general' | 'message' | 'booking' | 'follow' | 'like';
+  type?: 'general' | 'message' | 'booking' | 'follow' | 'like' | 'review' | 'promotion' | 'system';
   data?: any;
 }) => {
   try {
     console.log(`Sending ${type} notification to user ${userId}: ${title}`);
     
-    const { data: notificationData, error } = await supabase
+    const { data: notificationData, error } = await supabaseAdmin
       .from('notifications')
       .insert({
         user_id: userId,

@@ -238,28 +238,42 @@ const AllTherapistPosts = () => {
     }
   }, [sortOrder, posts.length]);
   
-  // Optimized version of post update that just updates one post's like count
+  // Optimized version of post update that just updates one post's like and comment count
   const handlePostUpdate = useCallback(async (postId: string) => {
-    // Instead of refetching all posts, just update the specific post's like count
+    // Instead of refetching all posts, just update the specific post's like and comment count
     try {
       // Get the updated likes count
-      const { data, error } = await (supabase as any)
+      const { data: postData, error: postError } = await (supabase as any)
         .from('therapist_posts')
         .select('likes')
         .eq('id', postId)
         .single();
         
-      if (error) {
-        console.error('Error fetching updated post:', error);
+      if (postError) {
+        console.error('Error fetching updated post:', postError);
         return;
       }
       
-      if (data) {
-        // Only update this one post in state, preserving all others
+      // Get the updated comment count
+      const { count: commentCount, error: commentError } = await (supabase as any)
+        .from('post_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', postId);
+      
+      if (commentError) {
+        console.error('Error fetching comment count:', commentError);
+      }
+      
+      if (postData) {
+        // Update this one post in state, preserving all others
         setPosts(currentPosts => 
           currentPosts.map(post => 
             post.id === postId 
-              ? { ...post, likes: data.likes || post.likes } 
+              ? { 
+                  ...post, 
+                  likes: postData.likes || post.likes,
+                  comment_count: commentCount !== null ? commentCount : post.comment_count
+                } 
               : post
           )
         );

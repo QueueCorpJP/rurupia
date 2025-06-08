@@ -398,6 +398,11 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
         comment_count: (prev.comment_count || 0) + 1
       }));
       
+      // Also refresh the actual comment count from database to ensure accuracy
+      setTimeout(() => {
+        loadCommentCount();
+      }, 1000);
+      
       // Call onPostUpdated to refresh the post data if needed
       if (onPostUpdated) onPostUpdated();
       
@@ -502,99 +507,83 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
     return isMobile ? (
       <Drawer 
         open={showComments} 
-        onOpenChange={(open) => {
-          // Only allow explicit closing via button, not through gestures
-          if (open === true) {
-            setShowComments(true);
-          }
-          // Don't auto-close on swipe/scroll gestures
-        }}
-        dismissible={false}
-        shouldScaleBackground={false}
+        onOpenChange={setShowComments}
+        shouldScaleBackground={true}
       >
-        <DrawerContent 
-          className="max-h-[90vh] min-h-[70vh]" 
-          style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            touchAction: 'none'
-          }}
-        >
-          <DrawerHeader className="pb-2 flex-shrink-0">
-            <DrawerTitle>コメント</DrawerTitle>
-            <DrawerDescription>この投稿へのコメント</DrawerDescription>
+        <DrawerContent className="h-[85vh] flex flex-col">
+          {/* Header with close button */}
+          <DrawerHeader className="flex-shrink-0 border-b">
+            <div className="flex justify-between items-center">
+              <div>
+                <DrawerTitle>コメント</DrawerTitle>
+                <DrawerDescription>この投稿へのコメント</DrawerDescription>
+              </div>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="sm">
+                  ✕
+                </Button>
+              </DrawerClose>
+            </div>
           </DrawerHeader>
           
-          {/* Scrollable comments area */}
-          <div 
-            className="flex-1 overflow-y-auto px-4"
-            data-comments-scroll-area
-            style={{ 
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain',
-              minHeight: 0
-            }}
-          >
-            <div className="space-y-4 py-2">
-              {isLoadingComments ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
-                </div>
-              ) : comments.length > 0 ? (
-                comments.map(comment => (
+          {/* Comments container - scrollable middle section */}
+          <div className="flex-1 overflow-y-auto px-4 py-2">
+            {isLoadingComments ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-4">
+                {comments.map(comment => (
                   <div key={comment.id} className="border rounded-lg p-3 bg-gray-50">
                     <div className="flex justify-between items-start mb-1">
-                      <div className="font-medium">ユーザー</div>
+                      <div className="font-medium text-sm">ユーザー</div>
                       <div className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</div>
                     </div>
                     <p className="text-sm">{comment.content}</p>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  まだコメントはありません
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                まだコメントはありません
+              </div>
+            )}
           </div>
 
-          {/* Input area */}
-          <div className="p-4 border-t bg-white flex-shrink-0">
-            <div className="flex gap-2">
-              <Textarea
-                ref={commentInputRef}
-                placeholder="コメントを投稿..."
-                value={commentText}
-                onChange={handleCommentTextChange}
-                className="min-h-10 resize-none flex-1"
-                rows={2}
-                style={{
-                  fontSize: '16px',
-                  WebkitAppearance: 'none',
-                  WebkitBorderRadius: '0',
-                  WebkitTapHighlightColor: 'transparent'
-                }}
-              />
-              <Button 
-                size="icon" 
-                onClick={handleCommentSubmit}
-                disabled={!commentText.trim()}
-                className="shrink-0"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+          {/* Fixed input area at bottom */}
+          <div className="flex-shrink-0 bg-white border-t">
+            <div className="p-4">
+              <div className="flex gap-2">
+                <Textarea
+                  ref={commentInputRef}
+                  placeholder="コメントを投稿..."
+                  value={commentText}
+                  onChange={handleCommentTextChange}
+                  className="resize-none flex-1 text-base"
+                  rows={2}
+                  style={{
+                    fontSize: '16px', // Prevents zoom on iOS
+                  }}
+                  onFocus={() => {
+                    // Small delay to ensure keyboard is visible, then scroll to bottom
+                    setTimeout(() => {
+                      const drawer = document.querySelector('[data-vaul-drawer]');
+                      if (drawer) {
+                        drawer.scrollTo({ top: drawer.scrollHeight, behavior: 'smooth' });
+                      }
+                    }, 300);
+                  }}
+                />
+                <Button 
+                  onClick={handleCommentSubmit}
+                  disabled={!commentText.trim()}
+                  className="h-auto px-4 py-2"
+                >
+                  送信
+                </Button>
+              </div>
             </div>
-          </div>
-
-          {/* Close button */}
-          <div className="p-4 pt-2 border-t bg-white flex-shrink-0">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowComments(false)}
-              className="w-full"
-            >
-              閉じる
-            </Button>
           </div>
         </DrawerContent>
       </Drawer>

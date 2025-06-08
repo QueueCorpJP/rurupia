@@ -7,6 +7,7 @@ export interface BookingRequest {
   clientAvatar?: string;
   userId?: string;
   requestTime: string;
+  originalDate?: Date; // Store the original Date object for notifications
   servicePrice: number;
   serviceLocation: string;
   meetingMethod: string;

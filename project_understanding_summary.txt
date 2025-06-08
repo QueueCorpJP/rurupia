@@ -181,6 +181,26 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 **Technical Pattern**: This reinforces the established pattern for the custom Supabase client - always validate with multi-conditions first, then update with single condition.
 
+### Date Parsing Fix in Booking Notifications ✅ (January 2025)
+**Problem**: Getting `RangeError: Invalid time value` when therapists accept bookings due to date parsing issues in notifications.
+
+**Root Cause**: 
+- `booking.requestTime` was formatted as Japanese locale string ("2025年01月15日 14:30")
+- Code attempted to parse this with `parseISO()` which expects ISO format
+- This created an invalid Date object causing `toISOString()` to fail in notification service
+
+**Solution Applied**:
+1. **Store Original Date**: Added `originalDate` field to `BookingRequest` type to preserve the original Date object
+2. **Updated Data Transformation**: Store both formatted display string and original Date object
+3. **Fixed Notification Call**: Use `booking.originalDate` instead of parsing formatted string
+4. **Type Safety**: Updated `BookingRequest` interface in `types.ts`
+
+**Files Modified**: 
+- `/src/components/therapist/TherapistBookingRequests.tsx` - Data transformation and notification call
+- `/src/utils/types.ts` - Added `originalDate?: Date` to BookingRequest interface
+
+**Technical Lesson**: Always preserve original data types when transforming for display to avoid parsing issues later.
+
 ## Technical Achievements
 
 ### Performance Optimizations

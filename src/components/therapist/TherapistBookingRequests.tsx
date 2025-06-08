@@ -90,13 +90,15 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
         // Transform data with profile information when available
         const transformedBookings: BookingRequest[] = bookingsData.map((booking: any) => {
           const profile = profilesMap.get(booking.user_id);
+          const bookingDate = new Date(booking.date);
           const transformedBooking = {
             id: booking.id,
             clientName: profile?.nickname || '名前なし',
             clientEmail: profile?.email || undefined,
             clientAvatar: profile?.avatar_url || undefined,
             userId: booking.user_id,
-            requestTime: format(new Date(booking.date), 'yyyy年MM月dd日 HH:mm', { locale: ja }),
+            requestTime: format(bookingDate, 'yyyy年MM月dd日 HH:mm', { locale: ja }),
+            originalDate: bookingDate, // Store the original Date object
             servicePrice: booking.price || 0,
             serviceLocation: booking.location || '未定',
             meetingMethod: extractMeetingMethod(booking.notes || ''),
@@ -196,10 +198,8 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
 
       // Send notification to store about therapist response
       const booking = bookingRequests.find(req => req.id === id);
-      if (booking) {
+      if (booking && booking.originalDate) {
         try {
-          const bookingDate = parseISO(booking.requestTime.split(' ')[0] + 'T' + booking.requestTime.split(' ')[1]);
-          
           // Get store ID for this therapist
           const { data: storeData, error: storeError } = await (supabase as any)
             .from('store_therapists')
@@ -209,11 +209,11 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
             .single();
             
           if (!storeError && storeData) {
-            // Notify store about therapist response
+            // Notify store about therapist response using the original Date object
             await sendTherapistResponseNotificationToStore(
               storeData.store_id,
               booking.therapistName || "セラピスト",
-              bookingDate,
+              booking.originalDate,
               dbStatus
             );
           }

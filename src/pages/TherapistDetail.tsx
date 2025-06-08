@@ -257,23 +257,30 @@ const TherapistDetail = () => {
         console.error("Error processing posts:", postsErr);
       }
       
-      // Fetch review count
+      // Fetch review count directly from therapist data or from reviews table
       try {
-        const { data: reviewData, error: reviewError } = await supabase
-          .from('therapist_reviews')
-          .select('id', { count: 'exact', head: true })
-          .eq('therapist_id', id);
-          
-        if (!reviewError && reviewData) {
-          // Use the select + length approach for consistency with follower count fix
-          const { data: allReviews } = await supabase
+        // First try to get the review_count from the therapist data
+        let reviewCountValue = data.review_count || 0;
+        
+        // If review_count is 0 or null, fetch from therapist_reviews table directly
+        if (!reviewCountValue) {
+          const { data: allReviews, error: reviewError } = await supabase
             .from('therapist_reviews')
             .select('id')
             .eq('therapist_id', id);
-          setReviewCount(allReviews?.length || 0);
+            
+          if (!reviewError && allReviews) {
+            reviewCountValue = allReviews.length;
+            console.log(`Found ${reviewCountValue} reviews in therapist_reviews table for therapist ${id}`);
+          }
+        } else {
+          console.log(`Using review_count from therapist data: ${reviewCountValue}`);
         }
+        
+        setReviewCount(reviewCountValue);
       } catch (reviewErr) {
         console.error("Error fetching review count:", reviewErr);
+        setReviewCount(0);
       }
       
       const mappedTherapist: ExtendedTherapist = {

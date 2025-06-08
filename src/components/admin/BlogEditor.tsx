@@ -70,18 +70,34 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
       
       if (error) {
         console.error('Error invoking get-tinymce-key function:', error);
+        // Fallback to environment variable if edge function fails
+        const envKey = import.meta.env.VITE_TINYMCE_API_KEY;
+        if (envKey) {
+          setTinymceApiKey(envKey);
+          console.log('TinyMCE API key loaded from environment');
+        }
         return;
       }
       
       if (data?.key) {
         setTinymceApiKey(data.key);
-        console.log('TinyMCE API key fetched successfully');
+        console.log('TinyMCE API key fetched successfully from edge function');
       } else {
-        console.log('No TinyMCE API key found in secrets');
+        console.log('No TinyMCE API key found in secrets, trying environment');
+        const envKey = import.meta.env.VITE_TINYMCE_API_KEY;
+        if (envKey) {
+          setTinymceApiKey(envKey);
+          console.log('TinyMCE API key loaded from environment');
+        }
       }
     } catch (error) {
       console.error('Error fetching TinyMCE API key:', error);
-      // Keep default 'no-api-key' value
+      // Fallback to environment variable
+      const envKey = import.meta.env.VITE_TINYMCE_API_KEY;
+      if (envKey) {
+        setTinymceApiKey(envKey);
+        console.log('TinyMCE API key loaded from environment as fallback');
+      }
     }
   };
 
@@ -533,7 +549,13 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
               <Label htmlFor="content">内容 <span className="text-destructive">*</span></Label>
               <Editor
                 apiKey={tinymceApiKey}
-                onInit={(evt, editor) => editorRef.current = editor}
+                onInit={(evt, editor) => {
+                  editorRef.current = editor;
+                  // Ensure editor is not read-only after initialization
+                  if (editor && typeof editor.mode?.set === 'function') {
+                    editor.mode.set('design');
+                  }
+                }}
                 initialValue={content}
                 init={{
                   height: 400,
@@ -550,7 +572,18 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                   content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                   branding: false,
                   promotion: false,
-                  readonly: false  // Ensure editor is not read-only
+                  readonly: false,  // Ensure editor is not read-only
+                  disabled: false,  // Ensure editor is not disabled
+                  toolbar_mode: 'sliding',
+                  setup: (editor) => {
+                    // Additional setup to ensure editor is editable
+                    editor.on('init', () => {
+                      editor.getBody().contentEditable = true;
+                      if (editor.mode?.set) {
+                        editor.mode.set('design');
+                      }
+                    });
+                  }
                 }}
               />
             </div>

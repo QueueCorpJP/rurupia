@@ -398,7 +398,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
   const renderCommentsUI = () => {
     const content = (
       <div className="flex flex-col h-full">
-        <div className="flex-grow overflow-y-auto">
+        <div className="flex-grow overflow-y-auto min-h-0" style={{ overscrollBehavior: 'contain' }}>
           <div className="p-4 space-y-4">
             {isLoadingComments ? (
               <div className="flex justify-center py-8">
@@ -449,13 +449,24 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
     );
     
     return isMobile ? (
-      <Drawer open={showComments} onOpenChange={setShowComments}>
-        <DrawerContent>
+      <Drawer 
+        open={showComments} 
+        onOpenChange={(open) => {
+          // Prevent closing when user is scrolling in the comment area
+          if (open === false) {
+            // Add a small delay to differentiate between scroll and intentional close
+            setTimeout(() => setShowComments(false), 50);
+          } else {
+            setShowComments(open);
+          }
+        }}
+      >
+        <DrawerContent className="max-h-[80vh]">
           <DrawerHeader>
             <DrawerTitle>コメント</DrawerTitle>
             <DrawerDescription>この投稿へのコメント</DrawerDescription>
           </DrawerHeader>
-          <div className="max-h-[60vh] overflow-y-auto px-4">
+          <div className="flex-1 overflow-hidden">
             {content}
           </div>
           <DrawerFooter>
@@ -466,13 +477,26 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
         </DrawerContent>
       </Drawer>
     ) : (
-      <Dialog open={showComments} onOpenChange={setShowComments}>
-        <DialogContent>
+      <Dialog 
+        open={showComments} 
+        onOpenChange={(open) => {
+          // Only close if explicitly set to false
+          if (open === false) {
+            setShowComments(false);
+          } else {
+            setShowComments(open);
+          }
+        }}
+        modal={true}
+      >
+        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>コメント</DialogTitle>
             <DialogDescription>この投稿へのコメントを表示・投稿できます</DialogDescription>
           </DialogHeader>
-          {content}
+          <div className="flex-1 overflow-hidden">
+            {content}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowComments(false)}>
               閉じる

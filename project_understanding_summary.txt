@@ -137,6 +137,27 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 **Files Modified**: `/src/pages/store/StoreTherapists.tsx`
 
+### Database Data Fix for Testing ✅ (January 2025)
+**Problem**: After fixing the query, still no therapist requests showing because pending therapists had `invited_by_store_id = null`.
+
+**Root Cause**: 
+- Pending therapists weren't properly linked to stores through the invitation system
+- Data inconsistency in `store_therapists` table (relation status didn't match profile status)
+
+**Solution Applied**:
+1. **Test Data Creation**: Updated pending therapists to be properly invited by store ID `3a46cffd-575c-4614-9f03-682a2a959a87`
+2. **Data Consistency Fix**: Fixed `store_therapists` relation status to match profile status  
+3. **Database Updates**:
+   - Set `invited_by_store_id` for 2 pending therapists to enable testing
+   - Updated `store_therapists.status` from 'pending' to 'active' to match profile status
+
+**Current Test Data**:
+- **2 Pending Requests**: "test" and "shunya.sekiguchi@queue-tech.jp" 
+- **1 Active Therapist**: "たけし" with proper store relationship
+- Store ID: `3a46cffd-575c-4614-9f03-682a2a959a87`
+
+**Expected Result**: Store management interface should now display 2 pending therapist requests for approval.
+
 ## Technical Achievements
 
 ### Performance Optimizations

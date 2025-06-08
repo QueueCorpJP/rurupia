@@ -108,15 +108,11 @@ const StoreTherapists = () => {
 
       if (pendingError) throw pendingError;
       
-      console.log("Raw pending data:", pendingData);
-      console.log("Active therapist IDs:", activeTherapistIds);
-      
       // Filter out therapists that already have an active relationship
       const filteredPendingData = pendingData?.filter(
         therapist => !activeTherapistIds.includes(therapist.id)
       ) || [];
       
-      console.log("Filtered pending therapists:", filteredPendingData);
       setPendingTherapists(filteredPendingData);
       
       // Get active store therapist relationships

@@ -68,7 +68,7 @@ const TherapistDashboard = () => {
         const { count: messagesCount } = await supabase
           .from('messages')
           .select('id', { count: 'exact', head: true })
-          .eq('recipient_id', user.id);
+          .eq('receiver_id', user.id);
           
         // Fetch reviews count
         const { count: reviewsCount } = await supabase

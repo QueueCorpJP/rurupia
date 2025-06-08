@@ -158,13 +158,13 @@ const TherapistDashboard = () => {
       const { count: unreadCount, error: unreadError } = await supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
-        .eq('recipient_id', user.id)
-        .eq('read', false);
+        .eq('receiver_id', user.id)
+        .eq('is_read', false);
 
       const { count: totalMessages, error: messagesError } = await supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
-        .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`);
+        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`);
 
       // Get post count
       const { count: postsCount, error: postsError } = await supabase

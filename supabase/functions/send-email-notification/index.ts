@@ -69,6 +69,10 @@ serve(async (req) => {
       )
     }
 
+    console.log('SendGrid API key configured:', sendGridApiKey ? 'YES' : 'NO')
+    console.log('FROM_EMAIL:', Deno.env.get('FROM_EMAIL'))
+    console.log('FROM_NAME:', Deno.env.get('FROM_NAME'))
+
     // Create HTML email template
     const htmlContent = `
 <!DOCTYPE html>
@@ -129,6 +133,7 @@ serve(async (req) => {
     if (!sendGridResponse.ok) {
       const errorText = await sendGridResponse.text()
       console.error(`SendGrid error: ${sendGridResponse.status} - ${errorText}`)
+      console.error('SendGrid response headers:', Object.fromEntries(sendGridResponse.headers.entries()))
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -141,10 +146,13 @@ serve(async (req) => {
       )
     }
 
+    const responseText = await sendGridResponse.text()
     console.log('✅ メール送信成功')
     console.log(`宛先: ${userEmail}`)
     console.log(`件名: ${title}`)
     console.log(`種類: ${type}`)
+    console.log('SendGrid response:', responseText)
+    console.log('SendGrid response headers:', Object.fromEntries(sendGridResponse.headers.entries()))
 
     return new Response(
       JSON.stringify({ 

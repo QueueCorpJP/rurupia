@@ -274,6 +274,24 @@ export default function AdminAccounts() {
     try {
       setIsCreatingAccount(true);
       
+      // First, check if an account with this email already exists in profiles
+      const { data: existingProfile, error: checkError } = await supabaseAdmin
+        .from('profiles')
+        .select('email')
+        .eq('email', newAccountData.email)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error checking existing profiles:', checkError);
+        toast.error('既存ユーザーの確認中にエラーが発生しました');
+        return;
+      }
+      
+      if (existingProfile) {
+        toast.error(`このメールアドレス（${newAccountData.email}）は既に登録されています。別のメールアドレスを使用してください。`);
+        return;
+      }
+      
       // Create the user account using Supabase Admin API
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: newAccountData.email,
@@ -286,7 +304,17 @@ export default function AdminAccounts() {
 
       if (authError) {
         console.error('Auth error:', authError);
-        toast.error(`アカウント作成エラー: ${authError.message}`);
+        
+        // Provide more user-friendly error messages
+        if (authError.message.includes('already been registered')) {
+          toast.error(`このメールアドレス（${newAccountData.email}）は既に登録されています。別のメールアドレスを使用してください。`);
+        } else if (authError.message.includes('Invalid email')) {
+          toast.error('無効なメールアドレスです。正しい形式で入力してください。');
+        } else if (authError.message.includes('Password')) {
+          toast.error('パスワードが要件を満たしていません。6文字以上で入力してください。');
+        } else {
+          toast.error(`アカウント作成エラー: ${authError.message}`);
+        }
         return;
       }
 

@@ -19,8 +19,9 @@ const ForgotPassword = () => {
     try {
       setIsLoading(true);
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `https://rupipia.jp/reset-password`,
+      // Use custom edge function for password reset to ensure correct domain
+      const { data, error } = await supabase.functions.invoke('custom-password-reset', {
+        body: { email }
       });
 
       if (error) {

@@ -410,7 +410,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
               comments.map(comment => (
                 <div key={comment.id} className="border rounded-lg p-3 bg-gray-50">
                   <div className="flex justify-between items-start mb-1">
-                    <div className="font-medium">{comment.user_name}</div>
+                    <div className="font-medium">ユーザー</div>
                     <div className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</div>
                   </div>
                   <p className="text-sm">{comment.content}</p>
@@ -471,8 +471,54 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
             <DrawerTitle>コメント</DrawerTitle>
             <DrawerDescription>この投稿へのコメント</DrawerDescription>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto px-4 min-h-0">
-            {content}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="p-4 space-y-4">
+              {isLoadingComments ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : comments.length > 0 ? (
+                comments.map(comment => (
+                  <div key={comment.id} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="font-medium">ユーザー</div>
+                      <div className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</div>
+                    </div>
+                    <p className="text-sm">{comment.content}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  まだコメントはありません
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="p-4 border-t bg-white shrink-0">
+            <div className="flex gap-2">
+              <Textarea
+                ref={commentInputRef}
+                placeholder="コメントを投稿..."
+                value={commentText}
+                onChange={handleCommentTextChange}
+                className="min-h-10 resize-none flex-1"
+                rows={2}
+                style={{
+                  fontSize: '16px', // Prevents zoom on iOS
+                  WebkitAppearance: 'none',
+                  WebkitBorderRadius: '0',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+              />
+              <Button 
+                size="icon" 
+                onClick={handleCommentSubmit}
+                disabled={!commentText.trim()}
+                className="shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <DrawerFooter className="pt-2 shrink-0 border-t bg-white">
             <Button 

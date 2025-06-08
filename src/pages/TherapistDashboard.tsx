@@ -158,15 +158,35 @@ const TherapistDashboard = () => {
         .select('*', { count: 'exact', head: true })
         .eq('therapist_id', user.id);
 
-      // Get followers count - using select and length due to custom client count issues
+      // Get followers count - fetch fresh data each time
       console.log('[TherapistDashboard] Checking followers for therapist ID:', user.id);
+      
+      // Try to get the actual therapist record to make sure we have the right ID
+      const { data: therapistRecord, error: therapistRecordError } = await supabase
+        .from('therapists')
+        .select('id, name')
+        .eq('id', user.id)
+        .single();
+        
+      if (therapistRecordError) {
+        console.error('[TherapistDashboard] Error getting therapist record:', therapistRecordError);
+      } else {
+        console.log('[TherapistDashboard] Found therapist record:', therapistRecord);
+      }
+      
       const { data: followersData, error: followersError } = await supabase
         .from('followed_therapists')
-        .select('id')
+        .select('id, user_id, therapist_id, created_at')
         .eq('therapist_id', user.id);
         
       const followersCount = followersData?.length || 0;
-      console.log('[TherapistDashboard] Followers query result:', { followersData, followersCount, followersError });
+      console.log('[TherapistDashboard] Followers query result:', { 
+        followersData, 
+        followersCount, 
+        followersError, 
+        queryingUserId: user.id,
+        therapistExists: !!therapistRecord
+      });
 
       // Update stats
       setStats({
@@ -215,23 +235,43 @@ const TherapistDashboard = () => {
   return (
     <TherapistLayout>
       <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <div className="h-16 w-16 rounded-full overflow-hidden">
-            {therapistData?.image_url ? (
-              <img 
-                src={therapistData.image_url} 
-                alt={therapistData?.name || 'セラピスト'} 
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                {(therapistData?.name || 'セラピスト').charAt(0)}
-              </div>
-            )}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="h-16 w-16 rounded-full overflow-hidden">
+              {therapistData?.image_url ? (
+                <img 
+                  src={therapistData.image_url} 
+                  alt={therapistData?.name || 'セラピスト'} 
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                  {(therapistData?.name || 'セラピスト').charAt(0)}
+                </div>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold">
+              ようこそ、{therapistData?.name || 'セラピスト'}さん
+            </h1>
           </div>
-          <h1 className="text-2xl font-bold">
-            ようこそ、{therapistData?.name || 'セラピスト'}さん
-          </h1>
+          <Button 
+            onClick={handleRefresh} 
+            disabled={isRefreshing}
+            variant="outline"
+            size="sm"
+          >
+            {isRefreshing ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-2" />
+                更新中...
+              </>
+            ) : (
+              <>
+                <BarChart3 className="w-4 h-4 mr-2" />
+                データを更新
+              </>
+            )}
+          </Button>
         </div>
         
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -55,12 +55,35 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   const [authorName, setAuthorName] = useState(initialData?.author_name || '管理者');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoadingFullPost, setIsLoadingFullPost] = useState(false);
+  const [tinymceApiKey, setTinymceApiKey] = useState<string>('no-api-key');
   const editorRef = useRef<any>(null);
   
   useEffect(() => {
     fetchCategories();
     checkAdminStatus();
+    fetchTinymceApiKey();
   }, []);
+
+  const fetchTinymceApiKey = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-tinymce-key');
+      
+      if (error) {
+        console.error('Error invoking get-tinymce-key function:', error);
+        return;
+      }
+      
+      if (data?.key) {
+        setTinymceApiKey(data.key);
+        console.log('TinyMCE API key fetched successfully');
+      } else {
+        console.log('No TinyMCE API key found in secrets');
+      }
+    } catch (error) {
+      console.error('Error fetching TinyMCE API key:', error);
+      // Keep default 'no-api-key' value
+    }
+  };
 
   // Add effect to fetch full post data when only partial data is available
   useEffect(() => {
@@ -509,7 +532,7 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
             <div>
               <Label htmlFor="content">内容 <span className="text-destructive">*</span></Label>
               <Editor
-                apiKey={import.meta.env.VITE_TINYMCE_API_KEY || 'no-api-key'}
+                apiKey={tinymceApiKey}
                 onInit={(evt, editor) => editorRef.current = editor}
                 initialValue={content}
                 init={{

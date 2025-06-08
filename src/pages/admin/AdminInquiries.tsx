@@ -294,12 +294,7 @@ const AdminInquiries = () => {
                 </div>
               )}
               
-              {selectedInquiry.responded_at && (
-                <div>
-                  <label className="text-sm font-medium text-gray-600">回答日時</label>
-                  <p className="text-sm">{selectedInquiry.responded_at}</p>
-                </div>
-              )}
+
               
               <div className="flex justify-end space-x-2 pt-4">
                 <Button 

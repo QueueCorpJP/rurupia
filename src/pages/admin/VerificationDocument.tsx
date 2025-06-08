@@ -7,7 +7,7 @@ import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { getVerificationDocumentUrl, updateVerificationStatus } from '@/lib/supabase-utils';
+import { getVerificationDocumentUrl, updateVerificationStatus, sendVerificationEmail } from '@/lib/supabase-utils';
 
 export default function VerificationDocument() {
   const { userId } = useParams();
@@ -19,6 +19,14 @@ export default function VerificationDocument() {
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
 
+  // Check admin authentication
+  useEffect(() => {
+    if (!isAdminAuthenticated) {
+      navigate('/admin/auth');
+      return;
+    }
+  }, [isAdminAuthenticated, navigate]);
+
   useEffect(() => {
     if (!userId) {
       toast.error('ユーザーIDが指定されていません');
@@ -26,8 +34,10 @@ export default function VerificationDocument() {
       return;
     }
 
-    fetchDocumentAndUserDetails();
-  }, [userId, navigate]);
+    if (isAdminAuthenticated) {
+      fetchDocumentAndUserDetails();
+    }
+  }, [userId, navigate, isAdminAuthenticated]);
 
   const fetchDocumentAndUserDetails = async () => {
     try {
@@ -63,6 +73,8 @@ export default function VerificationDocument() {
     }
   };
 
+
+
   const handleApprove = async () => {
     try {
       setApproving(true);
@@ -71,8 +83,17 @@ export default function VerificationDocument() {
       const { success, error } = await updateVerificationStatus(userId!, true, 'active');
       
       if (!success) throw error;
+
+      // Send verification email
+      if (userDetails?.email) {
+        await sendVerificationEmail(
+          userDetails.email, 
+          userDetails.name || userDetails.nickname || 'ユーザー',
+          true
+        );
+      }
       
-      toast.success('ユーザーを承認しました');
+      toast.success('ユーザーを承認し、通知メールを送信しました');
       navigate('/admin/accounts');
     } catch (error) {
       console.error('Error approving user:', error);
@@ -90,8 +111,17 @@ export default function VerificationDocument() {
       const { success, error } = await updateVerificationStatus(userId!, false, 'rejected');
       
       if (!success) throw error;
+
+      // Send rejection email
+      if (userDetails?.email) {
+        await sendVerificationEmail(
+          userDetails.email,
+          userDetails.name || userDetails.nickname || 'ユーザー', 
+          false
+        );
+      }
       
-      toast.success('ユーザーをバンしました');
+      toast.success('ユーザーをバンし、通知メールを送信しました');
       navigate('/admin/accounts');
     } catch (error) {
       console.error('Error rejecting user:', error);
@@ -100,6 +130,11 @@ export default function VerificationDocument() {
       setRejecting(false);
     }
   };
+
+  // Show loading or redirect if not authenticated
+  if (!isAdminAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">

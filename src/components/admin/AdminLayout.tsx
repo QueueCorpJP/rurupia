@@ -19,12 +19,8 @@ const AdminLayout = () => {
   const { isAdminAuthenticated, initializeAdminSession, adminUserId } = useAdminAuth();
 
   useEffect(() => {
-    // Only check authentication for the main admin layout component
-    // Skip check for children routes that handle their own authentication
-    // like verification which uses AdminProtectedRoute
-    const isVerificationRoute = location.pathname.includes('/admin/verification/');
-    
-    if (!isAdminAuthenticated && !isVerificationRoute) {
+    // Check authentication for all admin routes
+    if (!isAdminAuthenticated) {
       console.log('Not authenticated, redirecting to login');
       navigate('/admin/login');
       return;
@@ -63,73 +59,77 @@ const AdminLayout = () => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Allow rendering content when on verification routes even if not authenticated
-  const isVerificationRoute = location.pathname.includes('/admin/verification/');
-  if (!isAdminAuthenticated && !isVerificationRoute) {
+  if (!isAdminAuthenticated) {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block">
-        <SidebarNav isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      {/* Desktop Layout */}
+      <div className="hidden lg:flex min-h-screen">
+        <aside className={cn(
+          "bg-sidebar border-r border-border transition-all duration-300 ease-in-out",
+          isSidebarOpen ? "w-64" : "w-16"
+        )}>
+          <div className="flex items-center justify-center h-16 border-b px-4">
+            <div className="flex items-center space-x-2">
+              <LayoutDashboard className="h-6 w-6 text-primary" />
+              {isSidebarOpen && <span className="font-semibold text-lg">るぴぴあ</span>}
+            </div>
+          </div>
+          <SidebarNav isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+        </aside>
+        
+        <div className="flex-1 flex flex-col">
+          <header className="bg-background border-b h-16 flex items-center justify-between px-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="h-8 w-8"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+            <UserNav />
+          </header>
+          
+          <main className="flex-1 p-6 overflow-auto">
+            <Outlet />
+          </main>
+        </div>
       </div>
 
-      {/* Mobile Sidebar Sheet */}
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent side="left" className="p-0 w-64">
-          <SidebarNav isOpen={true} toggleSidebar={() => setIsMobileMenuOpen(false)} />
-        </SheetContent>
-      </Sheet>
-
-      {/* Main Content */}
-      <div className={cn(
-        "min-h-screen transition-all duration-300",
-        "md:ml-64 md:data-[sidebar=collapsed]:ml-20",
-        !isSidebarOpen && "md:ml-20"
-      )}>
-        {/* Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-          {/* Mobile menu button */}
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-          </Sheet>
-          
-          {/* Desktop sidebar toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="hidden md:flex"
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle Sidebar</span>
-          </Button>
-          
-          <h1 className="font-semibold text-lg md:text-xl">運営管理システム</h1>
-          <div className="ml-auto flex items-center gap-4">
-            <UserNav />
+      {/* Mobile Layout */}
+      <div className="lg:hidden min-h-screen">
+        <header className="bg-background border-b h-16 flex items-center justify-between px-4">
+          <div className="flex items-center space-x-2">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 p-0">
+                <div className="flex items-center justify-center h-16 border-b px-4">
+                  <div className="flex items-center space-x-2">
+                    <LayoutDashboard className="h-6 w-6 text-primary" />
+                    <span className="font-semibold text-lg">るぴぴあ</span>
+                  </div>
+                </div>
+                <SidebarNav isOpen={true} toggleSidebar={() => setIsMobileMenuOpen(false)} />
+              </SheetContent>
+            </Sheet>
+            
+            <div className="flex items-center space-x-2">
+              <LayoutDashboard className="h-6 w-6 text-primary" />
+              <span className="font-semibold text-lg">るぴぴあ</span>
+            </div>
           </div>
+          <UserNav />
         </header>
         
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto p-4 md:p-6">
-          {initializingSession ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-4 text-muted-foreground">セッションを初期化中...</p>
-              </div>
-            </div>
-          ) : (
-            <Outlet />
-          )}
+        <main className="p-4 pb-20 overflow-auto">
+          <Outlet />
         </main>
       </div>
     </div>

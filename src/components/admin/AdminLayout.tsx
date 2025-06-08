@@ -13,53 +13,70 @@ const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [initializingSession, setInitializingSession] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { isAdminAuthenticated, initializeAdminSession, adminUserId } = useAdminAuth();
 
   useEffect(() => {
-    // Check authentication for all admin routes
-    if (!isAdminAuthenticated) {
-      console.log('Not authenticated, redirecting to login');
+    // Check localStorage directly first
+    const adminSession = localStorage.getItem('admin_session');
+    console.log('AdminLayout: Checking admin session:', { 
+      adminSession, 
+      isAdminAuthenticated, 
+      pathname: location.pathname 
+    });
+
+    // If we have admin session in localStorage but context says not authenticated
+    if (adminSession === 'true' && !isAdminAuthenticated) {
+      console.log('AdminLayout: Found admin session in localStorage but context not updated yet, waiting...');
+      setAuthChecked(true);
+      return;
+    }
+
+    // If no session and not authenticated, redirect
+    if (!adminSession && !isAdminAuthenticated) {
+      console.log('AdminLayout: No admin session found, redirecting to login');
       navigate('/admin/login');
       return;
     }
-    
-    // Initialize Supabase session with admin credentials
-    const setupAdmin = async () => {
-      try {
-        setInitializingSession(true);
-        console.log('Initializing admin session...');
-        await initializeAdminSession();
-        console.log('Admin session initialized, userId:', adminUserId);
-      } catch (error) {
-        console.error('Error initializing admin session:', error);
-        toast({
-          title: "エラー",
-          description: "管理者セッションの初期化に失敗しました",
-          variant: "destructive",
-        });
-      } finally {
-        setInitializingSession(false);
-      }
-    };
-    
-    setupAdmin();
-  }, [isAdminAuthenticated, location.pathname]);
 
-  useEffect(() => {
-    if (!isAdminAuthenticated && !initializingSession) {
-      navigate('/admin/auth');
+    // If authenticated, initialize session
+    if (isAdminAuthenticated || adminSession === 'true') {
+      console.log('AdminLayout: Admin authenticated, initializing session...');
+      const setupAdmin = async () => {
+        try {
+          setInitializingSession(true);
+          await initializeAdminSession();
+          console.log('AdminLayout: Admin session initialized, userId:', adminUserId);
+        } catch (error) {
+          console.error('AdminLayout: Error initializing admin session:', error);
+          toast({
+            title: "エラー",
+            description: "管理者セッションの初期化に失敗しました",
+            variant: "destructive",
+          });
+        } finally {
+          setInitializingSession(false);
+          setAuthChecked(true);
+        }
+      };
+      
+      setupAdmin();
     }
-  }, [isAdminAuthenticated, initializingSession, navigate]);
+  }, [isAdminAuthenticated, location.pathname]);
 
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  if (!isAdminAuthenticated) {
+  // Check localStorage directly for immediate auth state
+  const hasAdminSession = localStorage.getItem('admin_session') === 'true';
+  
+  // Don't render if not authenticated (unless we're still checking)
+  if (!hasAdminSession && !isAdminAuthenticated && authChecked) {
     return null;
   }
 
@@ -94,7 +111,16 @@ const AdminLayout = () => {
           </header>
           
           <main className="flex-1 p-6 overflow-auto">
-            <Outlet />
+            {initializingSession ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-4 text-muted-foreground">セッションを初期化中...</p>
+                </div>
+              </div>
+            ) : (
+              <Outlet />
+            )}
           </main>
         </div>
       </div>
@@ -129,7 +155,16 @@ const AdminLayout = () => {
         </header>
         
         <main className="p-4 pb-20 overflow-auto">
-          <Outlet />
+          {initializingSession ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">セッションを初期化中...</p>
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>

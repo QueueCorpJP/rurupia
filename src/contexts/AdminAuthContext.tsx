@@ -26,11 +26,32 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     const checkAdminSession = () => {
       const adminSession = localStorage.getItem('admin_session');
       const storedAdminId = localStorage.getItem('admin_user_id');
-      setIsAdminAuthenticated(!!adminSession);
+      
+      console.log('AdminAuthContext: Checking session on mount:', { 
+        adminSession, 
+        storedAdminId, 
+        currentAuth: isAdminAuthenticated 
+      });
+      
+      const isAuthenticated = adminSession === 'true';
+      setIsAdminAuthenticated(isAuthenticated);
       setAdminUserId(storedAdminId);
+      
+      console.log('AdminAuthContext: Set authentication state:', isAuthenticated);
     };
 
     checkAdminSession();
+
+    // Listen for storage changes (in case user logs in/out in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'admin_session') {
+        console.log('AdminAuthContext: Storage changed for admin_session:', e.newValue);
+        checkAdminSession();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const initializeAdminSession = async () => {
@@ -40,7 +61,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const storedAdminId = localStorage.getItem('admin_user_id');
       
       if (adminSession === 'true' && storedAdminId) {
-        console.log('Admin session already initialized with ID:', storedAdminId);
+        console.log('AdminAuthContext: Admin session already initialized with ID:', storedAdminId);
         setAdminUserId(storedAdminId);
         return;
       }
@@ -50,7 +71,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const adminId = '5748e2f5-c12e-45a6-b240-6874281362da';
       localStorage.setItem('admin_user_id', adminId);
       setAdminUserId(adminId);
-      console.log('Admin session initialized with ID:', adminId);
+      console.log('AdminAuthContext: Admin session initialized with ID:', adminId);
       return;
       
       // The code below is kept for reference but we're using the hard-coded ID above
@@ -78,24 +99,31 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       }
       */
     } catch (error) {
-      console.error('Error in initializeAdminSession:', error);
+      console.error('AdminAuthContext: Error in initializeAdminSession:', error);
     }
   };
 
   const adminLogin = async (username: string, password: string): Promise<boolean> => {
+    console.log('AdminAuthContext: Attempting login with username:', username);
+    
     if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+      console.log('AdminAuthContext: Login successful, setting session');
       localStorage.setItem('admin_session', 'true');
       setIsAdminAuthenticated(true);
       
       // Initialize Supabase session with admin account
       await initializeAdminSession();
       
+      console.log('AdminAuthContext: Login complete, authenticated:', true);
       return true;
     }
+    
+    console.log('AdminAuthContext: Login failed, invalid credentials');
     return false;
   };
 
   const adminLogout = () => {
+    console.log('AdminAuthContext: Logging out admin');
     localStorage.removeItem('admin_session');
     localStorage.removeItem('admin_user_id');
     setIsAdminAuthenticated(false);

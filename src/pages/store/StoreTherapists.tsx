@@ -245,25 +245,31 @@ const StoreTherapists = () => {
       let relationOperation;
       
       if (existingRelation) {
-        relationOperation = supabase
+        // Update existing relation - need to validate both store_id and therapist_id match
+        const existingRelationId = existingRelations[0].id;
+        const { error: relationError } = await (supabase as any)
           .from("store_therapists")
           .update({ status: "active" })
-          .eq("store_id", storeId)
-          .eq("therapist_id", therapistId);
+          .eq("id", existingRelationId);
+          
+        if (relationError) {
+          console.error("Error updating store_therapist relation:", relationError);
+          throw relationError;
+        }
       } else {
-        relationOperation = supabase
+        // Insert new relation
+        const { error: relationError } = await (supabase as any)
           .from("store_therapists")
           .insert([{
             store_id: storeId,
             therapist_id: therapistId,
             status: "active"
           }]);
-      }
-      
-      const { error: relationError } = await relationOperation;
-      if (relationError) {
-        console.error("Error updating store_therapist relation:", relationError);
-        throw relationError;
+          
+        if (relationError) {
+          console.error("Error creating store_therapist relation:", relationError);
+          throw relationError;
+        }
       }
       
       // 4. Check if therapist record exists
@@ -411,12 +417,27 @@ const StoreTherapists = () => {
     if (!storeId) return;
     
     try {
-      // Update the store_therapists relationship to inactive
-      const { error } = await supabase
+      // First find the store_therapist relation
+      const { data: relations, error: findError } = await (supabase as any)
         .from("store_therapists")
-        .update({ status: "inactive" })
+        .select("id")
         .eq("store_id", storeId)
         .eq("therapist_id", therapistId);
+        
+      if (findError) {
+        console.error("Error finding store_therapist relation:", findError);
+        throw findError;
+      }
+      
+      if (!relations || relations.length === 0) {
+        throw new Error("Store-therapist relation not found");
+      }
+      
+      // Update the store_therapists relationship to inactive
+      const { error } = await (supabase as any)
+        .from("store_therapists")
+        .update({ status: "inactive" })
+        .eq("id", relations[0].id);
         
       if (error) {
         console.error("Error deactivating therapist:", error);

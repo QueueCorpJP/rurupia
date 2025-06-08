@@ -108,13 +108,16 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 2. **Type Casting**: Used `(supabase as any)` casting for operations that require the custom client
 3. **Enhanced Validation**: Added explicit checks to ensure therapists are invited by the correct store before approval/rejection
 4. **Error Prevention**: Replaced chained `.eq()` calls with pre-validation followed by single-condition updates
+5. **Store-Therapist Relations**: Fixed additional chained `.eq()` calls in relation management
+6. **Complete Fix**: Applied pattern to all functions: `approveTherapist`, `rejectTherapist`, and `deactivateTherapist`
 
 **Code Changes**:
-- `approveTherapist()`: Now validates store invitation before updating status
+- `approveTherapist()`: Now validates store invitation before updating status, uses relation ID for store_therapists updates
 - `rejectTherapist()`: Same validation pattern applied for consistency  
-- Both functions now use single `.eq()` calls after validation instead of chained conditions
+- `deactivateTherapist()`: Fixed chained `.eq()` calls by querying relation first, then updating by ID
+- All functions now use single `.eq()` calls after validation instead of chained conditions
 
-**Technical Pattern**: This fix establishes the pattern for handling multi-condition operations with the custom Supabase client - validate first, then update with single conditions.
+**Technical Pattern**: This fix establishes the pattern for handling multi-condition operations with the custom Supabase client - validate first, then update with single conditions. For relations requiring multiple-column filters, query the relation first to get the ID, then update using the single ID.
 
 ## Technical Achievements
 

@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseAdmin } from '@/integrations/supabase/admin-client';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface Inquiry {
   id: string;
@@ -48,6 +50,8 @@ const AdminInquiries = () => {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [filteredInquiries, setFilteredInquiries] = useState<Inquiry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     if (isAdminAuthenticated) {
@@ -198,17 +202,8 @@ const AdminInquiries = () => {
     { 
       label: '詳細を表示', 
       onClick: (inquiry: Inquiry) => {
-        toast({
-          title: "問い合わせ詳細",
-          description: `
-            名前: ${inquiry.name}
-            メール: ${inquiry.email}
-            件名: ${inquiry.subject}
-            内容: ${inquiry.message}
-            ${inquiry.response ? `\n回答: ${inquiry.response}` : ''}
-            ${inquiry.responded_at ? `\n回答日時: ${inquiry.responded_at}` : ''}
-          `,
-        });
+        setSelectedInquiry(inquiry);
+        setDialogOpen(true);
       } 
     },
     { 
@@ -246,6 +241,93 @@ const AdminInquiries = () => {
         actionMenuItems={actionMenuItems}
         isLoading={isLoading}
       />
+
+      {/* Inquiry Details Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>お問い合わせ詳細</DialogTitle>
+          </DialogHeader>
+          {selectedInquiry && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">名前</label>
+                  <p className="text-sm">{selectedInquiry.name}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">メールアドレス</label>
+                  <p className="text-sm">{selectedInquiry.email}</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-600">件名</label>
+                <p className="text-sm">{selectedInquiry.subject}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-600">ステータス</label>
+                <div className="mt-1">
+                  <StatusBadge status={selectedInquiry.status} />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-600">日時</label>
+                <p className="text-sm">{selectedInquiry.date}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-600">問い合わせ内容</label>
+                <div className="bg-gray-50 p-3 rounded-md">
+                  <p className="text-sm whitespace-pre-wrap">{selectedInquiry.message}</p>
+                </div>
+              </div>
+              
+              {selectedInquiry.response && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">回答</label>
+                  <div className="bg-blue-50 p-3 rounded-md">
+                    <p className="text-sm whitespace-pre-wrap">{selectedInquiry.response}</p>
+                  </div>
+                </div>
+              )}
+              
+              {selectedInquiry.responded_at && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">回答日時</label>
+                  <p className="text-sm">{selectedInquiry.responded_at}</p>
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    if (selectedInquiry.status !== 'in_progress') {
+                      updateInquiryStatus(selectedInquiry.id, 'in_progress');
+                    }
+                  }}
+                  disabled={selectedInquiry.status === 'in_progress'}
+                >
+                  対応中にする
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (selectedInquiry.status !== 'resolved') {
+                      updateInquiryStatus(selectedInquiry.id, 'resolved');
+                    }
+                  }}
+                  disabled={selectedInquiry.status === 'resolved'}
+                >
+                  完了にする
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

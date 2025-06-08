@@ -509,7 +509,7 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
             <div>
               <Label htmlFor="content">内容 <span className="text-destructive">*</span></Label>
               <Editor
-                apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
+                apiKey={import.meta.env.VITE_TINYMCE_API_KEY || 'no-api-key'}
                 onInit={(evt, editor) => editorRef.current = editor}
                 initialValue={content}
                 init={{
@@ -526,7 +526,8 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     'removeformat | help',
                   content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                   branding: false,
-                  promotion: false
+                  promotion: false,
+                  readonly: false  // Ensure editor is not read-only
                 }}
               />
             </div>

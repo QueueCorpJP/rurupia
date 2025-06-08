@@ -17,6 +17,7 @@ interface Post {
   visibility: string;
   title?: string;
   likes: number;
+  comments?: number;
 }
 
 interface Therapist {
@@ -365,9 +366,10 @@ const TherapistPublicPosts = () => {
                           <Heart className="h-5 w-5" />
                         </button>
                         <span className="text-sm text-muted-foreground">{post.likes || 0}</span>
-                        <button className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2">
-                          <MessageSquare className="h-5 w-5" />
-                        </button>
+                                <button className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2">
+          <MessageSquare className="h-5 w-5" />
+        </button>
+        <span className="text-sm text-muted-foreground">{post.comments || 0}</span>
                         <button className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2">
                           <Share2 className="h-5 w-5" />
                         </button>

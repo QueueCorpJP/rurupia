@@ -74,6 +74,7 @@ const TherapistDetail = () => {
   const [therapistPosts, setTherapistPosts] = useState<PostWithInteractions[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [hasAvailability, setHasAvailability] = useState<boolean>(true);
+  const [reviewCount, setReviewCount] = useState<number>(0);
 
   const handlePostUpdate = useCallback(async (postId: string) => {
     try {
@@ -216,22 +217,34 @@ const TherapistDetail = () => {
             visibility: post.visibility,
             created_at: post.created_at,
             likes: 0,
+            comment_count: 0,
             therapist_name: data.name || "セラピスト",
             therapist_image_url: data.image_url
           }));
           
           for (const post of posts) {
             try {
-              const { data, error } = await (supabase as any)
+              // Fetch likes
+              const { data: likesData, error: likesError } = await (supabase as any)
                 .from('post_likes')
                 .select('*')
                 .eq('post_id', post.id);
                 
-              if (!error && data) {
-                post.likes = data.length || 0;
+              if (!likesError && likesData) {
+                post.likes = likesData.length || 0;
+              }
+              
+              // Fetch comment count
+              const { data: commentsData, error: commentsError } = await (supabase as any)
+                .from('post_comments')
+                .select('id')
+                .eq('post_id', post.id);
+                
+              if (!commentsError && commentsData) {
+                post.comment_count = commentsData.length || 0;
               }
             } catch (error) {
-              console.error(`Error fetching likes for post ${post.id}:`, error);
+              console.error(`Error fetching interactions for post ${post.id}:`, error);
             }
           }
           
@@ -242,6 +255,25 @@ const TherapistDetail = () => {
         
       } catch (postsErr) {
         console.error("Error processing posts:", postsErr);
+      }
+      
+      // Fetch review count
+      try {
+        const { data: reviewData, error: reviewError } = await supabase
+          .from('therapist_reviews')
+          .select('id', { count: 'exact', head: true })
+          .eq('therapist_id', id);
+          
+        if (!reviewError && reviewData) {
+          // Use the select + length approach for consistency with follower count fix
+          const { data: allReviews } = await supabase
+            .from('therapist_reviews')
+            .select('id')
+            .eq('therapist_id', id);
+          setReviewCount(allReviews?.length || 0);
+        }
+      } catch (reviewErr) {
+        console.error("Error fetching review count:", reviewErr);
       }
       
       const mappedTherapist: ExtendedTherapist = {
@@ -646,7 +678,7 @@ const TherapistDetail = () => {
                       value="reviews" 
                       className="text-sm sm:text-base font-medium px-3 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
                     >
-                      レビュー
+                      レビュー ({reviewCount})
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="profile" className="space-y-6 mt-6">

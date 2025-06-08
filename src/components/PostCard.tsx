@@ -430,6 +430,11 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
               value={commentText}
               onChange={handleCommentTextChange}
               className="min-h-10"
+              style={{
+                fontSize: '16px', // Prevents zoom on iOS
+                WebkitAppearance: 'none',
+                WebkitBorderRadius: '0'
+              }}
             />
             <Button 
               size="icon" 

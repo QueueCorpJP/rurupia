@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const AdminSettings = () => {
   const { toast } = useToast();
-  const [siteName, setSiteName] = useState('SerenitySage');
+  const [siteName, setSiteName] = useState('るぴぴあ');
   const [maintenance, setMaintenance] = useState(false);
   const [language, setLanguage] = useState('ja');
   const [timezone, setTimezone] = useState('Asia/Tokyo');

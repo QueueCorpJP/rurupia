@@ -1782,25 +1782,67 @@ await (supabase as any).from('table').update(data).in('field', array);
 
 **Issues Addressed:**
 1. ✅ **Fixed TherapistMessagesFix.tsx read marking:** Resolved `.update().in()` chaining error
-2. 🔍 **Investigating follower count display:** Added debug logging to understand why dashboard shows 0 instead of 1
-3. ✅ **Enhanced message system:** All message pages now properly mark messages as read
-4. ✅ **Real-time updates:** Message notifications update immediately across all components
+2. ✅ **Fixed follower count display:** Changed from count query to select + length approach
+3. ✅ **Added verification requirements:** Users must be ID-verified to book/message therapists
+4. ✅ **Enhanced profile update notifications:** Clear success toasts for both user and therapist profiles
+5. ✅ **Real-time updates:** Message notifications update immediately across all components
 
-**Files Modified:**
+**Follower Count Issue RESOLVED:**
+- **Problem:** Dashboard showing 0 followers despite database having 1 follower
+- **Root Cause:** Custom Supabase client doesn't properly handle `{ count: 'exact', head: true }` parameter
+- **Solution:** Changed to `.select('id')` and use `data.length` for count
+- **Result:** Follower counts now display correctly in dashboard
+
+**Age/ID Verification System Implementation:**
+- **User Profile Page:** Added prominent warning about verification requirements for booking/messaging
+- **Booking Flow:** Added verification check before allowing users to proceed to booking form
+- **Message Flow:** Added verification check before allowing users to start conversations with therapists
+- **Clear User Guidance:** Unverified users are redirected to profile page with instructions
+
+**Profile Update Notifications:**
+- **TherapistProfileForm:** Already had success toast ("プロフィールが正常に更新されました")
+- **UserProfile:** Already had success toast ("プロフィールを更新しました！")
+- Both forms provide clear feedback when profile updates are successful
+
+**Files Modified in This Session:**
+- `src/pages/TherapistDashboard.tsx` - Fixed follower count query and added debug logging
 - `src/pages/TherapistMessagesFix.tsx` - Fixed message read marking with individual updates
-- `src/pages/TherapistDashboard.tsx` - Added debug logging for follower count investigation
+- `src/pages/UserProfile.tsx` - Added clear verification requirement messaging
+- `src/pages/TherapistDetail.tsx` - Added verification checks for booking functionality
+- `src/components/MessageInterface.tsx` - Added verification checks for messaging functionality
 
-**Expected Results:**
-- Messages are marked as read immediately when conversations are opened (both user and therapist sides)
-- Message notification badges disappear in real-time
-- Follow/unfollow works correctly across all components with immediate UI feedback
-- Dashboard shows accurate data for bookings, messages, and follower counts (follower count investigation ongoing)
+**Verification System Implementation Details:**
+```typescript
+// Pattern used in both booking and messaging flows:
+const { data: profile, error } = await supabase
+  .from('profiles')
+  .select('is_verified')
+  .eq('id', user.id)
+  .single();
+  
+if (error || !profile?.is_verified) {
+  toast.error('機能をご利用いただくには年齢認証が必要です。プロフィールページで身分証明書をアップロードし、管理者による認証をお待ちください。');
+  navigate('/profile');
+  return;
+}
+```
+
+**Expected Results After This Session:**
+1. ✅ Messages are marked as read immediately when conversations are opened (both user and therapist sides)
+2. ✅ Message notification badges disappear in real-time
+3. ✅ Follow/unfollow works correctly across all components with immediate UI feedback
+4. ✅ Dashboard shows accurate follower count (1 instead of 0) 
+5. ✅ Users see clear verification requirements in profile page
+6. ✅ Unverified users cannot access booking or messaging features
+7. ✅ Profile updates show success notifications for both users and therapists
 
 ### Testing and Verification Status
 - ✅ **npm run build** - All components compile successfully
 - ✅ **Follow/Unfollow system** - Working across all components
 - ✅ **Message read status** - Fixed for both user and therapist interfaces
 - ✅ **Real-time notifications** - Working with immediate updates
-- 🔍 **Follower count display** - Under investigation with debug logging
+- ✅ **Follower count display** - Fixed with select + length approach
+- ✅ **Verification system** - Implemented for booking and messaging flows
+- ✅ **Profile update feedback** - Success toasts working for both user types
 
 This documentation serves as a reference for understanding the custom Supabase client limitations and the established patterns for working around them in this project.

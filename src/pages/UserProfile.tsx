@@ -789,7 +789,7 @@ const UserProfile = () => {
               {profile.is_verified ? (
                 <div>
                   <p className="text-sm text-gray-600 mb-4">
-                    あなたのアカウントは認証されています。認証済みユーザーはプラットフォーム内でより高い信頼性を得られます。
+                    あなたのアカウントは認証されています。認証済みユーザーはプラットフォーム内でより高い信頼性を得られます。セラピストとのメッセージ機能や予約機能をご利用いただけます。
                   </p>
                   {profile.verification_document && (
                     <div className="mt-2">
@@ -812,8 +812,19 @@ const UserProfile = () => {
                 </div>
               ) : (
                 <div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="h-5 w-5 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-medium text-amber-800 mb-1">ID認証が必要です</h4>
+                        <p className="text-sm text-amber-700">
+                          セラピストとのメッセージ機能や予約機能をご利用いただくには、身分証明書による年齢認証が必要です。管理者による認証が完了するまでお待ちください。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   <p className="text-sm text-gray-600 mb-4">
-                    アカウントを認証するために、身分証明書をアップロードしてください。認証により、より安全で信頼性の高いサービスをご利用いただけます。
+                    身分証明書をアップロードして年齢認証を完了してください。認証により、より安全で信頼性の高いサービスをご利用いただけます。
                   </p>
                   
                   <div className="space-y-4">

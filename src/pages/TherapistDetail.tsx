@@ -772,7 +772,22 @@ const TherapistDetail = () => {
                           return;
                         }
                         
-                        // User is logged in, proceed to booking
+                        // Check if user is verified
+                        const { data: profile, error } = await supabase
+                          .from('profiles')
+                          .select('is_verified')
+                          .eq('id', user.id)
+                          .single();
+                          
+                        if (error || !profile?.is_verified) {
+                          toast.error('予約機能をご利用いただくには年齢認証が必要です。プロフィールページで身分証明書をアップロードし、管理者による認証をお待ちください。', {
+                            duration: 6000,
+                          });
+                          navigate('/profile');
+                          return;
+                        }
+                        
+                        // User is logged in and verified, proceed to booking
                         navigate(`/booking/${therapist?.id}`);
                       }}
                     >

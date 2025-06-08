@@ -158,14 +158,15 @@ const TherapistDashboard = () => {
         .select('*', { count: 'exact', head: true })
         .eq('therapist_id', user.id);
 
-      // Get followers count
+      // Get followers count - using select and length due to custom client count issues
       console.log('[TherapistDashboard] Checking followers for therapist ID:', user.id);
-      const { count: followersCount, error: followersError } = await supabase
+      const { data: followersData, error: followersError } = await supabase
         .from('followed_therapists')
-        .select('*', { count: 'exact', head: true })
+        .select('id')
         .eq('therapist_id', user.id);
         
-      console.log('[TherapistDashboard] Followers query result:', { followersCount, followersError });
+      const followersCount = followersData?.length || 0;
+      console.log('[TherapistDashboard] Followers query result:', { followersData, followersCount, followersError });
 
       // Update stats
       setStats({

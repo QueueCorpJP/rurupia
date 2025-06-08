@@ -146,6 +146,10 @@ const ResetPassword = () => {
             duration: 5000,
           });
           navigate("/forgot-password");
+        } else if (error.message.includes('same_password') || error.message.includes('same as')) {
+          toast.error("新しいパスワードは現在のパスワードと異なる必要があります。", {
+            duration: 4000,
+          });
         } else {
           toast.error(`パスワード更新エラー: ${error.message}`, {
             duration: 3000,

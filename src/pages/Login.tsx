@@ -29,12 +29,16 @@ const Login = () => {
       if (error) {
         // Provide more specific error messages in Japanese
         let errorMessage = error.message;
-        if (error.message.includes('Invalid login credentials')) {
+        if (error.message.includes('Invalid login credentials') || error.message.includes('invalid_credentials')) {
           errorMessage = 'メールアドレスまたはパスワードが正しくありません';
         } else if (error.message.includes('Email not confirmed')) {
           errorMessage = 'メールアドレスの認証が完了していません。受信したメールのリンクをクリックして認証を完了してください。';
         } else if (error.message.includes('Too many requests')) {
           errorMessage = 'ログイン試行回数が上限に達しました。しばらく時間をおいてから再度お試しください。';
+        } else if (error.message.includes('User not found')) {
+          errorMessage = 'このメールアドレスのアカウントが見つかりません';
+        } else if (error.message.includes('Wrong password') || error.message.includes('incorrect password')) {
+          errorMessage = 'パスワードが正しくありません';
         }
         
         toast.error(errorMessage, {

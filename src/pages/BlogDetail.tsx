@@ -168,9 +168,8 @@ const BlogDetail = () => {
         
         // 7. Get unique categories and tags
         const { data: allPosts, error: allPostsError } = await supabase
-          .from('blog_posts')
-          .select('category, tags')
-          .eq('published', true);
+          .from('published_blog_posts')
+          .select('category, tags');
         
         if (!allPostsError && allPosts) {
           const allCategories = [...new Set(allPosts.map(p => p.category))];

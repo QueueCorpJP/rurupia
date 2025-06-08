@@ -60,9 +60,8 @@ const BlogTag = () => {
         
         // Fetch all categories and tags for the sidebar
         const { data: allPostsData, error: allPostsError } = await supabase
-          .from('blog_posts')
-          .select('category, tags')
-          .eq('published', true);
+          .from('published_blog_posts')
+          .select('category, tags');
         
         if (!allPostsError && allPostsData) {
           const categories = [...new Set(allPostsData.map(p => p.category))];

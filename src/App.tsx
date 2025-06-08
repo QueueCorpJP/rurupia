@@ -147,7 +147,7 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="accounts" element={<AdminAccounts />} />
-              <Route path="verification/:userId" element={<AdminProtectedRoute><VerificationDocument /></AdminProtectedRoute>} />
+              <Route path="verification/:userId" element={<VerificationDocument />} />
               <Route path="blog" element={<AdminBlog />} />
               <Route path="inquiries" element={<AdminInquiries />} />
               <Route path="requests" element={<AdminRequests />} />

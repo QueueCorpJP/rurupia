@@ -180,10 +180,18 @@ const TherapistMessagesFix = () => {
           
           if (unreadMessages.length > 0) {
             const messageIds = unreadMessages.map(msg => msg.id);
-            const { error: updateError } = await supabase
-              .from('messages')
-              .update({ is_read: true })
-              .in('id', messageIds);
+            
+            // Update each message individually to avoid chained .in() issue
+            for (const messageId of messageIds) {
+              const { error: updateError } = await (supabase as any)
+                .from('messages')
+                .update({ is_read: true })
+                .eq('id', messageId);
+                
+              if (updateError) {
+                console.error('Error marking message as read:', updateError);
+              }
+            }
               
             // Update the local state as well
             setMessages(prev => 

@@ -1690,3 +1690,117 @@ if (existingRecord) {
 ✅ No more chained `.eq()` errors in follow system
 
 The follow system is now fully functional with immediate UI feedback and proper error handling.
+
+### Follow/Unfollow System (CRITICAL ISSUE RESOLVED)
+**Root Problem:** Custom Supabase client wrapper at `/src/integrations/supabase/client.ts` doesn't support chaining multiple `.eq()` calls or combining `.update().in()` operations like the standard Supabase client.
+
+**Error Pattern:** `TypeError: B.from(...).delete(...).eq(...).eq is not a function` and `TypeError: B.from(...).update(...).in is not a function`
+
+**Components Fixed with Follow/Unfollow Logic:**
+1. **TherapistDetail.tsx** - Main therapist profile page
+2. **TherapistCard.tsx** - Therapist cards in listings  
+3. **TherapistPublicPosts.tsx** - Follow functionality in posts view
+4. **AllTherapistPosts.tsx** - Follow functionality in posts feed
+5. **TherapistDashboard.tsx** - Fixed table query
+
+**Solution Pattern Applied:**
+```typescript
+// OLD (Breaking): Chained .eq() calls
+.delete().eq('user_id', userId).eq('therapist_id', therapistId)
+
+// NEW (Working): Find first, then delete by ID
+const existing = await supabase.from('followed_therapists')
+  .select('id').eq('user_id', userId).eq('therapist_id', therapistId).maybeSingle();
+if (existing?.data) {
+  await supabase.from('followed_therapists').delete().eq('id', existing.data.id);
+}
+```
+
+**Enhancement Features Added:**
+- Immediate UI updates for follower counts before database confirmation
+- Error recovery to revert UI state if database operations fail
+- Consistent follow/unfollow behavior across all components
+
+### Message System - Real-time Updates and Read Status
+
+**Message Notification Issue RESOLVED:**
+- **Problem:** Message notification badges weren't disappearing after reading messages
+- **Root Cause:** MessageList component lacked real-time updates to unread counts
+- **Solution:** Added real-time subscription to MessageList.tsx to refresh conversations when messages table changes
+
+**Message Read Status Marking Issues:**
+1. **TherapistMessagesFix.tsx (RESOLVED):** Had `.update().in()` chaining error
+   - **Fix:** Changed to loop through message IDs individually using `.update().eq()` for each
+2. **Messages.tsx:** Already had `(supabase as any)` cast to handle `.in()` method
+
+**Current Message System Status:**
+- ✅ Real-time message notifications
+- ✅ Read status marking for user messages (Messages.tsx)  
+- ✅ Read status marking for therapist messages (TherapistMessagesFix.tsx) - JUST FIXED
+- ✅ Immediate badge disappearing when conversations are opened
+
+### Dashboard System
+
+**TherapistDashboard.tsx Improvements:**
+- ✅ Removed "新規リクエスト" component entirely as requested
+- ✅ Changed grid layout from `lg:grid-cols-5` to `lg:grid-cols-4`
+- ✅ Fixed booking status display to use `booking["status therapist"]` instead of non-existent `booking.status`
+- ✅ Enhanced unread messages section to show count dynamically with link to messages
+- 🔍 **INVESTIGATING:** Follower count showing 0 instead of database value (1) - added debug logging
+
+**Database Schema Notes:**
+- **Bookings:** Uses `"status therapist"` and `"status store"` columns, NOT `status`
+- **Messages:** `is_read` boolean column properly tracks read status
+- **Followed_therapists:** Stores user-therapist follow relationships
+
+### CRITICAL TECHNICAL PATTERN FOR FUTURE DEVELOPMENT
+
+**Custom Supabase Client Limitations:**
+The project uses a custom Supabase client wrapper that doesn't support:
+1. Chaining multiple `.eq()` calls: `.eq('field1', value1).eq('field2', value2)`
+2. Chaining `.update().in()`: `.update(data).in('field', array)`
+3. Some other method combinations
+
+**Always Use These Patterns:**
+```typescript
+// For multiple conditions - find first, then operate by single ID
+const record = await supabase.from('table')
+  .select('id').eq('field1', value1).eq('field2', value2).maybeSingle();
+if (record?.data) {
+  await supabase.from('table').delete().eq('id', record.data.id);
+}
+
+// For update with array conditions - loop individually or use (supabase as any) cast
+for (const id of ids) {
+  await supabase.from('table').update(data).eq('id', id);
+}
+// OR
+await (supabase as any).from('table').update(data).in('field', array);
+```
+
+### Recent Updates (Latest Session)
+
+**Issues Addressed:**
+1. ✅ **Fixed TherapistMessagesFix.tsx read marking:** Resolved `.update().in()` chaining error
+2. 🔍 **Investigating follower count display:** Added debug logging to understand why dashboard shows 0 instead of 1
+3. ✅ **Enhanced message system:** All message pages now properly mark messages as read
+4. ✅ **Real-time updates:** Message notifications update immediately across all components
+
+**Files Modified:**
+- `src/pages/TherapistMessagesFix.tsx` - Fixed message read marking with individual updates
+- `src/pages/TherapistDashboard.tsx` - Added debug logging for follower count investigation
+
+**Expected Results:**
+- Messages are marked as read immediately when conversations are opened (both user and therapist sides)
+- Message notification badges disappear in real-time
+- Follow/unfollow works correctly across all components with immediate UI feedback
+- Dashboard shows accurate data for bookings, messages, and follower counts (follower count investigation ongoing)
+
+### Testing and Verification Status
+- ✅ **npm run build** - All components compile successfully
+- ✅ **Follow/Unfollow system** - Working across all components
+- ✅ **Message read status** - Fixed for both user and therapist interfaces
+- ✅ **Real-time notifications** - Working with immediate updates
+- 🔍 **Follower count display** - Under investigation with debug logging
+
+This documentation serves as a reference for understanding the custom Supabase client limitations and the established patterns for working around them in this project.

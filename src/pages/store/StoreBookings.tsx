@@ -61,7 +61,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { BellIcon } from "lucide-react";
-import { sendBookingConfirmationToClient } from "@/utils/notification-service";
+import { sendBookingConfirmationToClient, sendStoreResponseNotificationToTherapist, sendBookingRejectionToClient } from "@/utils/notification-service";
 
 // Update the BookingData interface to explicitly include column names with spaces
 interface BookingData {
@@ -759,8 +759,35 @@ const StoreBookings = () => {
       
       applyFiltersAndSorting(updatedBookings);
       
-      // Check if both therapist and store approved
+      // Send notification to therapist about store response
+      try {
+        const therapistId = bookingToUpdate.therapistId;
+        const bookingDate = parseISO(bookingToUpdate.originalDate);
+        
+        // Get store name for notification
+        const { data: storeData, error: storeError } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', storeId)
+          .single();
+          
+        const storeName = storeData?.name || "店舗";
+        
+        // Notify therapist about store response
+        await sendStoreResponseNotificationToTherapist(
+          therapistId,
+          storeName,
+          bookingDate,
+          status
+        );
+      } catch (notifyError) {
+        console.error("Error sending store response notification:", notifyError);
+        // Continue even if notification fails
+      }
+      
+      // Check if both therapist and store have the same status (both confirmed or both cancelled)
       const isFinalConfirmation = bookingToUpdate.storeStatus === 'confirmed' && bookingToUpdate.therapistStatus === 'confirmed';
+      const isFinalRejection = bookingToUpdate.storeStatus === 'cancelled' && bookingToUpdate.therapistStatus === 'cancelled';
       
       if (isFinalConfirmation) {
         try {
@@ -782,6 +809,28 @@ const StoreBookings = () => {
           });
         } catch (notifyError) {
           console.error("Error sending booking confirmation notification:", notifyError);
+          // Continue even if notification fails
+        }
+      } else if (isFinalRejection) {
+        try {
+          // Get user and therapist details for notification
+          const userId = bookingToUpdate.userId;
+          const therapistName = bookingToUpdate.therapistName;
+          const bookingDate = parseISO(bookingToUpdate.originalDate);
+          
+          // Send rejection to client
+          await sendBookingRejectionToClient(
+            userId,
+            therapistName,
+            bookingDate
+          );
+          
+          toast({
+            title: "予約キャンセルの通知を送信しました",
+            description: "お客様へ予約キャンセルの通知が送信されました",
+          });
+        } catch (notifyError) {
+          console.error("Error sending booking rejection notification:", notifyError);
           // Continue even if notification fails
         }
       }

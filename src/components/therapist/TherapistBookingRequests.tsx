@@ -8,7 +8,7 @@ import { format, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
-import { sendBookingConfirmationToClient } from "@/utils/notification-service";
+import { sendBookingConfirmationToClient, sendTherapistResponseNotificationToStore, sendBookingRejectionToClient } from "@/utils/notification-service";
 
 interface TherapistBookingRequestsProps {
   therapistId: string;
@@ -177,18 +177,31 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
 
       toast.success('ステータスを更新しました');
 
-      // Send notification to client
+      // Send notification to store about therapist response
       const booking = bookingRequests.find(req => req.id === id);
-      if (booking && newStatus === "確定") {
+      if (booking) {
         try {
           const bookingDate = parseISO(booking.requestTime.split(' ')[0] + 'T' + booking.requestTime.split(' ')[1]);
-          await sendBookingConfirmationToClient(
-            booking.userId, 
-            booking.therapistName || "セラピスト", 
-            bookingDate
-          );
+          
+          // Get store ID for this therapist
+          const { data: storeData, error: storeError } = await supabase
+            .from('store_therapists')
+            .select('store_id')
+            .eq('therapist_id', therapistId)
+            .eq('status', 'active')
+            .single();
+            
+          if (!storeError && storeData) {
+            // Notify store about therapist response
+            await sendTherapistResponseNotificationToStore(
+              storeData.store_id,
+              booking.therapistName || "セラピスト",
+              bookingDate,
+              dbStatus
+            );
+          }
         } catch (notifyError) {
-          console.error('Error sending confirmation notification:', notifyError);
+          console.error('Error sending therapist response notification:', notifyError);
           // Continue even if notification fails
         }
       }

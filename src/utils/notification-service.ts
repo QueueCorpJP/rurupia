@@ -229,30 +229,20 @@ export const sendBookingNotificationToTherapist = async (therapistId: string, us
 // New notification for store when a booking is submitted
 export const sendBookingNotificationToStore = async (therapistId: string, userName: string, bookingDateTime: Date) => {
   try {
-    // First, find the store associated with this therapist
-    const { data: therapistData, error: therapistError } = await supabase
-      .from('therapists')
+    // Find the store associated with this therapist via store_therapists table
+    const { data: storeTherapistData, error: storeTherapistError } = await supabase
+      .from('store_therapists')
       .select('store_id')
-      .eq('id', therapistId)
+      .eq('therapist_id', therapistId)
+      .eq('status', 'active')
       .single();
       
-    if (therapistError || !therapistData?.store_id) {
-      console.error('Error finding store for therapist:', therapistError);
-      return { success: false, error: therapistError || 'No store associated with therapist' };
+    if (storeTherapistError || !storeTherapistData?.store_id) {
+      console.error('Error finding store for therapist:', storeTherapistError);
+      return { success: false, error: storeTherapistError || 'No store associated with therapist' };
     }
     
-    const storeId = therapistData.store_id;
-    
-    // Get store admins
-    const { data: storeAdmins, error: storeError } = await supabase
-      .from('store_admins')
-      .select('user_id')
-      .eq('store_id', storeId);
-      
-    if (storeError) {
-      console.error('Error finding store admins:', storeError);
-      return { success: false, error: storeError };
-    }
+    const storeId = storeTherapistData.store_id;
     
     const formattedDate = bookingDateTime.toLocaleString('ja-JP', {
       year: 'numeric',
@@ -262,24 +252,19 @@ export const sendBookingNotificationToStore = async (therapistId: string, userNa
       minute: '2-digit'
     });
     
-    // Send notification to each store admin
-    const notificationPromises = storeAdmins.map(admin => 
-      sendNotification({
-        userId: admin.user_id,
-        title: '新しい予約リクエスト',
-        message: `${userName}さんから${formattedDate}の予約リクエストが届きました`,
-        type: 'booking',
-        data: { 
-          userName, 
-          therapistId,
-          bookingDate: bookingDateTime.toISOString(),
-          status: 'pending'
-        }
-      })
-    );
-    
-    const results = await Promise.all(notificationPromises);
-    return { success: true, data: results };
+    // Send notification directly to the store admin (store owner)
+    return sendNotification({
+      userId: storeId,
+      title: '新しい予約リクエスト',
+      message: `${userName}さんから${formattedDate}の予約リクエストが届きました`,
+      type: 'booking',
+      data: { 
+        userName, 
+        therapistId,
+        bookingDate: bookingDateTime.toISOString(),
+        status: 'pending'
+      }
+    });
   } catch (err) {
     console.error('Exception in sendBookingNotificationToStore:', err);
     return { success: false, error: err };
@@ -305,6 +290,81 @@ export const sendBookingConfirmationToClient = async (userId: string, therapistN
       therapistName, 
       bookingDate: bookingDateTime.toISOString(),
       status: 'confirmed'
+    }
+  });
+};
+
+// New notification for client when booking is rejected by both therapist and store
+export const sendBookingRejectionToClient = async (userId: string, therapistName: string, bookingDateTime: Date) => {
+  const formattedDate = bookingDateTime.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  return sendNotification({
+    userId,
+    title: '予約がキャンセルされました',
+    message: `${therapistName}さんとの${formattedDate}の予約がキャンセルされました`,
+    type: 'booking',
+    data: { 
+      therapistName, 
+      bookingDate: bookingDateTime.toISOString(),
+      status: 'cancelled'
+    }
+  });
+};
+
+// Notification when therapist responds to booking - notify store
+export const sendTherapistResponseNotificationToStore = async (storeId: string, therapistName: string, bookingDateTime: Date, status: string) => {
+  const formattedDate = bookingDateTime.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  const statusText = status === 'confirmed' ? '承認' : status === 'cancelled' ? '拒否' : '更新';
+  
+  return sendNotification({
+    userId: storeId,
+    title: 'セラピストが予約に回答しました',
+    message: `${therapistName}さんが${formattedDate}の予約を${statusText}しました`,
+    type: 'booking',
+    data: { 
+      therapistName, 
+      bookingDate: bookingDateTime.toISOString(),
+      status,
+      responseType: 'therapist'
+    }
+  });
+};
+
+// Notification when store responds to booking - notify therapist
+export const sendStoreResponseNotificationToTherapist = async (therapistId: string, storeName: string, bookingDateTime: Date, status: string) => {
+  const formattedDate = bookingDateTime.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  const statusText = status === 'confirmed' ? '承認' : status === 'cancelled' ? '拒否' : '更新';
+  
+  return sendNotification({
+    userId: therapistId,
+    title: '店舗が予約に回答しました',
+    message: `${storeName}が${formattedDate}の予約を${statusText}しました`,
+    type: 'booking',
+    data: { 
+      storeName, 
+      bookingDate: bookingDateTime.toISOString(),
+      status,
+      responseType: 'store'
     }
   });
 };

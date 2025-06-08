@@ -159,6 +159,49 @@ src/
 
 This platform successfully demonstrates modern web development practices with a focus on mobile-first design, type safety, and user experience optimization.
 
+## Latest Updates (January 2025)
+
+### Booking Notification System Overhaul ✅
+**Problem**: Previous system sent notifications to users immediately when either therapist or store responded, causing confusion.
+**Solution**: Implemented tiered notification system:
+1. **Initial Request**: When user submits booking → notifies both therapist AND store
+2. **Internal Communication**: 
+   - Therapist responds → notifies store only (not user)
+   - Store responds → notifies therapist only (not user)
+3. **Final User Notification**: Only when BOTH parties have matching status:
+   - Both accept → "予約が確定しました" (Booking confirmed)
+   - Both reject → "予約がキャンセルされました" (Booking cancelled)
+
+**Functions Added**:
+- `sendTherapistResponseNotificationToStore()`: Notifies store when therapist responds
+- `sendStoreResponseNotificationToTherapist()`: Notifies therapist when store responds  
+- `sendBookingRejectionToClient()`: Notifies user when both parties reject booking
+
+### Therapist Approval Database Fix ✅
+**Problem**: Store admin page experiencing errors when approving therapists.
+**Solution**: Applied comprehensive database migration to fix:
+1. **Table Structure**: Ensured `store_therapists` table has proper schema and constraints
+2. **RLS Policies**: Fixed Row Level Security policies for store management
+3. **Data Consistency**: Auto-cleanup of inconsistent therapist records
+4. **Profile Management**: Enhanced store ability to update therapist profiles
+5. **Error Handling**: Improved error handling in approval workflow
+
+**Migration Applied**: `fix_therapist_approval_and_notifications`
+
+### Email System Enhancements ✅
+**Previous Fixes**:
+1. **Email Design**: Updated to weak pink theme with 2025 copyright
+2. **URL Tracking**: Disabled SendGrid click tracking to prevent redirect errors
+3. **Link Functionality**: All email buttons now correctly redirect to `https://rupipia.jp/messages`
+
+### UI/UX Improvements ✅
+**Message Interface**:
+1. **Wider Layout**: Message component now uses full-width layout on therapist pages
+2. **Multiline Input**: Mobile input changed to textarea for lengthy messages
+3. **Notification Reset**: Message badges properly reset when conversations are opened
+
+**Overall Status**: All core systems operational with enhanced user experience and reliable notification system.
+
 ## Recent Updates
 
 ### Store Invite System Fix (Latest - January 2025)

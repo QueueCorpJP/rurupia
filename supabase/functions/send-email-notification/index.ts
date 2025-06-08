@@ -128,7 +128,15 @@ serve(async (req) => {
         content: [{
           type: 'text/html',
           value: htmlContent
-        }]
+        }],
+        tracking_settings: {
+          click_tracking: {
+            enable: false
+          },
+          open_tracking: {
+            enable: false
+          }
+        }
       })
     })
 

@@ -113,11 +113,17 @@ export const updateVerificationStatus = async (
       updateData.status = status;
     }
 
-    // For now, skip the actual database update due to TypeScript compatibility issues
-    // The admin client has a custom implementation that doesn't support this pattern
-    console.log('✅ Database update would be performed here with data:', updateData);
-    console.log('Note: Actual database update temporarily disabled due to admin client TypeScript compatibility');
+    // Update the user's profile in the database using admin client
+    const result = await new Promise((resolve, reject) => {
+      supabaseAdmin.from('profiles').update(updateData).eq('user_id', userId).then(resolve, reject);
+    }) as any;
 
+    if (result.error) {
+      console.error('Database update error:', result.error);
+      throw result.error;
+    }
+
+    console.log('✅ Database update completed successfully:', result.data);
     console.log('✅ Verification status updated successfully');
     return { success: true };
   } catch (error) {

@@ -18,6 +18,7 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
   const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [therapistName, setTherapistName] = useState<string>("セラピスト");
   
   // Helper counters
   const pendingCount = bookingRequests.filter(req => req.status === "承認待ち").length;
@@ -37,6 +38,17 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
     const fetchBookingRequests = async () => {
       try {
         console.log("Fetching bookings for therapist ID:", therapistId);
+        
+        // Step 0: Get therapist's name first
+        const { data: therapistData, error: therapistError } = await (supabase as any)
+          .from('profiles')
+          .select('nickname, name')
+          .eq('id', therapistId)
+          .single();
+          
+        const fetchedTherapistName = therapistData?.nickname || therapistData?.name || 'セラピスト';
+        setTherapistName(fetchedTherapistName);
+        console.log("Therapist name:", fetchedTherapistName);
         
         // Step 1: Fetch bookings
         const { data: bookingsData, error: bookingsError } = await (supabase as any)
@@ -102,9 +114,10 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
             servicePrice: booking.price || 0,
             serviceLocation: booking.location || '未定',
             meetingMethod: extractMeetingMethod(booking.notes || ''),
-            status: mapStatus(booking.status),
+            status: mapStatus(booking["status therapist"] || booking.status), // Use dual status system
             notes: booking.notes || '',
-            therapistId: booking.therapist_id
+            therapistId: booking.therapist_id,
+            therapistName: fetchedTherapistName // Add therapist name for notifications
           };
           return transformedBooking;
         });
@@ -212,7 +225,7 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
             // Notify store about therapist response using the original Date object
             await sendTherapistResponseNotificationToStore(
               storeData.store_id,
-              booking.therapistName || "セラピスト",
+              booking.therapistName || therapistName,
               booking.originalDate,
               dbStatus
             );
@@ -233,7 +246,7 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
                   
                   await sendBookingConfirmationToClient(
                     currentBooking.user_id,
-                    booking.therapistName || "セラピスト",
+                    booking.therapistName || therapistName,
                     booking.originalDate
                   );
                   

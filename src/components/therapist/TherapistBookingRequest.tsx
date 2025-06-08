@@ -61,7 +61,7 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
     setIsSubmittingResponse(false);
   };
   
-  const handleReschedule = (note: string) => {
+  const handleReschedule = async (note: string) => {
     setIsSubmittingResponse(true);
     
     if (!note.trim()) {
@@ -70,17 +70,45 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
       return;
     }
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Import required functions
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { sendMessageNotification } = await import('@/utils/notification-service');
+      
+      // Send as message to the client
+      const { error: messageError } = await (supabase as any)
+        .from('messages')
+        .insert({
+          sender_id: request.therapistId,
+          receiver_id: request.userId,
+          content: `【日時変更の提案】\n${note}`,
+          type: 'text'
+        });
+        
+      if (messageError) {
+        throw messageError;
+      }
+      
+      // Send notification to client
+      await sendMessageNotification(
+        request.userId || '',
+        request.therapistName || 'セラピスト',
+        `日時変更の提案: ${note.substring(0, 50)}${note.length > 50 ? '...' : ''}`
+      );
+      
       toast.success('日時変更を提案しました', {
-        description: 'お客様に通知が送信されました。',
+        description: 'お客様にメッセージと通知が送信されました。',
       });
       setRescheduleNote('');
+    } catch (error) {
+      console.error('Error sending reschedule proposal:', error);
+      toast.error('日時変更の提案送信に失敗しました');
+    } finally {
       setIsSubmittingResponse(false);
-    }, 500);
+    }
   };
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
     setIsSubmittingResponse(true);
     
     if (!content.trim()) {
@@ -89,14 +117,42 @@ const TherapistBookingRequest = ({ request, onStatusChange }: TherapistBookingRe
       return;
     }
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Import required functions
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { sendMessageNotification } = await import('@/utils/notification-service');
+      
+      // Send message to the client
+      const { error: messageError } = await (supabase as any)
+        .from('messages')
+        .insert({
+          sender_id: request.therapistId,
+          receiver_id: request.userId,
+          content: content,
+          type: 'text'
+        });
+        
+      if (messageError) {
+        throw messageError;
+      }
+      
+      // Send notification to client
+      await sendMessageNotification(
+        request.userId || '',
+        request.therapistName || 'セラピスト',
+        content.substring(0, 50) + (content.length > 50 ? '...' : '')
+      );
+      
       toast.success('メッセージを送信しました', {
-        description: 'お客様に通知が送信されました。',
+        description: 'お客様にメッセージと通知が送信されました。',
       });
       setMessageContent('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('メッセージの送信に失敗しました');
+    } finally {
       setIsSubmittingResponse(false);
-    }, 500);
+    }
   };
 
   const getStatusBadge = () => {

@@ -237,6 +237,86 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 **Technical Pattern**: Both booking flows now check the other party's status before sending final confirmation to client.
 
+### Therapist Name in Notifications Fix ✅ (January 2025)
+**Problem**: Client notification emails were showing "セラピストさん" (generic therapist) instead of the actual therapist's name.
+
+**Root Cause**: 
+- Therapist booking component wasn't fetching therapist profile data
+- `therapistName` field was missing from booking transformation
+- Notification calls used fallback "セラピスト" instead of actual therapist name
+
+**Solution Applied**:
+1. **Added Therapist Profile Fetch**: Added step to fetch therapist's name from profiles table
+2. **Enhanced Data Transformation**: Added `therapistName` field to booking transformation using fetched data  
+3. **Fixed Status Query**: Changed from `booking.status` to `booking["status therapist"]` for dual status system
+4. **State Management**: Added therapist name to component state for access in notification functions
+5. **Store Component**: Already had correct therapist fetching from `therapists` table
+
+**Files Modified**: 
+- `/src/components/therapist/TherapistBookingRequests.tsx` - Added therapist profile fetch and name storage
+- `/src/utils/types.ts` - Already had `therapistName?` field in BookingRequest interface
+
+**Technical Implementation**: 
+- Fetch therapist name at component load: `profiles.nickname || profiles.name`
+- Store in both local variable and state for wider scope access
+- Pass actual therapist name to all notification calls instead of fallback
+
+### UI State Not Updating After Booking Status Change Fix ✅ (January 2025)
+**Problem**: After clicking 承認 (approval) on therapist side, the action worked (updated database, sent emails) but after page refresh, the approval/rejection buttons were still visible.
+
+**Root Cause**: The booking status fetch was using single `booking.status` field instead of the dual status system (`"status therapist"` and `"status store"`).
+
+**Solution Applied**:
+1. **Fixed Status Query**: Changed from `mapStatus(booking.status)` to `mapStatus(booking["status therapist"] || booking.status)`
+2. **Dual Status System**: Now properly reads therapist-specific status instead of generic status
+3. **Consistent Display**: UI now reflects the actual therapist's decision in the database
+
+**Files Modified**: 
+- `/src/components/therapist/TherapistBookingRequests.tsx` - Fixed status mapping to use dual status system
+
+**Database Schema Note**: 
+- `bookings."status therapist"` - therapist's individual response
+- `bookings."status store"` - store's individual response
+- Both needed for proper booking state management
+
+### Time Change Proposal and Message Functionality Fix ✅ (January 2025)
+**Problem**: 
+1. Time change proposals (日時変更の提案) were fake - just showing success toast without sending anything
+2. Message sending was also fake - using setTimeout instead of real API calls
+3. No actual messages or notifications were being sent to clients
+
+**Root Cause**: Both `handleReschedule` and `handleSendMessage` functions used fake setTimeout implementations instead of real Supabase calls.
+
+**Solution Applied**:
+1. **Real Message Integration**: 
+   - Insert messages into `messages` table with proper sender/receiver relationship
+   - Use dynamic imports to avoid circular dependencies
+   - Send both message and notification to client
+
+2. **Time Change Proposals**:
+   - Send as special message with "【日時変更の提案】" prefix
+   - Include full proposal text in message content
+   - Send notification with preview of proposal
+
+3. **Message Sending**:
+   - Insert direct messages into database
+   - Send notification with message preview
+   - Proper error handling with user feedback
+
+**Files Modified**: 
+- `/src/components/therapist/TherapistBookingRequest.tsx` - Replaced fake implementations with real database calls
+
+**Message Format**:
+- **Time Change**: `【日時変更の提案】\n{proposal content}`
+- **Regular Message**: `{message content}`
+- **Notifications**: Include message preview (first 50 characters)
+
+**Technical Implementation**:
+- Dynamic imports: `await import('@/integrations/supabase/client')` and `await import('@/utils/notification-service')`
+- Database inserts to `messages` table with proper sender/receiver mapping
+- Notification calls with therapist name and message preview
+- Comprehensive error handling with user feedback
+
 ## Technical Achievements
 
 ### Performance Optimizations

@@ -19,9 +19,9 @@ const ForgotPassword = () => {
     try {
       setIsLoading(true);
       
-      // Use custom edge function for password reset to ensure correct domain
-      const { data, error } = await supabase.functions.invoke('custom-password-reset', {
-        body: { email }
+      // Use the standard Supabase auth resetPasswordForEmail method
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
       });
 
       if (error) {

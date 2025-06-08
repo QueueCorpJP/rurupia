@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageSquare, Share2, Send } from 'lucide-react';
+import { Heart, MessageSquare, Share2, Send, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -228,23 +228,13 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
     }
   };
   
-  // Open comments drawer/dialog
+  // Open comments UI
   const openComments = async () => {
-    // Only load comments when first opening the dialog
+    // Only load comments when first opening
     if (!showComments && comments.length === 0) {
       await loadComments();
     }
     setShowComments(true);
-    
-    // Ensure comments scroll area starts at top on mobile
-    if (isMobile) {
-      setTimeout(() => {
-        const scrollArea = document.querySelector('[data-comments-scroll-area]');
-        if (scrollArea) {
-          scrollArea.scrollTop = 0;
-        }
-      }, 100);
-    }
   };
   
   // Load comments for the post
@@ -421,98 +411,118 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
   // Memoized components to prevent unnecessary rerenders
   // Render comments UI based on device
   const renderCommentsUI = () => {
-    const content = (
-      <div className="flex flex-col h-full">
-        <div className="flex-grow overflow-y-auto min-h-0" style={{ overscrollBehavior: 'contain' }}>
-          <div className="p-4 space-y-4">
-            {isLoadingComments ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
-              </div>
-            ) : comments.length > 0 ? (
-              comments.map(comment => (
-                <div key={comment.id} className="border rounded-lg p-3 bg-gray-50">
-                  <div className="flex justify-between items-start mb-1">
-                    <div className="font-medium">ユーザー</div>
-                    <div className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</div>
-                  </div>
-                  <p className="text-sm">{comment.content}</p>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                まだコメントはありません
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="p-4 border-t bg-white">
-          <div className="flex gap-2">
-            <Textarea
-              ref={commentInputRef}
-              placeholder="コメントを投稿..."
-              value={commentText}
-              onChange={handleCommentTextChange}
-              className="min-h-10 resize-none flex-1"
-              rows={2}
-              style={{
-                fontSize: '16px', // Prevents zoom on iOS
-                WebkitAppearance: 'none',
-                WebkitBorderRadius: '0',
-                WebkitTapHighlightColor: 'transparent'
-              }}
-            />
-            <Button 
-              size="icon" 
-              onClick={handleCommentSubmit}
-              disabled={!commentText.trim()}
-              className="shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-    
-    return isMobile ? (
-      <Drawer 
-        open={showComments} 
-        onOpenChange={(open) => {
-          // Only allow explicit closing via button, not through gestures
-          if (open === true) {
-            setShowComments(true);
-          }
-          // Don't auto-close on swipe/scroll gestures
-        }}
-        dismissible={false}
-        shouldScaleBackground={false}
-      >
-        <DrawerContent 
-          className="max-h-[90vh] min-h-[70vh]" 
+    if (isMobile) {
+      return (
+        <div 
+          className={`fixed inset-0 z-50 bg-white transition-transform duration-300 ${
+            showComments ? 'translate-y-0' : 'translate-y-full'
+          }`}
           style={{ 
-            display: 'flex', 
+            display: showComments ? 'flex' : 'none',
             flexDirection: 'column',
-            touchAction: 'none'
+            height: '100dvh' // Dynamic viewport height for mobile
           }}
         >
-          <DrawerHeader className="pb-2 flex-shrink-0">
-            <DrawerTitle>コメント</DrawerTitle>
-            <DrawerDescription>この投稿へのコメント</DrawerDescription>
-          </DrawerHeader>
-          
-          {/* Scrollable comments area */}
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
+            <h2 className="text-lg font-semibold">コメント</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowComments(false)}
+              className="rounded-full"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Comments list - Scrollable */}
           <div 
-            className="flex-1 overflow-y-auto px-4"
-            data-comments-scroll-area
-            style={{ 
+            className="flex-1 overflow-y-auto"
+            style={{
               WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain',
-              minHeight: 0
+              overscrollBehavior: 'contain'
             }}
           >
-            <div className="space-y-4 py-2">
+            <div className="p-4 space-y-4 pb-safe">
+              {isLoadingComments ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : comments.length > 0 ? (
+                comments.map(comment => (
+                  <div key={comment.id} className="bg-gray-50 rounded-xl p-4 border">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-medium text-gray-900">{comment.user_name || 'ユーザー'}</span>
+                      <span className="text-xs text-gray-500">{formatDate(comment.created_at)}</span>
+                    </div>
+                    <p className="text-gray-700 leading-relaxed">{comment.content}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <MessageSquare className="h-12 w-12 text-gray-300 mb-4" />
+                  <p className="text-gray-500 mb-2">まだコメントはありません</p>
+                  <p className="text-sm text-gray-400">最初のコメントを投稿してみましょう！</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Input area - Fixed at bottom */}
+          <div className="border-t bg-white p-4 pb-safe">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <Textarea
+                  ref={commentInputRef}
+                  placeholder="コメントを投稿..."
+                  value={commentText}
+                  onChange={handleCommentTextChange}
+                  className="min-h-12 max-h-32 resize-none border-gray-300 rounded-xl px-4 py-3"
+                  rows={1}
+                  style={{
+                    fontSize: '16px',
+                    lineHeight: '1.5',
+                    WebkitAppearance: 'none',
+                    WebkitBorderRadius: '12px',
+                    WebkitTapHighlightColor: 'transparent'
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                  }}
+                />
+              </div>
+              <Button 
+                onClick={handleCommentSubmit}
+                disabled={!commentText.trim() || isLoadingComments}
+                className="h-12 w-12 rounded-xl flex-shrink-0"
+                size="icon"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Desktop version remains as dialog
+    return (
+      <Dialog 
+        open={showComments} 
+        onOpenChange={setShowComments}
+        modal={true}
+      >
+        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>コメント</DialogTitle>
+            <DialogDescription>この投稿へのコメントを表示・投稿できます</DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="space-y-4">
               {isLoadingComments ? (
                 <div className="flex justify-center py-8">
                   <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -521,7 +531,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
                 comments.map(comment => (
                   <div key={comment.id} className="border rounded-lg p-3 bg-gray-50">
                     <div className="flex justify-between items-start mb-1">
-                      <div className="font-medium">ユーザー</div>
+                      <div className="font-medium">{comment.user_name || 'ユーザー'}</div>
                       <div className="text-xs text-muted-foreground">{formatDate(comment.created_at)}</div>
                     </div>
                     <p className="text-sm">{comment.content}</p>
@@ -535,8 +545,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
             </div>
           </div>
 
-          {/* Input area */}
-          <div className="p-4 border-t bg-white flex-shrink-0">
+          <div className="pt-4 border-t">
             <div className="flex gap-2">
               <Textarea
                 ref={commentInputRef}
@@ -545,12 +554,6 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
                 onChange={handleCommentTextChange}
                 className="min-h-10 resize-none flex-1"
                 rows={2}
-                style={{
-                  fontSize: '16px',
-                  WebkitAppearance: 'none',
-                  WebkitBorderRadius: '0',
-                  WebkitTapHighlightColor: 'transparent'
-                }}
               />
               <Button 
                 size="icon" 
@@ -562,40 +565,7 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
               </Button>
             </div>
           </div>
-
-          {/* Close button */}
-          <div className="p-4 pt-2 border-t bg-white flex-shrink-0">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowComments(false)}
-              className="w-full"
-            >
-              閉じる
-            </Button>
-          </div>
-        </DrawerContent>
-      </Drawer>
-    ) : (
-      <Dialog 
-        open={showComments} 
-        onOpenChange={(open) => {
-          // Only close if explicitly set to false
-          if (open === false) {
-            setShowComments(false);
-          } else {
-            setShowComments(open);
-          }
-        }}
-        modal={true}
-      >
-        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>コメント</DialogTitle>
-            <DialogDescription>この投稿へのコメントを表示・投稿できます</DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden">
-            {content}
-          </div>
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowComments(false)}>
               閉じる

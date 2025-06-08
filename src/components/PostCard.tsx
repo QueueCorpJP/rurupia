@@ -230,6 +230,29 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
   
   // Open comments drawer/dialog
   const openComments = async () => {
+    // Check if user is logged in
+    if (!currentUser) {
+      toast.error('コメントを見るには会員登録が必要です。');
+      return;
+    }
+    
+    // Check if user is verified
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('is_verified')
+        .eq('id', currentUser.id)
+        .single();
+        
+      if (error || !profile?.is_verified) {
+        toast.error('コメント機能をご利用いただくには管理者による認証が必要です。アカウント認証をお待ちください。');
+        return;
+      }
+    } catch (error) {
+      toast.error('認証状態の確認中にエラーが発生しました。');
+      return;
+    }
+    
     // Only load comments when first opening the dialog
     if (!showComments && comments.length === 0) {
       await loadComments();

@@ -7,7 +7,7 @@ import { BlogPost } from '../utils/types';
 import { ArrowLeft, Heart, Share, MessageSquare, CalendarDays, Clock, Link2, TrendingUp, Search } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { toast } from '../components/ui/use-toast';
+import { toast } from 'sonner';
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import SEO from '@/components/SEO';
@@ -179,7 +179,7 @@ const BlogDetail = () => {
         
         // 8. Log page view
         try {
-          await supabase.rpc('log_page_view', {
+          await supabase.rpc('log_page_view_text', {
             page_path: `/blog/${slug}`,
             ip: '0.0.0.0', // We don't track user IP
             user_agent: navigator.userAgent
@@ -313,10 +313,7 @@ const BlogDetail = () => {
         setIsLiked(false);
         setLikesCount(prev => Math.max(0, prev - 1));
         
-        toast({
-          title: "いいねを取り消しました",
-          description: "この記事のいいねを削除しました。",
-        });
+        toast.success("この記事のいいねを削除しました。");
       } else {
         // Like: Add to database
         const { error } = await supabase
@@ -332,18 +329,11 @@ const BlogDetail = () => {
         setIsLiked(true);
         setLikesCount(prev => prev + 1);
         
-        toast({
-          title: "投稿をいいねしました",
-          description: "この記事をお気に入りとして保存しました。",
-        });
+        toast.success("この記事をお気に入りとして保存しました。");
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      toast({
-        title: "エラーが発生しました",
-        description: "もう一度お試しください。",
-        variant: "destructive"
-      });
+      toast.error("エラーが発生しました。もう一度お試しください。");
     } finally {
       setIsLikeProcessing(false);
     }

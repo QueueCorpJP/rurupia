@@ -375,9 +375,27 @@ const TherapistPublicPosts = () => {
                         <span className="text-sm text-muted-foreground">{post.likes || 0}</span>
                         <button 
                           className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2"
-                          onClick={() => {
-                            // Comment functionality - could be expanded later
-                            console.log('コメント clicked for post:', post.id);
+                          onClick={async () => {
+                            // Check if user is logged in
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) {
+                              toast.error('コメント機能をご利用いただくには会員登録が必要です。');
+                              return;
+                            }
+                            
+                            // Check if user is verified
+                            const { data: profile, error } = await supabase
+                              .from('profiles')
+                              .select('is_verified')
+                              .eq('id', user.id)
+                              .single();
+                              
+                            if (error || !profile?.is_verified) {
+                              toast.error('コメント機能をご利用いただくには管理者による認証が必要です。アカウント認証をお待ちください。');
+                              return;
+                            }
+                            
+                            toast.info('コメント機能は近日公開予定です。');
                           }}
                         >
                           <MessageSquare className="h-5 w-5" />

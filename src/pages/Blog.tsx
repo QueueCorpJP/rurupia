@@ -67,7 +67,7 @@ const Blog = () => {
     const logPageView = async () => {
       try {
         // Call the RPC function to log the page view
-        await supabase.rpc('log_page_view', {
+        await supabase.rpc('log_page_view_text', {
           page_path: '/blog',
           ip: '0.0.0.0', // We don't actually track user IP
           user_agent: navigator.userAgent

@@ -65,7 +65,8 @@ export const sendVerificationEmail = async (userEmail: string, userName: string,
         data: {
           isApproved: isApproved,
           userName: userName,
-          userEmail: userEmail // Include email in data for edge function to use
+          userEmail: userEmail, // Include email in data for edge function to use
+          fallbackEmail: userEmail // Fallback email to use when userId lookup fails
         }
       }
     });
@@ -114,8 +115,9 @@ export const updateVerificationStatus = async (
     }
 
     // Update the user's profile in the database using admin client
+    // Note: userId parameter represents the profile ID, not the auth user_id field
     const result = await new Promise((resolve, reject) => {
-      supabaseAdmin.from('profiles').update(updateData).eq('user_id', userId).then(resolve, reject);
+      supabaseAdmin.from('profiles').update(updateData).eq('id', userId).then(resolve, reject);
     }) as any;
 
     if (result.error) {

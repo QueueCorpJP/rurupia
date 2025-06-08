@@ -114,9 +114,8 @@ const BlogDetail = () => {
         
         // 5. Fetch popular posts
         const { data: popularData, error: popularError } = await supabase
-          .from('blog_posts')
+          .from('published_blog_posts')
           .select('*')
-          .eq('published', true)
           .order('views', { ascending: false })
           .limit(5);
         

@@ -1170,3 +1170,69 @@ All major authentication, login, and file upload issues have been resolved. The 
 ---
 
 **Status**: Production-ready with active email notification system and comprehensive user management features.
+
+## Project: Rurupia (るぴぴあ) - Therapy Booking Platform
+
+### Current Status: MOBILE RESPONSIVE THERAPIST MESSAGES FIXED
+
+**Company Details:**
+- Name: るぴぴあ (corrected from "ルルピア")  
+- Domain: rupipia.jp (corrected from rurupia.com)
+- Purpose: Online therapy booking and communication platform
+
+**Recent Mobile UI Fixes:**
+
+**1. Logo Issue Fixed:**
+- Problem: TherapistLayout showed "JM" hardcoded text instead of rupipia logo
+- Solution: Updated `src/components/therapist/TherapistLayout.tsx` to use `/rupipia_logo.png` 
+- Added fallback logic for cases where logo image fails to load
+
+**2. Mobile Responsive Therapist Messages Fixed:**
+- Problem: Mobile version of therapist message page was narrow and missing input field
+- Root Cause: Layout used vertical stacking on mobile but showed message list instead of conversation view
+- Solution: Implemented proper mobile responsive layout in `TherapistMessagesFix.tsx`:
+  - When no conversation selected (`/therapist-messages`): Show message list on mobile
+  - When conversation selected (`/therapist-messages/:id`): Show conversation view with input field on mobile
+  - Added back button that navigates to message list
+  - Proper state management with `showMobileMessageList` boolean
+  - Mobile layout uses full screen height for conversation area
+  - Input field always visible at bottom with proper styling
+
+**Mobile Layout Structure:**
+```
+- Desktop: MessageList | ConversationView (side by side)
+- Mobile: 
+  - No ID: MessageList (full screen)
+  - With ID: ConversationView with back button (full screen)
+```
+
+**Email Notification System:**
+- Fully operational with Japanese templates and るぴぴあ branding
+- SendGrid integration with Edge Function `send-email-notification`
+- Environment variables configured securely
+- Database permissions and RLS policies properly set
+
+**Dashboard Data Issues:**
+- Fixed incorrect field names in database queries
+- Therapist dashboard now correctly displays unread message counts
+- All statistics displaying accurate data
+
+**Technical Stack:**
+- Frontend: React + TypeScript + Tailwind CSS
+- Backend: Supabase (PostgreSQL + Auth + Storage + Edge Functions)
+- Email: SendGrid API integration
+- Mobile: Responsive design with proper touch targets
+
+**Current Production Status:**
+- All core features working correctly
+- Mobile responsive design implemented
+- Email notifications operational  
+- Real-time messaging functional
+- Database queries optimized
+- Security measures in place
+
+**Files Modified for Mobile Fix:**
+- `src/components/therapist/TherapistLayout.tsx` - Fixed logo
+- `src/pages/TherapistMessagesFix.tsx` - Mobile responsive layout
+
+The platform is now production-ready with comprehensive mobile support for therapist messaging functionality.

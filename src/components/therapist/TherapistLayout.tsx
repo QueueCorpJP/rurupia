@@ -38,8 +38,20 @@ export const TherapistLayout = ({ children }: TherapistLayoutProps) => {
       <header className="bg-white border-b border-pink-100 sticky top-0 z-10 shadow-sm">
         <div className="container py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2">
-            <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70">
-              <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">JM</span>
+            <img 
+              src="/rupipia_logo.png" 
+              alt="るぴぴあ" 
+              className="h-9 w-auto object-contain"
+              onError={(e) => {
+                // Fallback to gradient background with text if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+            <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 hidden">
+              <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">るぴ</span>
             </div>
             <span className="font-semibold text-lg hidden md:inline">るぴぴあセラピストページ</span>
           </Link>

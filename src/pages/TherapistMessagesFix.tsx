@@ -43,7 +43,7 @@ const TherapistMessagesFix = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [session, setSession] = useState<any>(null);
   const [isSending, setIsSending] = useState(false);
-  const [showMobileMessageList, setShowMobileMessageList] = useState(!id);
+  const [showMobileMessageList, setShowMobileMessageList] = useState(false);
 
   // Set up real-time subscription for new messages
   useEffect(() => {
@@ -210,6 +210,13 @@ const TherapistMessagesFix = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Update mobile view state when id changes
+  useEffect(() => {
+    // If there's no id, show message list on mobile
+    // If there's an id, show conversation view on mobile  
+    setShowMobileMessageList(!id);
+  }, [id]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() && !selectedImage) return;
@@ -345,7 +352,7 @@ const TherapistMessagesFix = () => {
   };
 
   const handleBackToList = () => {
-    setShowMobileMessageList(true);
+    navigate('/therapist-messages');
   };
 
   const handleConversationSelect = () => {

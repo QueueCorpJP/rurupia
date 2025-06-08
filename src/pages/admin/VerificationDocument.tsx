@@ -6,26 +6,16 @@ import { toast } from 'sonner';
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { getVerificationDocumentUrl, updateVerificationStatus, sendVerificationEmail } from '@/lib/supabase-utils';
 
 export default function VerificationDocument() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { isAdminAuthenticated } = useAdminAuth();
   const [loading, setLoading] = useState(true);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [userDetails, setUserDetails] = useState<any>(null);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
-
-  // Check admin authentication
-  useEffect(() => {
-    if (!isAdminAuthenticated) {
-      navigate('/admin/auth');
-      return;
-    }
-  }, [isAdminAuthenticated, navigate]);
 
   useEffect(() => {
     if (!userId) {
@@ -34,10 +24,8 @@ export default function VerificationDocument() {
       return;
     }
 
-    if (isAdminAuthenticated) {
-      fetchDocumentAndUserDetails();
-    }
-  }, [userId, navigate, isAdminAuthenticated]);
+    fetchDocumentAndUserDetails();
+  }, [userId, navigate]);
 
   const fetchDocumentAndUserDetails = async () => {
     try {
@@ -72,8 +60,6 @@ export default function VerificationDocument() {
       setLoading(false);
     }
   };
-
-
 
   const handleApprove = async () => {
     try {
@@ -130,11 +116,6 @@ export default function VerificationDocument() {
       setRejecting(false);
     }
   };
-
-  // Show loading or redirect if not authenticated
-  if (!isAdminAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="space-y-6">

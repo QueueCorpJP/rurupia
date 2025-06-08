@@ -407,6 +407,41 @@ This platform successfully demonstrates modern web development practices with a 
 
 **Result**: Store dashboard now loads properly, displays recent bookings correctly without errors.
 
+### Therapist Booking Tabs Mobile Responsive Fix ✅ (January 2025)
+**Problem**: Therapist booking page tabs (全て, 承認待ち, 確定, 完了, キャンセル) had fixed equal width causing text overflow on mobile devices.
+
+**Solution Applied**:
+1. **Dynamic Width Tabs**: Changed from `grid w-full grid-cols-5` to `inline-flex` with `w-max` for content-based width
+2. **Horizontal Scrolling**: Added `overflow-x-auto` wrapper for mobile scrolling like therapist profile page
+3. **Mobile-First Design**: Applied responsive classes `text-sm sm:text-base` and `px-3 sm:px-4` for better mobile experience
+4. **Flex Properties**: Added `whitespace-nowrap flex-shrink-0` to prevent text wrapping and tab shrinking
+
+**Files Modified**: 
+- `/src/components/therapist/TherapistBookingRequests.tsx` - Updated TabsList structure for mobile responsiveness
+
+**Pattern Replicated**: Used same mobile tab pattern as therapist profile form for consistency.
+
+### Store Dashboard Booking Numbers Fix ✅ (January 2025)
+**Problem**: Store dashboard summary cards showed incorrect booking numbers (always 0) even though graphs displayed correct data.
+
+**Root Cause**: Duplicate dashboard data assignment where correct calculations were overwritten by incorrect ones:
+- Correct calculation happened in `fetchBookings` function using proper status counting
+- Incorrect calculation overwrote it using wrong data source and field references
+- Revenue calculation didn't properly check for completed bookings (both therapist and store status = "completed")
+
+**Solution Applied**:
+1. **Removed Duplicate Assignment**: Eliminated the incorrect dashboard data setting that overwrote correct values
+2. **Preserved Correct Logic**: Kept the proper calculation inside `fetchBookings` function
+3. **Revenue Logic**: Revenue only counts bookings where `isCompleted = true` (both statuses "completed")
+4. **Data Source Fix**: Use proper `formattedBookings` data with correct field references
+
+**Files Modified**: 
+- `/src/pages/store/StoreAdminDashboard.tsx` - Removed duplicate/incorrect dashboard data assignment
+
+**Technical Detail**: The `fetchBookings` function correctly calculates `pendingCount`, `todayCount`, `upcomingCount`, etc. from the dual status system, but this was being overwritten by a later assignment using wrong field names.
+
+**Result**: Dashboard now shows correct booking numbers matching the graphs below.
+
 ### Booking Notification System Overhaul ✅
 **Problem**: Previous system sent notifications to users immediately when either therapist or store responded, causing confusion.
 **Solution**: Implemented tiered notification system:

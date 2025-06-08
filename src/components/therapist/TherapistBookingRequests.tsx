@@ -291,28 +291,45 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
         </div>
       ) : (
         <Tabs defaultValue="all" onValueChange={setActiveFilter}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all">
-              全て
-              <Badge variant="secondary" className="ml-2">{bookingRequests.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="pending">
-              承認待ち
-              <Badge variant="secondary" className="ml-2">{pendingCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="confirmed">
-              確定
-              <Badge variant="secondary" className="ml-2">{confirmedCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="completed">
-              完了
-              <Badge variant="secondary" className="ml-2">{completedCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="cancelled">
-              キャンセル
-              <Badge variant="secondary" className="ml-2">{cancelledCount}</Badge>
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto mb-6">
+            <TabsList className="inline-flex h-12 sm:h-10 p-1 rounded-lg bg-muted min-w-full w-max">
+              <TabsTrigger 
+                value="all"
+                className="text-sm sm:text-base font-medium px-3 sm:px-4 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+              >
+                全て
+                <Badge variant="secondary" className="ml-2">{bookingRequests.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="pending"
+                className="text-sm sm:text-base font-medium px-3 sm:px-4 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+              >
+                承認待ち
+                <Badge variant="secondary" className="ml-2">{pendingCount}</Badge>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="confirmed"
+                className="text-sm sm:text-base font-medium px-3 sm:px-4 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+              >
+                確定
+                <Badge variant="secondary" className="ml-2">{confirmedCount}</Badge>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="completed"
+                className="text-sm sm:text-base font-medium px-3 sm:px-4 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+              >
+                完了
+                <Badge variant="secondary" className="ml-2">{completedCount}</Badge>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="cancelled"
+                className="text-sm sm:text-base font-medium px-3 sm:px-4 py-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+              >
+                キャンセル
+                <Badge variant="secondary" className="ml-2">{cancelledCount}</Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="all" className="mt-6">
             {filteredBookings.length > 0 ? (

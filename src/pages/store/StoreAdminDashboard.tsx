@@ -632,16 +632,12 @@ const StoreAdminDashboard = () => {
         setRevenueData(formattedRevenueData);
       }
 
-      // Set dashboard data
-      setDashboardData({
-        pendingBookingsCount: bookingsData.filter(b => b.status === "pending").length,
-        todayBookingsCount: bookingsData.filter(b => b.isToday).length,
-        upcomingBookingsCount: bookingsData.filter(b => b.isUpcoming).length,
-        totalBookingsCount: bookingsData.length,
-        totalRevenue: bookingsData.reduce((sum, b) => sum + (b.price || 0), 0),
-        therapistsCount: therapistIds.length,
+      // Dashboard data is already set correctly in fetchBookings function
+      // Update recent bookings data with proper structure
+      setDashboardData(prev => ({
+        ...prev,
         recentBookings: recentBookings,
-      });
+      }));
       
       console.log("Dashboard data fetched successfully");
     } catch (error) {

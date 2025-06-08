@@ -7,16 +7,18 @@ import { toast } from 'sonner';
 
 interface MessageInterfaceProps {
   therapist: Therapist;
+  currentUser?: any;
+  isUserVerified?: boolean;
 }
 
-const MessageInterface = ({ therapist }: MessageInterfaceProps) => {
+const MessageInterface = ({ therapist, currentUser, isUserVerified }: MessageInterfaceProps) => {
   const navigate = useNavigate();
 
   const handleStartConversation = async () => {
     console.log("MessageInterface: Starting conversation with therapist:", therapist);
     
     // Check if user is logged in
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = currentUser || (await supabase.auth.getUser()).data?.user;
     if (!user) {
       toast.error('メッセージ機能をご利用いただくには会員登録が必要です。', {
         duration: 4000,
@@ -26,16 +28,9 @@ const MessageInterface = ({ therapist }: MessageInterfaceProps) => {
     }
     
     // Check if user is verified
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('is_verified')
-      .eq('id', user.id)
-      .single();
-      
-    if (error || !profile?.is_verified) {
-      toast.error('メッセージ機能をご利用いただくには管理者による認証が必要です。アカウント認証をお待ちください。', {
-        duration: 6000,
-      });
+    if (!isUserVerified) {
+      // Redirect to profile page for verification
+      navigate('/user-profile');
       return;
     }
     

@@ -75,6 +75,7 @@ const TherapistDetail = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [hasAvailability, setHasAvailability] = useState<boolean>(true);
   const [reviewCount, setReviewCount] = useState<number>(0);
+  const [isUserVerified, setIsUserVerified] = useState<boolean>(false);
 
   const handlePostUpdate = useCallback(async (postId: string) => {
     try {
@@ -122,6 +123,23 @@ const TherapistDetail = () => {
     const { data } = await supabase.auth.getSession();
     if (data?.session?.user) {
       setCurrentUser(data.session.user);
+      
+      // Check user verification status
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('is_verified')
+          .eq('id', data.session.user.id)
+          .single();
+          
+        if (!error && profile) {
+          setIsUserVerified(profile.is_verified || false);
+        }
+      } catch (err) {
+        console.error('Error checking user verification:', err);
+        setIsUserVerified(false);
+      }
+      
       return data.session.user;
     }
     return null;
@@ -794,10 +812,10 @@ const TherapistDetail = () => {
                         このセラピストは現在予約可能日がありません。
                       </p>
                     )}
-                    <Button 
+                                        <Button 
                       className="w-full" 
                       size="lg"
-                      disabled={!hasAvailability}
+                      disabled={!hasAvailability || (currentUser && !isUserVerified)}
                       onClick={async (e) => {
                         e.preventDefault();
                         if (!hasAvailability) return;
@@ -820,9 +838,8 @@ const TherapistDetail = () => {
                           .single();
                           
                         if (error || !profile?.is_verified) {
-                          toast.error('予約機能をご利用いただくには管理者による認証が必要です。アカウント認証をお待ちください。', {
-                            duration: 6000,
-                          });
+                          // For unverified users, redirect to verification page
+                          navigate('/user-profile');
                           return;
                         }
                         
@@ -831,7 +848,7 @@ const TherapistDetail = () => {
                       }}
                     >
                       <Calendar className="mr-2 h-5 w-5" />
-                      予約ページへ進む
+                      {currentUser && !isUserVerified ? '認証が必要です' : '予約ページへ進む'}
                     </Button>
                   </div>
                 </CardContent>

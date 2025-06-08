@@ -302,18 +302,37 @@ const BlogDetail = () => {
       
       if (isLiked) {
         // Unlike: Remove from database
+        // First, find the record to delete
+        const { data: existingLike, error: findError } = await supabase
+          .from('blog_likes')
+          .select('id')
+          .eq('user_id', currentUser.id)
+          .eq('post_slug', slug)
+          .single();
+        
+        if (findError || !existingLike) {
+          console.error('Error finding like to delete:', findError);
+          throw new Error('いいねが見つかりませんでした');
+        }
+        
+        // Now delete the specific record
         const { error } = await supabase
           .from('blog_likes')
           .delete()
-          .eq('user_id', currentUser.id)
-          .eq('post_slug', slug);
+          .eq('id', existingLike.id);
         
         if (error) throw error;
         
+        // Update UI immediately for better UX
         setIsLiked(false);
         setLikesCount(prev => Math.max(0, prev - 1));
         
         toast.success("この記事のいいねを削除しました。");
+        
+        // Re-fetch to ensure consistency
+        setTimeout(() => {
+          checkAuthAndLikes();
+        }, 1000);
       } else {
         // Like: Add to database
         const { error } = await supabase
@@ -326,10 +345,16 @@ const BlogDetail = () => {
         
         if (error) throw error;
         
+        // Update UI immediately for better UX
         setIsLiked(true);
         setLikesCount(prev => prev + 1);
         
         toast.success("この記事をお気に入りとして保存しました。");
+        
+        // Re-fetch to ensure consistency
+        setTimeout(() => {
+          checkAuthAndLikes();
+        }, 1000);
       }
     } catch (error) {
       console.error('Error toggling like:', error);

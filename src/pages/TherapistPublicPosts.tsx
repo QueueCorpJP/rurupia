@@ -383,18 +383,6 @@ const TherapistPublicPosts = () => {
                               return;
                             }
                             
-                            // Check if user is verified
-                            const { data: profile, error } = await supabase
-                              .from('profiles')
-                              .select('is_verified')
-                              .eq('id', user.id)
-                              .single();
-                              
-                            if (error || !profile?.is_verified) {
-                              toast.error('コメント機能をご利用いただくには管理者による認証が必要です。アカウント認証をお待ちください。');
-                              return;
-                            }
-                            
                             toast.info('コメント機能は近日公開予定です。');
                           }}
                         >

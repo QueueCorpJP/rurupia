@@ -608,16 +608,6 @@ export default function AdminAccounts() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>電話番号</Label>
-                  <Input value={selectedUser.phone} readOnly />
-                </div>
-                <div>
-                  <Label>住所</Label>
-                  <Input value={selectedUser.address} readOnly />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
                   <Label>ユーザータイプ</Label>
                   <Input value={USER_TYPE_MAP[selectedUser.user_type] || selectedUser.user_type} readOnly />
                 </div>
@@ -747,73 +737,73 @@ export default function AdminAccounts() {
                       <SelectItem value="customer">お客様</SelectItem>
                       <SelectItem value="therapist">セラピスト</SelectItem>
                       <SelectItem value="store">店舗</SelectItem>
-                      <SelectItem value="admin">管理者</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
 
-            {/* Optional Profile Fields Section */}
-            <div className="space-y-4 border-b pb-4">
-              <h3 className="text-lg font-semibold text-primary">基本情報 (任意)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="new-account-nickname">ニックネーム</Label>
-                  <Input
-                    id="new-account-nickname"
-                    value={newAccountData.nickname}
-                    onChange={(e) => setNewAccountData(prev => ({ ...prev, nickname: e.target.value }))}
-                    placeholder="ニックネームを入力"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="new-account-phone">電話番号</Label>
-                  <Input
-                    id="new-account-phone"
-                    value={newAccountData.phone}
-                    onChange={(e) => setNewAccountData(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="090-1234-5678"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="new-account-address">住所</Label>
-                  <Input
-                    id="new-account-address"
-                    value={newAccountData.address}
-                    onChange={(e) => setNewAccountData(prev => ({ ...prev, address: e.target.value }))}
-                    placeholder="住所を入力"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="new-account-age">年齢</Label>
-                  <Input
-                    id="new-account-age"
-                    value={newAccountData.age}
-                    onChange={(e) => setNewAccountData(prev => ({ ...prev, age: e.target.value }))}
-                    placeholder="年齢を入力"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="new-account-mbti">MBTI</Label>
-                  <Input
-                    id="new-account-mbti"
-                    value={newAccountData.mbti}
-                    onChange={(e) => setNewAccountData(prev => ({ ...prev, mbti: e.target.value }))}
-                    placeholder="例: INFP"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="new-account-line">LINE ID</Label>
-                  <Input
-                    id="new-account-line"
-                    value={newAccountData.lineId}
-                    onChange={(e) => setNewAccountData(prev => ({ ...prev, lineId: e.target.value }))}
-                    placeholder="LINE IDを入力"
-                  />
+            {/* Optional Profile Fields Section - Only show for therapist and store */}
+            {(newAccountData.userType === 'therapist' || newAccountData.userType === 'store') && (
+              <div className="space-y-4 border-b pb-4">
+                <h3 className="text-lg font-semibold text-primary">基本情報 (任意)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {newAccountData.userType === 'therapist' && (
+                    <>
+                      <div>
+                        <Label htmlFor="new-account-nickname">ニックネーム</Label>
+                        <Input
+                          id="new-account-nickname"
+                          value={newAccountData.nickname}
+                          onChange={(e) => setNewAccountData(prev => ({ ...prev, nickname: e.target.value }))}
+                          placeholder="ニックネームを入力"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-account-age">年齢</Label>
+                        <Input
+                          id="new-account-age"
+                          value={newAccountData.age}
+                          onChange={(e) => setNewAccountData(prev => ({ ...prev, age: e.target.value }))}
+                          placeholder="年齢を入力"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-account-mbti">MBTI</Label>
+                        <Input
+                          id="new-account-mbti"
+                          value={newAccountData.mbti}
+                          onChange={(e) => setNewAccountData(prev => ({ ...prev, mbti: e.target.value }))}
+                          placeholder="例: INFP"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {newAccountData.userType === 'store' && (
+                    <>
+                      <div>
+                        <Label htmlFor="new-account-phone">電話番号</Label>
+                        <Input
+                          id="new-account-phone"
+                          value={newAccountData.phone}
+                          onChange={(e) => setNewAccountData(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="090-1234-5678"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-account-address">住所</Label>
+                        <Input
+                          id="new-account-address"
+                          value={newAccountData.address}
+                          onChange={(e) => setNewAccountData(prev => ({ ...prev, address: e.target.value }))}
+                          placeholder="住所を入力"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Therapist-specific Fields Section */}
             {newAccountData.userType === 'therapist' && (

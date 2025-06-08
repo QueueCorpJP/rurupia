@@ -82,6 +82,8 @@ function App() {
             <Route path="/registration-pending" element={<RegistrationPending />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/therapist-forgot-password" element={<ForgotPassword />} />
+            <Route path="/store-forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/therapist/reset-password" element={<ResetPassword />} />
             <Route path="/store/reset-password" element={<ResetPassword />} />

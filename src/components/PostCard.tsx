@@ -214,12 +214,14 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
     }
     setShowComments(true);
     
-    // Focus the comment input field after the dialog opens
-    setTimeout(() => {
-      if (commentInputRef.current) {
-        commentInputRef.current.focus();
-      }
-    }, 100);
+    // Focus the comment input field after the dialog opens (only on desktop)
+    if (!isMobile) {
+      setTimeout(() => {
+        if (commentInputRef.current) {
+          commentInputRef.current.focus();
+        }
+      }, 100);
+    }
   };
   
   // Load comments for the post
@@ -422,24 +424,33 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
           </div>
         </div>
         
-        <div className="p-4 border-t">
+        <div className="p-4 border-t bg-white sticky bottom-0">
           <div className="flex gap-2">
             <Textarea
               ref={commentInputRef}
               placeholder="コメントを投稿..."
               value={commentText}
               onChange={handleCommentTextChange}
-              className="min-h-10"
+              className="min-h-10 resize-none"
+              rows={2}
               style={{
                 fontSize: '16px', // Prevents zoom on iOS
                 WebkitAppearance: 'none',
-                WebkitBorderRadius: '0'
+                WebkitBorderRadius: '0',
+                WebkitTapHighlightColor: 'transparent'
+              }}
+              onFocus={(e) => {
+                // Prevent page scroll when focusing input on mobile
+                if (isMobile) {
+                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
               }}
             />
             <Button 
               size="icon" 
               onClick={handleCommentSubmit}
               disabled={!commentText.trim()}
+              className="shrink-0"
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -452,27 +463,31 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
       <Drawer 
         open={showComments} 
         onOpenChange={(open) => {
-          // Prevent closing when user is scrolling in the comment area
-          if (open === false) {
-            // Add a small delay to differentiate between scroll and intentional close
-            setTimeout(() => setShowComments(false), 50);
-          } else {
-            setShowComments(open);
+          // Only allow explicit closing via button, not through gestures
+          if (open === true) {
+            setShowComments(true);
           }
+          // Don't auto-close on swipe/scroll gestures
         }}
+        dismissible={false}
+        shouldScaleBackground={false}
       >
-        <DrawerContent className="max-h-[80vh]">
-          <DrawerHeader>
+        <DrawerContent className="max-h-[85vh] min-h-[60vh]" style={{ position: 'fixed', bottom: 0 }}>
+          <DrawerHeader className="pb-2">
             <DrawerTitle>コメント</DrawerTitle>
             <DrawerDescription>この投稿へのコメント</DrawerDescription>
           </DrawerHeader>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden px-4">
             {content}
           </div>
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button variant="outline">閉じる</Button>
-            </DrawerClose>
+          <DrawerFooter className="pt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowComments(false)}
+              className="w-full"
+            >
+              閉じる
+            </Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>

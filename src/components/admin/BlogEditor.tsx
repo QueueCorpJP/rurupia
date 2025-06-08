@@ -55,13 +55,13 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   const [authorName, setAuthorName] = useState(initialData?.author_name || '管理者');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoadingFullPost, setIsLoadingFullPost] = useState(false);
-  const [tinymceApiKey, setTinymceApiKey] = useState<string>('no-api-key');
+  const [tinymceApiKey, setTinymceApiKey] = useState<string>('nn4binis9k4dzuafzo2wvdl6jobzmh8e4g6hfjvs62zroxvd');
   const editorRef = useRef<any>(null);
   
   useEffect(() => {
     fetchCategories();
     checkAdminStatus();
-    fetchTinymceApiKey();
+    // fetchTinymceApiKey(); // Commented out since we're using hardcoded key
   }, []);
 
   const fetchTinymceApiKey = async () => {

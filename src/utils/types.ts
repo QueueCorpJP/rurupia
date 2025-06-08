@@ -110,6 +110,7 @@ export interface Therapist {
   price: number;
   rating: number;
   reviews: number;
+  review_count?: number;
   availability: string[];
   qualifications: string[];
   specialties: string[];

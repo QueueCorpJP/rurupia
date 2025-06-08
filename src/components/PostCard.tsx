@@ -424,26 +424,20 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
           </div>
         </div>
         
-        <div className="p-4 border-t bg-white sticky bottom-0">
+        <div className="p-4 border-t bg-white">
           <div className="flex gap-2">
             <Textarea
               ref={commentInputRef}
               placeholder="コメントを投稿..."
               value={commentText}
               onChange={handleCommentTextChange}
-              className="min-h-10 resize-none"
+              className="min-h-10 resize-none flex-1"
               rows={2}
               style={{
                 fontSize: '16px', // Prevents zoom on iOS
                 WebkitAppearance: 'none',
                 WebkitBorderRadius: '0',
                 WebkitTapHighlightColor: 'transparent'
-              }}
-              onFocus={(e) => {
-                // Prevent page scroll when focusing input on mobile
-                if (isMobile) {
-                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
               }}
             />
             <Button 
@@ -472,15 +466,15 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
         dismissible={false}
         shouldScaleBackground={false}
       >
-        <DrawerContent className="max-h-[85vh] min-h-[60vh]" style={{ position: 'fixed', bottom: 0 }}>
-          <DrawerHeader className="pb-2">
+        <DrawerContent className="max-h-[90vh] min-h-[70vh] flex flex-col">
+          <DrawerHeader className="pb-2 shrink-0">
             <DrawerTitle>コメント</DrawerTitle>
             <DrawerDescription>この投稿へのコメント</DrawerDescription>
           </DrawerHeader>
-          <div className="flex-1 overflow-hidden px-4">
+          <div className="flex-1 overflow-y-auto px-4 min-h-0">
             {content}
           </div>
-          <DrawerFooter className="pt-2">
+          <DrawerFooter className="pt-2 shrink-0 border-t bg-white">
             <Button 
               variant="outline" 
               onClick={() => setShowComments(false)}

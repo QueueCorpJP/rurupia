@@ -664,6 +664,7 @@ const TherapistDetail = () => {
                 therapist={therapist} 
                 isFollowing={isFollowing}
                 onToggleFollow={handleToggleFollow}
+                reviewCount={reviewCount}
               />
               
               <div className="mt-8">

@@ -11,12 +11,14 @@ interface TherapistProfileProps {
   therapist: Therapist;
   isFollowing: boolean;
   onToggleFollow: () => void;
+  reviewCount?: number;
 }
 
 export function TherapistProfile({
   therapist,
   isFollowing,
   onToggleFollow,
+  reviewCount,
 }: TherapistProfileProps) {
   // Format or default values for therapist data
   const formatValue = (value: any): string => {
@@ -81,7 +83,7 @@ export function TherapistProfile({
             <div className="text-xs text-muted-foreground">評価</div>
           </div>
           <div>
-            <div className="font-medium">{formatValue(therapist.reviews)}</div>
+            <div className="font-medium">{formatValue(reviewCount ?? therapist.review_count ?? therapist.reviews)}</div>
             <div className="text-xs text-muted-foreground">レビュー</div>
           </div>
           <div>

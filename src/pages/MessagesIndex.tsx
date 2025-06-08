@@ -91,9 +91,11 @@ const MessagesIndex = () => {
         
         {hasConversations ? (
           <div className="bg-card rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row">
-            <MessageList />
+            <div className="w-full md:w-80 lg:w-80 xl:w-96 flex-shrink-0">
+              <MessageList />
+            </div>
             
-            <div className="flex-1 flex items-center justify-center p-6 bg-muted/30">
+            <div className="flex-1 flex items-center justify-center p-6 bg-muted/30 min-w-0">
               <div className="text-center space-y-4 max-w-md">
                 <MessageSquare className="h-12 w-12 mx-auto text-primary" />
                 <h2 className="font-semibold text-xl">メッセージを選択</h2>

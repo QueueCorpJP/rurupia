@@ -1100,6 +1100,48 @@ All major authentication, login, and file upload issues have been resolved. The 
 4. **Email Service Integration**: Implement actual email delivery (currently using console.log)
 5. Test complete booking flow with authentication check working properly
 
+## Email Notification System ✅ ENHANCED
+
+### Recent Fixes Applied:
+1. **Integrated Email Logic**: Updated `sendNotification()` function to check user preferences and trigger email notifications
+2. **Edge Function Created**: Created `send-email-notification` Edge Function for proper email delivery
+3. **Admin Client Enhanced**: Added `getUserById` and `functions.invoke` methods to admin client
+4. **User Preferences**: Added logic to check notification settings with fallback defaults
+5. **Email Status Tracking**: Now tracks `email_sent` status in notifications table
+
+### Email Notification Flow:
+1. `sendNotification()` checks user's notification preferences in `notification_settings` table
+2. If email should be sent, calls `sendEmailNotification()` function
+3. `sendEmailNotification()` invokes `send-email-notification` Edge Function
+4. Edge Function handles actual email delivery (currently logs, ready for SendGrid/SES integration)
+5. In-app notification created with `email_sent` flag indicating whether email was sent
+
+### Default Email Settings:
+- **Message notifications**: Enabled by default
+- **Booking notifications**: Enabled by default  
+- **System notifications**: Enabled by default
+- **Other types**: Disabled by default unless user enables
+
+## UI Layout Fixes ✅ IMPLEMENTED
+
+### MessageList Component Width Issues Fixed:
+1. **Responsive Width Classes**: Updated from `md:w-80 lg:w-96` to `md:w-80 lg:w-80 xl:w-96` for better control
+2. **Flex Shrink Prevention**: Added `flex-shrink-0` to prevent sidebar compression
+3. **Overflow Handling**: Added `min-w-0` and proper truncation for text content
+4. **Consistent Layout**: Applied same width classes across all message pages
+
+### Pages Updated:
+- **Messages.tsx**: Desktop layout with proper sidebar constraints
+- **MessagesIndex.tsx**: Consistent sidebar width and responsive behavior  
+- **TherapistMessages.tsx**: Matching layout structure
+- **MessageList.tsx**: Core component with improved responsive design
+
+### Layout Improvements:
+- Sidebar stays within bounds on all screen sizes
+- Text truncation prevents content overflow
+- Proper flexbox behavior with `min-w-0` for text containers
+- Consistent `w-80 xl:w-96` width pattern across all message interfaces
+
 ## Row-Level Security (RLS) Policy Fixes ✅ IMPLEMENTED
 
 ### Notification System RLS Issues ✅ RESOLVED

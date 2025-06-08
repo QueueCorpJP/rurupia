@@ -407,7 +407,7 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
 
   if (isLoading) {
     return (
-      <div className="w-full md:w-80 lg:w-96 border-r">
+      <div className="w-full md:w-80 lg:w-80 xl:w-96 border-r flex-shrink-0">
         <div className="p-4 border-b">
           <div className="animate-pulse h-10 bg-muted rounded-md"></div>
         </div>
@@ -427,8 +427,8 @@ const MessageList: React.FC<MessageListProps> = ({ activeConversationId }) => {
   }
 
   return (
-    <div className="w-full md:w-80 lg:w-96 border-r overflow-hidden flex flex-col max-h-[600px]">
-      <div className="p-4 border-b">
+    <div className="w-full md:w-80 lg:w-80 xl:w-96 border-r overflow-hidden flex flex-col max-h-[600px] flex-shrink-0">
+      <div className="p-4 border-b flex-shrink-0">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { TherapistLayout } from '@/components/therapist/TherapistLayout';
 import MessageList from '@/components/MessageList';
@@ -37,8 +36,10 @@ const TherapistMessages = () => {
         ) : (
           <div className="bg-white rounded-lg shadow-sm">
             <div className="flex h-[calc(100vh-250px)] flex-col md:flex-row">
-              <MessageList />
-              <div className="flex-1 flex items-center justify-center border-l p-4">
+              <div className="w-full md:w-80 lg:w-80 xl:w-96 flex-shrink-0">
+                <MessageList />
+              </div>
+              <div className="flex-1 flex items-center justify-center border-l p-4 min-w-0">
                 <div className="text-center text-muted-foreground">
                   <p>会話を選択してください</p>
                 </div>

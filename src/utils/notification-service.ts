@@ -36,6 +36,32 @@ export const sendNotification = async ({
   try {
     console.log(`Sending ${type} notification to user ${userId}: ${title}`);
     
+    // Check user's notification preferences
+    let shouldSendEmail = false;
+    const { data: settings, error: settingsError } = await supabaseAdmin
+      .from('notification_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (settingsError) {
+      console.log('No notification settings found, using defaults');
+      // Default to sending emails for important notification types
+      shouldSendEmail = type === 'message' || type === 'booking' || type === 'system';
+    } else {
+      shouldSendEmail = checkShouldSendEmail(settings, type as NotificationType);
+    }
+    
+    console.log(`Should send email for ${type} notification: ${shouldSendEmail}`);
+    
+    // Send email notification if enabled
+    let emailSent = false;
+    if (shouldSendEmail) {
+      emailSent = await sendEmailNotification(userId, title, message, type as NotificationType, data);
+      console.log(`Email notification sent: ${emailSent}`);
+    }
+    
+    // Create in-app notification
     const { data: notificationData, error } = await supabaseAdmin
       .from('notifications')
       .insert({
@@ -44,6 +70,7 @@ export const sendNotification = async ({
         message,
         type,
         data,
+        email_sent: emailSent,
         read: false,
         created_at: new Date().toISOString()
       })
@@ -54,7 +81,7 @@ export const sendNotification = async ({
       return { success: false, error };
     }
     
-    return { success: true, data: notificationData };
+    return { success: true, data: notificationData, emailSent };
   } catch (err) {
     console.error('Exception in sendNotification:', err);
     return { success: false, error: err };
@@ -119,7 +146,7 @@ const recordNotificationInDb = async ({
 
 /**
  * Send actual email notification
- * In a real implementation, this would use a proper email service
+ * Uses Supabase Edge Function to send emails via proper email service
  */
 const sendEmailNotification = async (
   userId: string,
@@ -129,26 +156,26 @@ const sendEmailNotification = async (
   data: Record<string, any>
 ): Promise<boolean> => {
   try {
-    // Get user email
-    const { data: user, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+    // Call Supabase Edge Function for email sending
+    const { data: response, error } = await supabaseAdmin
+      .functions
+      .invoke('send-email-notification', {
+        body: {
+          userId,
+          title,
+          message,
+          type,
+          data
+        }
+      });
     
-    if (error || !user) {
-      console.error('Error getting user email:', error);
+    if (error) {
+      console.error('Error calling email notification function:', error);
       return false;
     }
     
-    // In a real implementation, you would use a proper email service like SendGrid, AWS SES, etc.
-    // For now, we'll just log the email
-    console.log(`Email would be sent to ${user.user.email}`);
-    console.log(`Subject: ${title}`);
-    console.log(`Message: ${message}`);
-    console.log(`Type: ${type}`);
-    console.log(`Data:`, data);
-    
-    // For development, we can use Supabase Edge Functions to send emails or 
-    // configure Supabase Auth emails for password resets, etc.
-    
-    return true;
+    console.log('Email notification function response:', response);
+    return response?.success || false;
   } catch (error) {
     console.error('Error sending email notification:', error);
     return false;

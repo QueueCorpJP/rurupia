@@ -180,6 +180,13 @@ export const supabaseAdmin = {
     return client.rpc(functionName, params);
   },
   
+  functions: {
+    invoke: async (functionName: string, options?: any) => {
+      const client = await initializeAdminClient();
+      return client.functions.invoke(functionName, options);
+    }
+  },
+  
   storage: {
     from: (bucket: string) => ({
       upload: async (path: string, file: File, options?: any) => {
@@ -221,6 +228,11 @@ export const supabaseAdmin = {
       createUser: async (userData: any) => {
         const client = await initializeAdminClient();
         return client.auth.admin.createUser(userData);
+      },
+      
+      getUserById: async (userId: string) => {
+        const client = await initializeAdminClient();
+        return client.auth.admin.getUserById(userId);
       },
       
       updateUserById: async (userId: string, userData: any) => {

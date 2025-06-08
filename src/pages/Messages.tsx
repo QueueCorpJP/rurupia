@@ -411,27 +411,27 @@ const Messages = () => {
           {/* Desktop layout with sidebar */}
           <div className="hidden lg:flex h-[calc(100vh-200px)]">
             {/* Message list sidebar */}
-            <div className="w-80 border-r bg-muted/20">
+            <div className="w-80 xl:w-96 border-r bg-muted/20 flex-shrink-0 min-w-0">
               <MessageList activeConversationId={id} />
             </div>
             
             {/* Chat area */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
               {/* Desktop header */}
-              <div className="p-4 border-b flex items-center justify-between bg-white">
-                <div className="flex items-center gap-3">
+              <div className="p-4 border-b flex items-center justify-between bg-white flex-shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <img
                     src={therapist?.imageUrl}
                     alt={therapist?.name}
-                    className="h-10 w-10 rounded-full object-cover"
+                    className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                   />
-                  <div>
-                    <h2 className="font-semibold">{therapist?.name}</h2>
+                  <div className="min-w-0">
+                    <h2 className="font-semibold truncate">{therapist?.name}</h2>
                     <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className="px-1.5 py-0 text-xs font-normal bg-muted/50">
+                      <Badge variant="outline" className="px-1.5 py-0 text-xs font-normal bg-muted/50 flex-shrink-0">
                         {therapist?.specialties[0]}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground truncate">
                         通常2時間以内に返信
                       </span>
                     </div>
@@ -440,7 +440,7 @@ const Messages = () => {
                 
                 <button
                   onClick={() => navigate(`/therapist/${therapist?.id}`)}
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-primary hover:underline flex-shrink-0"
                 >
                   プロフィールを見る
                 </button>

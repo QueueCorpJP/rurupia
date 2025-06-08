@@ -216,6 +216,34 @@ const TherapistBookingRequests = ({ therapistId }: TherapistBookingRequestsProps
               booking.originalDate,
               dbStatus
             );
+            
+            // Check if both therapist and store have confirmed the booking
+            if (dbStatus === 'confirmed') {
+              // Get the current booking data to check store status
+              const { data: currentBooking, error: bookingError } = await (supabase as any)
+                .from('bookings')
+                .select('id, user_id, "status store"')
+                .eq('id', id)
+                .single();
+                
+              if (!bookingError && currentBooking && currentBooking['status store'] === 'confirmed') {
+                // Both therapist and store have confirmed - notify client
+                try {
+                  const { sendBookingConfirmationToClient } = await import('@/utils/notification-service');
+                  
+                  await sendBookingConfirmationToClient(
+                    currentBooking.user_id,
+                    booking.therapistName || "セラピスト",
+                    booking.originalDate
+                  );
+                  
+                  toast.success('お客様に予約確定の通知を送信しました');
+                } catch (clientNotifyError) {
+                  console.error('Error sending booking confirmation to client:', clientNotifyError);
+                  // Continue even if client notification fails
+                }
+              }
+            }
           }
         } catch (notifyError) {
           console.error('Error sending therapist response notification:', notifyError);

@@ -778,16 +778,17 @@ const StoreBookings = () => {
           therapistId,
           storeName,
           bookingDate,
-          status
+          "confirmed"
         );
       } catch (notifyError) {
         console.error("Error sending store response notification:", notifyError);
         // Continue even if notification fails
       }
       
-      // Check if both therapist and store have the same status (both confirmed or both cancelled)
-      const isFinalConfirmation = bookingToUpdate.storeStatus === 'confirmed' && bookingToUpdate.therapistStatus === 'confirmed';
-      const isFinalRejection = bookingToUpdate.storeStatus === 'cancelled' && bookingToUpdate.therapistStatus === 'cancelled';
+      // Check if both therapist and store have confirmed
+      // Since we're in handleConfirmBooking, the new store status is 'confirmed'
+      const isFinalConfirmation = bookingToUpdate.therapistStatus === 'confirmed';
+      // In confirmation flow, there's no rejection
       
       if (isFinalConfirmation) {
         try {
@@ -809,28 +810,6 @@ const StoreBookings = () => {
           });
         } catch (notifyError) {
           console.error("Error sending booking confirmation notification:", notifyError);
-          // Continue even if notification fails
-        }
-      } else if (isFinalRejection) {
-        try {
-          // Get user and therapist details for notification
-          const userId = bookingToUpdate.userId;
-          const therapistName = bookingToUpdate.therapistName;
-          const bookingDate = parseISO(bookingToUpdate.originalDate);
-          
-          // Send rejection to client
-          await sendBookingRejectionToClient(
-            userId,
-            therapistName,
-            bookingDate
-          );
-          
-          toast({
-            title: "予約キャンセルの通知を送信しました",
-            description: "お客様へ予約キャンセルの通知が送信されました",
-          });
-        } catch (notifyError) {
-          console.error("Error sending booking rejection notification:", notifyError);
           // Continue even if notification fails
         }
       }

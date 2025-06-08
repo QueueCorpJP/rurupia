@@ -201,6 +201,42 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 **Technical Lesson**: Always preserve original data types when transforming for display to avoid parsing issues later.
 
+### Client Notification Missing for Confirmed Bookings ✅ (January 2025)
+**Problem**: When both therapist and store confirm a booking, the system was only sending notifications between therapist and store, but not notifying the actual client that their booking was confirmed.
+
+**Root Cause**: 
+- Store booking confirmation had the logic but with bugs (undefined variable, incorrect status checking)
+- Therapist booking confirmation was missing the client notification logic entirely
+- Both parties need to confirm for final booking confirmation, but client wasn't being notified
+
+**Solution Applied**:
+1. **Fixed Store Logic**: 
+   - Fixed undefined `status` variable in notification call
+   - Corrected logic to check therapist status when store confirms
+   - Fixed checking old status instead of new confirmed status
+
+2. **Added Therapist Logic**: 
+   - Added missing check for store status when therapist confirms  
+   - Query current booking to get store status
+   - Notify client only when both statuses are 'confirmed'
+   - Added success toast for notification confirmation
+
+**Client Notification Flow**:
+- When therapist confirms and store status is already 'confirmed' → notify client
+- When store confirms and therapist status is already 'confirmed' → notify client
+- Uses `sendBookingConfirmationToClient()` from notification service
+
+**Files Modified**: 
+- `/src/pages/store/StoreBookings.tsx` - Fixed existing but buggy logic
+- `/src/components/therapist/TherapistBookingRequests.tsx` - Added missing client notification logic
+
+**Database Schema**: 
+- `bookings.status therapist` - therapist's response
+- `bookings.status store` - store's response  
+- Both must be 'confirmed' to trigger client notification
+
+**Technical Pattern**: Both booking flows now check the other party's status before sending final confirmation to client.
+
 ## Technical Achievements
 
 ### Performance Optimizations

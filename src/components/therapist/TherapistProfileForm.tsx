@@ -478,6 +478,9 @@ export const TherapistProfileForm = ({
         } else {
           console.warn("Profile image upload failed, continuing without updating avatar");
         }
+      } else if (updatedProfile.previewUrl === '') {
+        // User explicitly removed the profile image, set it to null in database
+        updatedProfile.previewUrl = null;
       }
       
       // Upload health document if provided
@@ -983,10 +986,10 @@ export const TherapistProfileForm = ({
               </p>
               
               {/* Profile image preview */}
-              {profilePreviewUrl && (
+              {(profilePreviewUrl || profile.previewUrl) && (
                 <div className="mt-3 w-32 h-32 relative rounded-md overflow-hidden border">
                   <img 
-                    src={profilePreviewUrl} 
+                    src={profilePreviewUrl || profile.previewUrl} 
                     alt="Profile preview" 
                     className="w-full h-full object-cover"
                   />
@@ -998,8 +1001,13 @@ export const TherapistProfileForm = ({
                       }
                       setProfilePreviewUrl(null);
                       setProfileImage(null);
+                      // Also clear the existing profile image from state
+                      setProfile(prev => ({
+                        ...prev,
+                        previewUrl: ''
+                      }));
                     }}
-                    className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"
+                    className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white hover:bg-red-600 transition-colors"
                     aria-label="Remove image"
                   >
                     <X size={14} />

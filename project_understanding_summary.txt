@@ -119,6 +119,24 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 
 **Technical Pattern**: This fix establishes the pattern for handling multi-condition operations with the custom Supabase client - validate first, then update with single conditions. For relations requiring multiple-column filters, query the relation first to get the ID, then update using the single ID.
 
+### Therapist Request Display Fix ✅ (January 2025)
+**Problem**: Store administrators not seeing pending therapist requests - showing "Filtered from 0 to 0 bookings".
+
+**Root Cause**: The code was looking for profiles with `status = 'pending_therapist_approval'` but the actual database uses `status = 'pending'` for pending therapists.
+
+**Solution**: 
+1. **Status Query Fix**: Changed from `.eq("status", "pending_therapist_approval")` to `.eq("status", "pending")`
+2. **User Type Filtering**: Added `.eq("user_type", "therapist")` to ensure only therapist profiles are fetched
+3. **Type Casting**: Applied `(supabase as any)` for multi-condition queries
+4. **Debugging**: Added console logging to help diagnose data fetching issues
+
+**Database Analysis**: 
+- Found existing therapist profiles with `status = 'pending'` and `user_type = 'therapist'`
+- Some have `invited_by_store_id` set, indicating proper invitation flow
+- Query now correctly identifies pending therapist requests for approval
+
+**Files Modified**: `/src/pages/store/StoreTherapists.tsx`
+
 ## Technical Achievements
 
 ### Performance Optimizations

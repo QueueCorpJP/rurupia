@@ -92,7 +92,7 @@ const StoreTherapists = () => {
       
       // First, get pending therapists from profiles
       // IMPORTANT: Exclude therapists that already have an active relationship
-      const { data: pendingData, error: pendingError } = await supabase
+      const { data: pendingData, error: pendingError } = await (supabase as any)
         .from("profiles")
         .select(`
           id,
@@ -103,15 +103,20 @@ const StoreTherapists = () => {
           created_at
         `)
         .eq("invited_by_store_id", user.id)
-        .eq("status", "pending_therapist_approval");
+        .eq("status", "pending")
+        .eq("user_type", "therapist");
 
       if (pendingError) throw pendingError;
+      
+      console.log("Raw pending data:", pendingData);
+      console.log("Active therapist IDs:", activeTherapistIds);
       
       // Filter out therapists that already have an active relationship
       const filteredPendingData = pendingData?.filter(
         therapist => !activeTherapistIds.includes(therapist.id)
       ) || [];
       
+      console.log("Filtered pending therapists:", filteredPendingData);
       setPendingTherapists(filteredPendingData);
       
       // Get active store therapist relationships
@@ -122,10 +127,11 @@ const StoreTherapists = () => {
       }
       
       // Get profile data for these therapists
-      const { data: therapistProfiles, error: profileError } = await supabase
+      const { data: therapistProfiles, error: profileError } = await (supabase as any)
         .from("profiles")
         .select("id, name, email, phone, created_at")
-        .in("id", activeTherapistIds);
+        .in("id", activeTherapistIds)
+        .eq("user_type", "therapist");
       
       if (profileError) throw profileError;
       

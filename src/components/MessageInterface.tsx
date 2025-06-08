@@ -33,10 +33,9 @@ const MessageInterface = ({ therapist }: MessageInterfaceProps) => {
       .single();
       
     if (error || !profile?.is_verified) {
-      toast.error('メッセージ機能をご利用いただくには年齢認証が必要です。プロフィールページで身分証明書をアップロードし、管理者による認証をお待ちください。', {
+      toast.error('メッセージ機能をご利用いただくには管理者による認証が必要です。アカウント認証をお待ちください。', {
         duration: 6000,
       });
-      navigate('/profile');
       return;
     }
     

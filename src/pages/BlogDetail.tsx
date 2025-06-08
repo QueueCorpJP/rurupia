@@ -284,6 +284,7 @@ const BlogDetail = () => {
     }
   };
   
+
   const handleLike = async () => {
     if (!currentUser) {
       toast({
@@ -586,10 +587,6 @@ const BlogDetail = () => {
                   <Button variant="outline" size="sm" onClick={handleShare}>
                     <Share className="mr-1 h-4 w-4" />
                     シェア
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <MessageSquare className="mr-1 h-4 w-4" />
-                    コメント
                   </Button>
                 </div>
               </article>

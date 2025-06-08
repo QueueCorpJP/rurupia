@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Heart, MessageSquare, Share2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 // Define interfaces
 interface Post {
@@ -362,15 +363,45 @@ const TherapistPublicPosts = () => {
                       
                       {/* Post actions */}
                       <div className="p-2 flex items-center gap-2 border-t">
-                        <button className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors">
+                        <button 
+                          className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors"
+                          onClick={() => {
+                            // Like functionality - could be expanded later
+                            console.log('いいね clicked for post:', post.id);
+                          }}
+                        >
                           <Heart className="h-5 w-5" />
                         </button>
                         <span className="text-sm text-muted-foreground">{post.likes || 0}</span>
-                                <button className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2">
-          <MessageSquare className="h-5 w-5" />
-        </button>
-        <span className="text-sm text-muted-foreground">{post.comments || 0}</span>
-                        <button className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2">
+                        <button 
+                          className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2"
+                          onClick={() => {
+                            // Comment functionality - could be expanded later
+                            console.log('コメント clicked for post:', post.id);
+                          }}
+                        >
+                          <MessageSquare className="h-5 w-5" />
+                        </button>
+                        <span className="text-sm text-muted-foreground">{post.comments || 0}</span>
+                        <button 
+                          className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2"
+                          onClick={() => {
+                            // Share functionality
+                            const postUrl = `${window.location.origin}/therapist/${therapist.id}/posts`;
+                            const text = `${therapist.name}さんの投稿をチェック！`;
+                            
+                            if (navigator.share) {
+                              navigator.share({
+                                title: text,
+                                text: post.content.substring(0, 100) + '...',
+                                url: postUrl,
+                              });
+                                                         } else {
+                               navigator.clipboard.writeText(postUrl);
+                               toast.success('リンクをクリップボードにコピーしました');
+                             }
+                          }}
+                        >
                           <Share2 className="h-5 w-5" />
                         </button>
                       </div>

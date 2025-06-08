@@ -906,25 +906,25 @@ const StoreAdminDashboard = () => {
                 {dashboardData.recentBookings.map((booking: any) => (
                   <div key={booking.id} className="flex items-center space-x-3 sm:space-x-4">
                     <Avatar className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0">
-                      <AvatarImage src={booking.user?.avatar_url || "/avatars/01.png"} />
+                      <AvatarImage src={booking.clientAvatar || "/avatars/01.png"} />
                       <AvatarFallback className="text-xs sm:text-sm">
-                        {booking.user?.full_name?.charAt(0) || 'U'}
+                        {booking.clientName?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium leading-none truncate">
-                        {booking.user?.full_name || 'ユーザー'}
+                        {booking.clientName || 'ユーザー'}
                       </p>
                       <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                        {booking.therapist?.name} - {booking.service?.name}
+                        {booking.therapistName} - {booking.serviceName}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-xs sm:text-sm font-medium">
-                        ¥{booking.total_amount?.toLocaleString() || '0'}
+                        ¥{booking.price?.toLocaleString() || '0'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {format(parseISO(booking.booking_date), 'MM/dd', { locale: ja })}
+                        {booking.date}
                       </div>
                     </div>
                   </div>

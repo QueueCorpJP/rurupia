@@ -386,6 +386,27 @@ This platform successfully demonstrates modern web development practices with a 
 
 ## Latest Updates (January 2025)
 
+### Store Dashboard Data Structure Fix ✅ (January 2025)
+**Problem**: Store admin dashboard showed blank page with JavaScript errors:
+- `TypeError: Cannot read properties of undefined (reading 'split')` at line 927
+- 400 errors from Supabase resources 
+- Complete page failure due to unhandled exceptions
+
+**Root Cause**: Data structure mismatch in recent bookings display:
+- Recent bookings created with: `clientName`, `clientAvatar`, `therapistName`, `serviceName`, `date`, `price`
+- UI tried to access: `booking.user?.full_name`, `booking.therapist?.name`, `booking.service?.name`, `booking.total_amount`, `booking.booking_date`
+- `parseISO(booking.booking_date)` failed because `booking_date` field didn't exist
+
+**Solution Applied**:
+1. **Fixed Field Access**: Updated UI to use correct data structure field names
+2. **Removed Invalid Parsing**: Used pre-formatted date instead of trying to parse non-existent field
+3. **Avatar Display Fix**: Fixed avatar source to use actual `clientAvatar` field
+
+**Files Modified**: 
+- `/src/pages/store/StoreAdminDashboard.tsx` - Fixed data access patterns in recent bookings display
+
+**Result**: Store dashboard now loads properly, displays recent bookings correctly without errors.
+
 ### Booking Notification System Overhaul ✅
 **Problem**: Previous system sent notifications to users immediately when either therapist or store responded, causing confusion.
 **Solution**: Implemented tiered notification system:

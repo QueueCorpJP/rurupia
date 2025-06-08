@@ -1,17 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
 import { TherapistLayout } from '@/components/therapist/TherapistLayout';
 import MessageList from '@/components/MessageList';
-import { Send, Paperclip, ArrowLeft, Check, CheckCheck, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { v4 as uuidv4 } from 'uuid';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { sendMessageNotification } from '@/utils/notification-service';
+import { Send, Paperclip, X, ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 
-// Message interface
 interface IMessage {
   id: string;
   sender_id: string;
@@ -22,287 +19,271 @@ interface IMessage {
   is_read: boolean;
 }
 
-// Customer info interface
 interface CustomerInfo {
   id: string;
   name: string;
   imageUrl: string;
 }
 
-const TherapistMessagesFix = () => {
+const TherapistMessagesNew = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [therapistId, setTherapistId] = useState<string>();
+  const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [therapistId, setTherapistId] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showMobileMessageList, setShowMobileMessageList] = useState(!id);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [session, setSession] = useState<any>(null);
-  const [isSending, setIsSending] = useState(false);
-  const [showMobileMessageList, setShowMobileMessageList] = useState(!id);
 
   // Set up real-time subscription for new messages
   useEffect(() => {
     const setupSubscription = async () => {
-      // Get the current user
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-      
-      if (!user) {
-        toast.error("ログインが必要です");
-        navigate('/login');
-        return;
-      }
-      
-      setTherapistId(user.id);
-      setSession(data.session); // Set the session
-      
-      // Subscribe to new messages
-      const channel = supabase
-        .channel('public:messages')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'messages',
-          },
-          (payload) => {
-            console.log('[TherapistMessagesFix] Real-time update:', payload);
-            
-            if (payload.eventType === 'INSERT') {
-              const newMsg = payload.new as IMessage;
-              if (
-                (newMsg.sender_id === id && newMsg.receiver_id === user.id) ||
-                (newMsg.sender_id === user.id && newMsg.receiver_id === id)
-              ) {
-                setMessages(prev => {
-                  const exists = prev.find(msg => msg.id === newMsg.id);
-                  if (exists) return prev;
-                  return [...prev, newMsg].sort((a, b) => 
-                    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          setTherapistId(userData.user.id);
+        }
+
+        const channel = supabase
+          .channel('therapist-messages-realtime')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'messages',
+            },
+            (payload) => {
+              console.log('[TherapistMessages] Real-time update:', payload);
+              
+              if (payload.eventType === 'INSERT') {
+                const newMsg = payload.new as IMessage;
+                if (
+                  (newMsg.sender_id === id && newMsg.receiver_id === userData.user?.id) ||
+                  (newMsg.sender_id === userData.user?.id && newMsg.receiver_id === id)
+                ) {
+                  setMessages(prev => {
+                    const exists = prev.find(msg => msg.id === newMsg.id);
+                    if (exists) return prev;
+                    return [...prev, newMsg].sort((a, b) => 
+                      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                    );
+                  });
+                }
+              } else if (payload.eventType === 'UPDATE') {
+                const updatedMsg = payload.new as IMessage;
+                if (
+                  (updatedMsg.sender_id === id && updatedMsg.receiver_id === userData.user?.id) ||
+                  (updatedMsg.sender_id === userData.user?.id && updatedMsg.receiver_id === id)
+                ) {
+                  setMessages(prev => 
+                    prev.map(msg => msg.id === updatedMsg.id ? updatedMsg : msg)
                   );
-                });
-              }
-            } else if (payload.eventType === 'UPDATE') {
-              const updatedMsg = payload.new as IMessage;
-              if (
-                (updatedMsg.sender_id === id && updatedMsg.receiver_id === user.id) ||
-                (updatedMsg.sender_id === user.id && updatedMsg.receiver_id === id)
-              ) {
-                setMessages(prev => 
-                  prev.map(msg => msg.id === updatedMsg.id ? updatedMsg : msg)
-                );
+                }
               }
             }
-          }
-        )
-        .subscribe();
-        
-      return () => {
-        channel.unsubscribe();
-      };
+          )
+          .subscribe();
+
+        return () => {
+          channel.unsubscribe();
+        };
+      } catch (error) {
+        console.error('[TherapistMessages] Error setting up subscription:', error);
+      }
     };
-    
+
     setupSubscription();
-  }, [navigate, id]);
+  }, [id]);
 
   // Fetch the customer and message data
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
-      
+      if (!id) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        if (!id) return;
-        
-        // Get the current user
-        const { data } = await supabase.auth.getSession();
-        const user = data.session?.user;
-        
-        if (!user) {
-          toast.error("ログインが必要です");
-          navigate('/login');
+        setIsLoading(true);
+        console.log('[TherapistMessages] Fetching data for customer ID:', id);
+
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          console.error('[TherapistMessages] No authenticated user');
+          setIsLoading(false);
           return;
         }
-        
-        setTherapistId(user.id);
-        setSession(data.session); // Set the session
-        
-        // Fetch customer info
-        const { data: profileData, error: profileError } = await supabase
+
+        const currentTherapistId = userData.user.id;
+        setTherapistId(currentTherapistId);
+
+        // Fetch customer profile
+        const { data: customerData, error: customerError } = await supabase
           .from('profiles')
-          .select('id, name, nickname, avatar_url')
+          .select('id, nickname, name, avatar_url')
           .eq('id', id)
           .single();
-          
-        if (profileError) {
-          console.error('Error fetching customer profile:', profileError);
-          toast.error('顧客情報の取得に失敗しました');
+
+        if (customerError) {
+          console.error('[TherapistMessages] Error fetching customer:', customerError);
+          setIsLoading(false);
           return;
         }
-        
-        if (profileData) {
-          // Create a CustomerInfo object from profileData
+
+        console.log('[TherapistMessages] Customer data:', customerData);
+
+        if (customerData) {
           setCustomer({
-            id: profileData.id,
-            name: profileData.nickname || profileData.name || 'Customer',
-            imageUrl: profileData.avatar_url || '/placeholder.svg',
+            id: customerData.id,
+            name: customerData.nickname || customerData.name || 'Customer',
+            imageUrl: customerData.avatar_url || '/placeholder.svg'
           });
         }
-        
-        // Fetch messages between current therapist and customer
+
+        // Fetch messages
         const { data: messagesData, error: messagesError } = await supabase
           .from('messages')
           .select('*')
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${user.id})`)
+          .or(`and(sender_id.eq.${currentTherapistId},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${currentTherapistId})`)
           .order('timestamp', { ascending: true });
-          
+
         if (messagesError) {
-          console.error('Error fetching messages:', messagesError);
-          toast.error('メッセージの取得に失敗しました');
-          return;
-        }
-        
-        if (messagesData) {
-          setMessages(messagesData);
-          
-          // Mark all messages from customer as read
-          const unreadMessages = messagesData.filter(msg => 
-            msg.sender_id === id && 
-            msg.receiver_id === user.id && 
-            !msg.is_read
+          console.error('[TherapistMessages] Error fetching messages:', messagesError);
+        } else {
+          console.log('[TherapistMessages] Messages data:', messagesData);
+          setMessages(messagesData || []);
+
+          // Mark messages as read
+          const unreadMessages = messagesData?.filter(msg => 
+            msg.receiver_id === currentTherapistId && !msg.is_read
           );
-          
-          if (unreadMessages.length > 0) {
+
+          if (unreadMessages && unreadMessages.length > 0) {
             const messageIds = unreadMessages.map(msg => msg.id);
             const { error: updateError } = await supabase
               .from('messages')
               .update({ is_read: true })
               .in('id', messageIds);
-              
-            // Update the local state as well
-            setMessages(prev => 
-              prev.map(msg => 
-                messageIds.includes(msg.id) 
-                  ? { ...msg, is_read: true } 
-                  : msg
-              )
-            );
+
+            if (updateError) {
+              console.error('[TherapistMessages] Error marking messages as read:', updateError);
+            }
           }
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('データの取得に失敗しました');
+        console.error('[TherapistMessages] Error in fetchData:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchData();
-  }, [id, navigate]);
 
+    fetchData();
+  }, [id]);
+
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    // Scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
+
+  // Update mobile view state when id changes
+  useEffect(() => {
+    setShowMobileMessageList(!id);
+  }, [id]);
+
+  const sendMessageNotification = async (customerId: string, therapistName: string, messageContent: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email-notification', {
+        body: {
+          recipientId: customerId,
+          senderName: therapistName,
+          messageContent: messageContent,
+          notificationType: 'new_message'
+        }
+      });
+
+      if (error) {
+        console.error('Error sending notification:', error);
+      } else {
+        console.log('Notification sent successfully:', data);
+      }
+    } catch (error) {
+      console.error('Error calling notification function:', error);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() && !selectedImage) return;
     
-    // Ensure we have session and user data
-    if (!session || !session.user) {
-      console.error('Session or user data missing, retrieving session again');
-      const { data } = await supabase.auth.getSession();
-      
-      if (!data.session || !data.session.user) {
-        toast.error('セッションが無効です。再度ログインしてください。');
-        navigate('/login');
-        return;
-      }
-      
-      setSession(data.session);
-    }
+    if ((!newMessage.trim() && !selectedImage) || !therapistId || !id) return;
+
+    setIsSending(true);
 
     try {
-      setIsSending(true);
-      
-      // Handle file upload if there's an image
       let imageUrl = null;
+
+      // Upload image if selected
       if (selectedImage) {
         const fileExt = selectedImage.name.split('.').pop();
-        const fileName = `${uuidv4()}.${fileExt}`;
+        const fileName = `${Date.now()}.${fileExt}`;
         const filePath = `message-images/${fileName}`;
-        
+
         const { error: uploadError } = await supabase.storage
-          .from('messages')
+          .from('message-images')
           .upload(filePath, selectedImage);
-          
+
         if (uploadError) {
           console.error('Error uploading image:', uploadError);
           toast.error('画像のアップロードに失敗しました');
-          setIsSending(false);
           return;
         }
-        
-        const { data: urlData } = supabase.storage
-          .from('messages')
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('message-images')
           .getPublicUrl(filePath);
-          
-        imageUrl = urlData.publicUrl;
+
+        imageUrl = publicUrl;
       }
-      
-      const newMessageData = {
-        id: uuidv4(),
-        sender_id: session.user.id,
-        receiver_id: customer?.id || '',
-        content: newMessage.trim(),
-        image_url: imageUrl,
-        timestamp: new Date().toISOString(),
-        is_read: false
-      };
-      
-      console.log('Sending message:', newMessageData);
-      
-      const { data, error } = await supabase
+
+      // Send message
+      const { error: insertError } = await supabase
         .from('messages')
-        .insert(newMessageData)
-        .select();
-        
-      if (error) {
-        console.error('Error inserting message:', error);
-        throw error;
+        .insert({
+          sender_id: therapistId,
+          receiver_id: id,
+          content: newMessage.trim() || null,
+          image_url: imageUrl,
+        });
+
+      if (insertError) {
+        console.error('Error sending message:', insertError);
+        toast.error('メッセージの送信に失敗しました');
+        return;
       }
-      
-      if (data && data[0]) {
-        console.log('Message sent successfully:', data[0]);
-        // Add the new message to the state
-        setMessages(prev => [...prev, data[0]]);
-      }
-      
-      // Send notification to customer
+
+      // Send notification
       if (customer) {
-        const therapistName = session.user.user_metadata?.name || 'セラピスト';
+        const { data: userData } = await supabase.auth.getUser();
+        const therapistName = userData.user?.user_metadata?.name || 'セラピスト';
         await sendMessageNotification(
           customer.id,
           therapistName,
           newMessage.length > 30 ? newMessage.substring(0, 30) + '...' : newMessage
         );
       }
-      
-      // Reset message state
+
+      // Clear form
       setNewMessage('');
       setSelectedImage(null);
       setImagePreview(null);
-      
-      // Scroll to bottom after a short delay to allow the message to render
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('メッセージの送信に失敗しました');
@@ -314,16 +295,12 @@ const TherapistMessagesFix = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('画像サイズは5MB以下にしてください');
-        return;
-      }
-      
       setSelectedImage(file);
+      
+      // Create preview
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -339,17 +316,8 @@ const TherapistMessagesFix = () => {
     });
   };
 
-  const getMessageStatus = (message: IMessage) => {
-    // Removed read receipt functionality as requested
-    return null;
-  };
-
   const handleBackToList = () => {
-    setShowMobileMessageList(true);
-  };
-
-  const handleConversationSelect = () => {
-    setShowMobileMessageList(false);
+    navigate('/therapist-messages');
   };
 
   if (isLoading) {
@@ -472,7 +440,6 @@ const TherapistMessagesFix = () => {
                         <span className="text-[10px] opacity-70">
                           {formatMessageDate(message.timestamp)}
                         </span>
-                        {getMessageStatus(message)}
                       </div>
                     </div>
                   </div>
@@ -547,7 +514,7 @@ const TherapistMessagesFix = () => {
             ) : (
               <>
                 {/* Mobile conversation header with back button */}
-                <div className="p-4 border-b flex items-center gap-3">
+                <div className="p-4 border-b flex items-center gap-3 bg-background">
                   <button
                     onClick={handleBackToList}
                     className="p-2 rounded-md hover:bg-muted/50 transition-colors"
@@ -601,7 +568,6 @@ const TherapistMessagesFix = () => {
                           <span className="text-[10px] opacity-70">
                             {formatMessageDate(message.timestamp)}
                           </span>
-                          {getMessageStatus(message)}
                         </div>
                       </div>
                     </div>
@@ -609,64 +575,66 @@ const TherapistMessagesFix = () => {
                   <div ref={messagesEndRef} />
                 </div>
                 
-                {/* Mobile input form */}
-                <form onSubmit={handleSendMessage} className="p-4 border-t bg-background">
-                  {imagePreview && (
-                    <div className="mb-3 relative bg-muted/20 p-2 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          className="w-16 h-16 object-cover rounded"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedImage(null);
-                            setImagePreview(null);
-                          }}
-                          className="p-1 bg-card rounded-full shadow-sm border"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                {/* Mobile input form - ensure it's always visible */}
+                <div className="p-4 border-t bg-background flex-shrink-0">
+                  <form onSubmit={handleSendMessage}>
+                    {imagePreview && (
+                      <div className="mb-3 relative bg-muted/20 p-2 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="w-16 h-16 object-cover rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedImage(null);
+                              setImagePreview(null);
+                            }}
+                            className="p-1 bg-card rounded-full shadow-sm border"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
+                    )}
+                    
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="メッセージを入力..."
+                        value={newMessage}
+                        onChange={e => setNewMessage(e.target.value)}
+                        className="flex-1"
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                      />
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted/50 transition-colors flex-shrink-0"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Paperclip className="h-5 w-5" />
+                      </button>
+                      <button
+                        type="submit"
+                        className="bg-primary text-primary-foreground p-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                        disabled={(!newMessage.trim() && !selectedImage) || isSending}
+                      >
+                        {isSending ? (
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
+                        ) : (
+                          <Send className="h-5 w-5" />
+                        )}
+                      </button>
                     </div>
-                  )}
-                  
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="メッセージを入力..."
-                      value={newMessage}
-                      onChange={e => setNewMessage(e.target.value)}
-                      className="flex-1"
-                    />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      ref={fileInputRef}
-                      onChange={handleImageUpload}
-                    />
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted/50 transition-colors"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Paperclip className="h-5 w-5" />
-                    </button>
-                    <button
-                      type="submit"
-                      className="bg-primary text-primary-foreground p-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={(!newMessage.trim() && !selectedImage) || isSending}
-                    >
-                      {isSending ? (
-                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-current" />
-                      ) : (
-                        <Send className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </form>
+                  </form>
+                </div>
               </>
             )}
           </div>
@@ -676,4 +644,4 @@ const TherapistMessagesFix = () => {
   );
 };
 
-export default TherapistMessagesFix; 
+export default TherapistMessagesNew; 

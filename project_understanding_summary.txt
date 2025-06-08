@@ -92,6 +92,30 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 - **Loading States**: Clear indication of ongoing operations
 - **Responsive Images**: Better image scaling across all screen sizes
 
+### Therapist Approval Process Fix ✅ (January 2025)
+**Problem**: Store administrators were getting error `TypeError: B.from(...).update(...).eq(...).eq is not a function` when trying to approve therapists through the セラピスト管理 (Therapist Management) component.
+
+**Root Cause**: The custom Supabase client wrapper at `/src/integrations/supabase/client.ts` does not support chaining multiple `.eq()` calls. The original code was attempting:
+```typescript
+.from("profiles")
+.update({ status: "active" })
+.eq("id", therapistId)
+.eq("invited_by_store_id", storeId)  // This second .eq() caused the error
+```
+
+**Solution**: 
+1. **Separated Operations**: Split the multi-condition query into separate validation and update operations
+2. **Type Casting**: Used `(supabase as any)` casting for operations that require the custom client
+3. **Enhanced Validation**: Added explicit checks to ensure therapists are invited by the correct store before approval/rejection
+4. **Error Prevention**: Replaced chained `.eq()` calls with pre-validation followed by single-condition updates
+
+**Code Changes**:
+- `approveTherapist()`: Now validates store invitation before updating status
+- `rejectTherapist()`: Same validation pattern applied for consistency  
+- Both functions now use single `.eq()` calls after validation instead of chained conditions
+
+**Technical Pattern**: This fix establishes the pattern for handling multi-condition operations with the custom Supabase client - validate first, then update with single conditions.
+
 ## Technical Achievements
 
 ### Performance Optimizations
@@ -197,9 +221,9 @@ This platform successfully demonstrates modern web development practices with a 
 ### UI/UX Improvements ✅
 **Message Interface**:
 1. **Wider Layout**: Message component now uses full-width layout on therapist pages
-2. **Multiline Input**: Mobile input changed to textarea for lengthy messages
+  2. **Multiline Input**: Mobile input changed to textarea for lengthy messages
 
-**Profile Image Management Fix** ✅:
+### Profile Image Management Fix ✅:
 1. **Fixed Delete Functionality**: Profile image X button now properly removes existing images
 2. **Preview Logic**: Enhanced to show both newly uploaded and existing database images
 3. **Database Updates**: Deletion properly sets image_url to null in database

@@ -202,13 +202,27 @@ const StoreTherapists = () => {
         throw new Error("Therapist not found in pending list");
       }
       
-      // 2. Update profile status to active FIRST
-      // This is important - update the profile status before creating the relationship
+      // 2. First check if this therapist was invited by this store
+      const { data: therapistCheck, error: checkError } = await (supabase as any)
+        .from("profiles")
+        .select("id, invited_by_store_id")
+        .eq("id", therapistId);
+        
+      if (checkError) {
+        console.error("Error checking therapist:", checkError);
+        throw checkError;
+      }
+      
+      const therapist = therapistCheck?.[0];
+      if (!therapist || therapist.invited_by_store_id !== storeId) {
+        throw new Error("このセラピストはあなたの店舗に招待されていません");
+      }
+      
+      // 3. Update profile status to active
       const { error: profileError } = await (supabase as any)
         .from("profiles")
         .update({ status: "active" })
-        .eq("id", therapistId)
-        .eq("invited_by_store_id", storeId);
+        .eq("id", therapistId);
         
       if (profileError) {
         console.error("Error updating profile status:", profileError);
@@ -343,12 +357,27 @@ const StoreTherapists = () => {
         throw new Error("Therapist not found in pending list");
       }
       
+      // First check if this therapist was invited by this store
+      const { data: therapistCheck, error: checkError } = await (supabase as any)
+        .from("profiles")
+        .select("id, invited_by_store_id")
+        .eq("id", therapistId);
+        
+      if (checkError) {
+        console.error("Error checking therapist:", checkError);
+        throw checkError;
+      }
+      
+      const therapist = therapistCheck?.[0];
+      if (!therapist || therapist.invited_by_store_id !== storeId) {
+        throw new Error("このセラピストはあなたの店舗に招待されていません");
+      }
+      
       // Update profile status to rejected
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("profiles")
         .update({ status: "rejected" })
-        .eq("id", therapistId)
-        .eq("invited_by_store_id", storeId);
+        .eq("id", therapistId);
         
       if (error) throw error;
 

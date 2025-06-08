@@ -3,12 +3,15 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { SidebarNav } from './SidebarNav';
 import { UserNav } from './UserNav';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Menu } from 'lucide-react';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [initializingSession, setInitializingSession] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,6 +52,17 @@ const AdminLayout = () => {
     setupAdmin();
   }, [isAdminAuthenticated, location.pathname]);
 
+  useEffect(() => {
+    if (!isAdminAuthenticated && !initializingSession) {
+      navigate('/admin/auth');
+    }
+  }, [isAdminAuthenticated, initializingSession, navigate]);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
   // Allow rendering content when on verification routes even if not authenticated
   const isVerificationRoute = location.pathname.includes('/admin/verification/');
   if (!isAdminAuthenticated && !isVerificationRoute) {
@@ -56,24 +70,48 @@ const AdminLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <SidebarNav isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+    <div className="min-h-screen bg-background">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
+        <SidebarNav isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      </div>
+
+      {/* Mobile Sidebar Sheet */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="left" className="p-0 w-64">
+          <SidebarNav isOpen={true} toggleSidebar={() => setIsMobileMenuOpen(false)} />
+        </SheetContent>
+      </Sheet>
 
       {/* Main Content */}
       <div className={cn(
-        "flex-1 flex flex-col transition-all duration-300",
-        isSidebarOpen ? "md:ml-64" : "md:ml-20"
+        "min-h-screen transition-all duration-300",
+        "md:ml-64 md:data-[sidebar=collapsed]:ml-20",
+        !isSidebarOpen && "md:ml-20"
       )}>
         {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-          <button
+          {/* Mobile menu button */}
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
+          </Sheet>
+          
+          {/* Desktop sidebar toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="inline-flex items-center justify-center rounded-md p-2 text-primary-foreground bg-primary hover:bg-primary/90 mr-2 md:hidden"
+            className="hidden md:flex"
           >
-            <LayoutDashboard className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
-          </button>
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle Sidebar</span>
+          </Button>
+          
           <h1 className="font-semibold text-lg md:text-xl">運営管理システム</h1>
           <div className="ml-auto flex items-center gap-4">
             <UserNav />

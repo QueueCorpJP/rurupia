@@ -357,6 +357,30 @@ export default function AdminAccounts() {
         }
       }
 
+      // If user type is store, create store record
+      if (newAccountData.userType === 'store') {
+        const storeData: any = {
+          id: authData.user.id,
+          name: newAccountData.name, // Store name
+          representative: newAccountData.nickname || newAccountData.name, // Owner/representative name
+          email: newAccountData.email,
+          phone: newAccountData.phone || '',
+          address: newAccountData.address || '',
+          description: newAccountData.description || '',
+          status: newAccountData.status || 'active'
+        };
+
+        const { error: storeError } = await supabaseAdmin
+          .from('stores')
+          .insert(storeData);
+
+        if (storeError) {
+          console.error('Store creation error:', storeError);
+          toast.error(`店舗情報の作成エラー: ${storeError.message}`);
+          return;
+        }
+      }
+
       toast.success('新しいアカウントが正常に作成されました');
       setShowNewAccountDialog(false);
       setNewAccountData({
@@ -437,6 +461,7 @@ export default function AdminAccounts() {
       key: 'id',
       label: 'ID',
       accessorKey: 'id',
+      mobileHidden: true, // Hide ID column on mobile
       render: (data: any) => {
         if (!data || !data.row) return null;
         return (
@@ -455,6 +480,7 @@ export default function AdminAccounts() {
       key: 'email',
       label: 'メールアドレス',
       accessorKey: 'email',
+      mobileHidden: true, // Hide email on mobile to save space
     },
     {
       key: 'user_type',

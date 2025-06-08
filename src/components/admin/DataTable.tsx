@@ -9,6 +9,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { MoreHorizontal, Search, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -16,12 +17,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from '@/lib/utils';
 
 export interface Column {
   key: string;
   label: string;
   accessorKey?: string;
   render?: (data: any) => React.ReactNode;
+  mobileHidden?: boolean; // Whether to hide this column on mobile
 }
 
 interface DataTableProps {
@@ -84,6 +87,9 @@ export function DataTable({
     }
   };
 
+  // Get mobile-visible columns (exclude mobileHidden columns)
+  const mobileColumns = columns.filter(col => !col.mobileHidden);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -114,7 +120,8 @@ export function DataTable({
         )}
       </div>
 
-      <div className="rounded-md border">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -178,6 +185,75 @@ export function DataTable({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-4">
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">読み込み中...</span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : data.length === 0 ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              データがありません
+            </CardContent>
+          </Card>
+        ) : (
+          data.map((row, rowIndex) => (
+            <Card 
+              key={rowIndex} 
+              className={cn(
+                "transition-colors",
+                onRowClick ? "cursor-pointer hover:bg-muted/50" : ""
+              )}
+              onClick={onRowClick ? () => handleRowClick(row) : undefined}
+            >
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  {mobileColumns.map((column) => (
+                    <div key={column.key} className="flex flex-col space-y-1">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {column.label}
+                      </span>
+                      <div className="text-sm">
+                        {getCellContent(column, row)}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {actionMenuItems && (
+                    <div className="flex justify-end pt-2 border-t">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="ml-2">アクション</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {actionMenuItems.map((item, index) => (
+                            <DropdownMenuItem 
+                              key={index}
+                              onClick={() => item.onClick(row)}
+                            >
+                              {item.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );

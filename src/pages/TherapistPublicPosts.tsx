@@ -4,10 +4,9 @@ import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageSquare, Share2, ArrowLeft } from 'lucide-react';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import PostCard, { PostWithInteractions } from '@/components/PostCard';
 
 // Define interfaces
 interface Post {
@@ -31,37 +30,30 @@ interface Therapist {
 const TherapistPublicPosts = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostWithInteractions[]>([]);
   const [therapist, setTherapist] = useState<Therapist | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   
-  // Function to toggle post expansion
-  const togglePostExpansion = (postId: string) => {
-    setExpandedPosts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
-      } else {
-        newSet.add(postId);
-      }
-      return newSet;
-    });
-  };
-  
-  // Character limit for truncated content
-  const charLimit = 150;
-  
-  // Format date
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return format(date, 'yyyy年MM月dd日 HH:mm', { locale: ja });
-    } catch (error) {
-      return dateString;
-    }
+  // Transform posts data to include therapist information
+  const transformPostsToInteractions = (postsData: Post[], therapistData: Therapist): PostWithInteractions[] => {
+    return postsData.map(post => ({
+      id: post.id,
+      therapist_id: therapistData.id,
+      title: post.title,
+      content: post.content,
+      image_url: post.image_url,
+      visibility: post.visibility,
+      created_at: post.created_at,
+      likes: post.likes || 0,
+      liked: false,
+      comments: [],
+      comment_count: post.comments || 0,
+      therapist_name: therapistData.name,
+      therapist_image_url: therapistData.image_url,
+      therapist_specialties: []
+    }));
   };
   
   // Check if user is authenticated and following the therapist
@@ -181,7 +173,11 @@ const TherapistPublicPosts = () => {
           return;
         }
         
-        setPosts(postsData || []);
+        // Transform posts data to include therapist information
+        if (postsData && therapistData) {
+          const transformedPosts = transformPostsToInteractions(postsData, therapistData);
+          setPosts(transformedPosts);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -216,7 +212,11 @@ const TherapistPublicPosts = () => {
           return;
         }
         
-        setPosts(data || []);
+        // Transform posts data to include therapist information
+        if (data && therapist) {
+          const transformedPosts = transformPostsToInteractions(data, therapist);
+          setPosts(transformedPosts);
+        }
       } catch (error) {
         console.error('Error fetching posts:', error);
       }
@@ -303,126 +303,16 @@ const TherapistPublicPosts = () => {
             <h2 className="text-xl font-semibold">投稿一覧</h2>
             
             {posts.length > 0 ? (
-              posts.map(post => {
-                const shouldTruncate = post.content.length > charLimit && !expandedPosts.has(post.id);
-                const isPrivate = post.visibility === 'followers';
-                const isBlurred = isPrivate && !isFollowing;
-                
-                return (
-                  <div 
-                    key={post.id} 
-                    className={`bg-white border rounded-lg overflow-hidden ${isBlurred ? 'relative' : ''}`}
-                  >
-                    {/* Post header */}
-                    <div className="p-4 flex items-center gap-3 border-b">
-                      <Avatar>
-                        {therapist.image_url ? (
-                          <AvatarImage src={therapist.image_url} alt={therapist.name} />
-                        ) : (
-                          <AvatarFallback>{therapist.name?.charAt(0) || 'T'}</AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{therapist.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(post.created_at)}</p>
-                      </div>
-                    </div>
-                    
-                    {/* Post content */}
-                    <div className={`${isBlurred ? 'blur-sm' : ''}`}>
-                      {/* Post image if available */}
-                      {post.image_url && (
-                        <div className="aspect-video w-full bg-muted overflow-hidden">
-                          <img 
-                            src={post.image_url} 
-                            alt={post.title || "投稿画像"} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Post text content */}
-                      <div className="p-4">
-                        {post.title && (
-                          <h3 className="font-medium mb-2">{post.title}</h3>
-                        )}
-                        <p className="text-sm">
-                          {shouldTruncate ? `${post.content.substring(0, charLimit)}...` : post.content}
-                        </p>
-                        
-                        {/* Read more button if content is truncated */}
-                        {post.content.length > charLimit && (
-                          <button 
-                            onClick={() => togglePostExpansion(post.id)}
-                            className="text-xs text-primary mt-2 font-medium"
-                          >
-                            {expandedPosts.has(post.id) ? '閉じる' : 'もっと見る'}
-                          </button>
-                        )}
-                      </div>
-                      
-                      {/* Post actions */}
-                      <div className="p-2 flex items-center gap-2 border-t">
-                        <button 
-                          className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors"
-                          onClick={() => {
-                            // Like functionality - could be expanded later
-                            console.log('いいね clicked for post:', post.id);
-                          }}
-                        >
-                          <Heart className="h-5 w-5" />
-                        </button>
-                        <span className="text-sm text-muted-foreground">{post.likes || 0}</span>
-                        <button 
-                          className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2"
-                          onClick={async () => {
-                            // Check if user is logged in
-                            const { data: { user } } = await supabase.auth.getUser();
-                            if (!user) {
-                              toast.error('コメント機能をご利用いただくには会員登録が必要です。');
-                              return;
-                            }
-                            
-                            toast.info('コメント機能は近日公開予定です。');
-                          }}
-                        >
-                          <MessageSquare className="h-5 w-5" />
-                        </button>
-                        <span className="text-sm text-muted-foreground">{post.comments || 0}</span>
-                        <button 
-                          className="text-muted-foreground hover:text-primary p-2 rounded-full transition-colors ml-2"
-                          onClick={() => {
-                            // Share functionality
-                            const postUrl = `${window.location.origin}/therapist/${therapist.id}/posts`;
-                            const text = `${therapist.name}さんの投稿をチェック！`;
-                            
-                            if (navigator.share) {
-                              navigator.share({
-                                title: text,
-                                text: post.content.substring(0, 100) + '...',
-                                url: postUrl,
-                              });
-                                                         } else {
-                               navigator.clipboard.writeText(postUrl);
-                               toast.success('リンクをクリップボードにコピーしました');
-                             }
-                          }}
-                        >
-                          <Share2 className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Overlay for private posts */}
-                    {isBlurred && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 p-4 z-10">
-                        <p className="text-center mb-2">この投稿はフォロワー限定です</p>
-                        <Button onClick={handleToggleFollow}>フォローして投稿を見る</Button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              posts.map(post => (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  onPostUpdated={() => {
+                    // Refresh posts after like/comment updates
+                    window.location.reload();
+                  }}
+                />
+              ))
             ) : (
               <div className="bg-white border rounded-lg p-6 text-center">
                 <p className="text-muted-foreground">まだ投稿はありません</p>

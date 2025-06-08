@@ -33,7 +33,7 @@ const SEO = ({
   const siteUrl = window.location.origin;
   const pageUrl = canonical || window.location.href;
   const defaultImage = `${siteUrl}/logo.png`;
-  const siteName = 'SerenitySage';
+  const siteName = 'るぴぴあ';
 
   return (
     <Helmet>

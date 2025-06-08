@@ -882,7 +882,9 @@ const TherapistDetail = () => {
                 <TabsContent value="message" className="p-0 m-0 pt-4">
                   <MessageInterface 
                     key={`message-${therapist.id}`} 
-                    therapist={therapist} 
+                    therapist={therapist}
+                    currentUser={currentUser}
+                    isUserVerified={isUserVerified}
                   />
                 </TabsContent>
               </Tabs>

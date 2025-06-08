@@ -52,8 +52,9 @@ const MessageInterface = ({ therapist, currentUser, isUserVerified }: MessageInt
         <Button 
           onClick={handleStartConversation}
           className="w-full"
+          disabled={currentUser && !isUserVerified}
         >
-          会話を開始する
+          {currentUser && !isUserVerified ? '認証が必要です' : '会話を開始する'}
         </Button>
       </div>
     </div>

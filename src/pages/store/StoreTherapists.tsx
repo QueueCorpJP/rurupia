@@ -204,7 +204,7 @@ const StoreTherapists = () => {
       
       // 2. Update profile status to active FIRST
       // This is important - update the profile status before creating the relationship
-      const { error: profileError } = await supabase
+      const { error: profileError } = await (supabase as any)
         .from("profiles")
         .update({ status: "active" })
         .eq("id", therapistId)
@@ -216,7 +216,7 @@ const StoreTherapists = () => {
       }
       
       // 3. Check for existing store_therapist relation and create/update it
-      const { data: existingRelations, error: relationCheckError } = await supabase
+      const { data: existingRelations, error: relationCheckError } = await (supabase as any)
         .from("store_therapists")
         .select("id, status")
         .eq("store_id", storeId)

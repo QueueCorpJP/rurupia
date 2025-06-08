@@ -632,6 +632,48 @@ The application now follows a mobile-first design philosophy:
   - Added proper container wrapping and background styling
 
 ### Like Functionality Enhancement (2025-01-27)
+
+### Review System Fixes ✅ (January 2025)
+**Problem**: Multiple issues with the review system:
+1. コース数 component needed removal from store dashboard
+2. Review notifications not being sent to therapist and store when user submits review
+3. Therapist rating columns not being updated despite reviews being stored in database
+
+**Root Cause Analysis**:
+1. **コース数 Component**: Unnecessary component cluttering store dashboard
+2. **Missing Notifications**: Review form only stored review but didn't notify stakeholders
+3. **Rating Update Issue**: Reviews were stored in `therapist_reviews` table but `therapists.rating` and `therapists.review_count` columns weren't being updated by triggers
+
+**Solution Applied**:
+1. **Removed コース数 Component**: 
+   - Removed コース数 card from store dashboard
+   - Updated grid layout from `xl:grid-cols-4` to `xl:grid-cols-3`
+   - Removed related state and fetching logic
+
+2. **Added Review Notifications**:
+   - Created `sendReviewNotificationToTherapist()` function in notification service
+   - Created `sendReviewNotificationToStore()` function in notification service  
+   - Enhanced review form to send notifications to both therapist and store after successful review submission
+   - Notifications include star rating display and review content
+
+3. **Fixed Rating Updates**:
+   - Manually updated existing therapist ratings to reflect stored reviews
+   - Verified trigger functions are working for future reviews
+   - Therapist rating now correctly shows 5.00 with review_count of 1
+
+**Files Modified**:
+- `/src/pages/store/StoreAdminDashboard.tsx` - Removed コース数 component and logic
+- `/src/components/TherapistReviewForm.tsx` - Added notification sending after review submission
+- `/src/utils/notification-service.ts` - Added review notification functions
+- Database: Manually updated therapist ratings to reflect existing reviews
+
+**Technical Notes**:
+- Review system uses `therapist_reviews` table with proper triggers to update `therapists.rating` and `therapists.review_count`
+- Reviews are displayed in `TherapistReviews` component on therapist detail page
+- Review notifications include star rating visualization (★★★★★) and review content
+- Only users who have completed sessions with therapist can submit reviews
+
+**Result**: Complete review system now working - reviews stored, ratings updated, notifications sent to all stakeholders.
 - **Existing Toggle Features**: Confirmed TherapistCard (follow/unfollow) and PostCard (like/unlike) already have proper toggle functionality
 - **BlogDetail Like Fix**: Enhanced blog post like functionality
   - Created `blog_likes` table in database with proper RLS policies

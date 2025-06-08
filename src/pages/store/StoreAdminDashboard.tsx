@@ -48,7 +48,7 @@ const StoreAdminDashboard = () => {
   const [bookingsChange, setBookingsChange] = useState(0);
   const [therapistCount, setTherapistCount] = useState(0);
   const [therapistChange, setTherapistChange] = useState(0);
-  const [courseCount, setCourseCount] = useState(0);
+
   
   // Chart data
   const [revenueData, setRevenueData] = useState<Array<{date: string; revenue: number}>>([]);
@@ -166,22 +166,7 @@ const StoreAdminDashboard = () => {
         setTherapistChange(0);
       }
       
-      // Get services/courses for this store using direct SQL for better performance and to avoid type issues
-      try {
-        const { data, error } = await supabase.rpc('count_store_services', { 
-          input_store_id: user.id 
-        });
-        
-        if (!error && data !== null) {
-          setCourseCount(data);
-        } else {
-          console.error("Error counting services:", error);
-          setCourseCount(0);
-        }
-      } catch (error) {
-        console.error("Error fetching service count:", error);
-        setCourseCount(0);
-      }
+
       
       // Get time range limit
       let fromDate = null;
@@ -685,7 +670,7 @@ const StoreAdminDashboard = () => {
     );
   }
 
-  const hasData = monthlySales > 0 || monthlyBookings > 0 || therapistCount > 0 || courseCount > 0;
+  const hasData = monthlySales > 0 || monthlyBookings > 0 || therapistCount > 0;
 
       return (
       <div className="min-h-screen bg-gray-50/50">
@@ -704,7 +689,7 @@ const StoreAdminDashboard = () => {
       )}
 
       {/* サマリーカード */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <DashboardCard
           icon={<Store className="h-4 w-4 sm:h-5 sm:w-5" />}
           title="今月の売上"
@@ -723,11 +708,7 @@ const StoreAdminDashboard = () => {
           value={therapistCount.toString()}
           change={therapistChange !== 0 ? { value: `${therapistChange > 0 ? '+' : ''}${therapistChange}`, positive: therapistChange > 0 } : undefined}
         />
-        <DashboardCard
-          icon={<BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />}
-          title="コース数"
-          value={courseCount.toString()}
-        />
+
       </div>
 
       {/* グラフセクション */}

@@ -440,4 +440,30 @@ export const sendTherapistDeactivationNotification = (therapistId: string, store
     type: 'system',
     data: { storeName, status: 'deactivated' }
   });
+};
+
+// Notification for therapist when they receive a review
+export const sendReviewNotificationToTherapist = (therapistId: string, userName: string, rating: number, reviewText: string) => {
+  const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  
+  return sendNotification({
+    userId: therapistId,
+    title: '新しいレビューを受け取りました',
+    message: `${userName}さんから${stars}（${rating}点）のレビューをいただきました`,
+    type: 'review',
+    data: { userName, rating, reviewText, stars }
+  });
+};
+
+// Notification for store when one of their therapists receives a review
+export const sendReviewNotificationToStore = (storeId: string, therapistName: string, userName: string, rating: number, reviewText: string) => {
+  const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  
+  return sendNotification({
+    userId: storeId,
+    title: 'セラピストが新しいレビューを受け取りました',
+    message: `${therapistName}さんが${userName}さんから${stars}（${rating}点）のレビューを受け取りました`,
+    type: 'review',
+    data: { therapistName, userName, rating, reviewText, stars }
+  });
 }; 

@@ -259,6 +259,60 @@ export default function TherapistReviewForm({
       // Success!
       toast.success("レビューを投稿しました！");
       
+      // Send notifications to therapist and store
+      try {
+        // Get therapist name for notification
+        const { data: therapistData, error: therapistError } = await supabase
+          .from('therapists')
+          .select('name')
+          .eq('id', therapistId)
+          .single();
+          
+        // Get user name for notification
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('name, nickname')
+          .eq('id', currentUser.id)
+          .single();
+          
+        const userName = userData?.nickname || userData?.name || 'ユーザー';
+        const therapistName = therapistData?.name || 'セラピスト';
+        
+        // Import notification service
+        const { sendReviewNotificationToTherapist, sendReviewNotificationToStore } = await import('@/utils/notification-service');
+        
+        // Send notification to therapist
+        await sendReviewNotificationToTherapist(
+          therapistId,
+          userName,
+          rating,
+          reviewText
+        );
+        
+        // Get store ID for this therapist and send notification to store
+        const { data: storeTherapistData, error: storeError } = await supabase
+          .from('store_therapists')
+          .select('store_id')
+          .eq('therapist_id', therapistId)
+          .eq('status', 'active')
+          .single();
+          
+        if (!storeError && storeTherapistData) {
+          await sendReviewNotificationToStore(
+            storeTherapistData.store_id,
+            therapistName,
+            userName,
+            rating,
+            reviewText
+          );
+        }
+        
+        console.log('Review notifications sent successfully');
+      } catch (notificationError) {
+        console.error('Error sending review notifications:', notificationError);
+        // Don't show error to user since review was successfully submitted
+      }
+      
       // Reset form
       setRating(0);
       setReviewText("");

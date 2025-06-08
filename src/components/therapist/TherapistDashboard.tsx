@@ -78,7 +78,7 @@ const TherapistDashboard = () => {
           
         // Fetch followers count
         const { count: followersCount } = await supabase
-          .from('followers')
+          .from('followed_therapists')
           .select('id', { count: 'exact', head: true })
           .eq('therapist_id', user.id);
           

@@ -1608,3 +1608,85 @@ All major authentication, login, and file upload issues have been resolved. The 
 - `src/pages/TherapistMessagesFix.tsx` - Mobile responsive layout
 
 The platform is now production-ready with comprehensive mobile support for therapist messaging functionality.
+
+## Follow/Unfollow System Fix ✅ COMPLETED (Latest)
+
+### Problem Identified:
+- Error when unfollowing therapists: `TypeError: B.from(...).delete(...).eq(...).eq is not a function`
+- Same chained `.eq()` error as previous fixes - custom Supabase client limitation
+- Follower counts not updating immediately after follow/unfollow actions
+- Therapist dashboard querying wrong `followers` table instead of `followed_therapists`
+- Followed therapists not properly reflected in お気に入りセラピスト page
+
+### Root Cause:
+- Multiple components using chained `.eq()` calls for unfollow operations
+- Custom Supabase client wrapper doesn't support method chaining
+- Dashboard components querying non-existent `followers` table
+- Missing immediate UI updates for follower counts
+
+### Components Fixed:
+1. **TherapistDetail.tsx** - Main therapist profile page follow functionality
+2. **TherapistCard.tsx** - Therapist cards in listing views  
+3. **TherapistPublicPosts.tsx** - Follow functionality in posts view
+4. **AllTherapistPosts.tsx** - Follow functionality in all posts view
+5. **TherapistDashboard.tsx** (component version) - Follower count query
+
+### Solution Pattern Applied:
+```typescript
+// OLD (Breaking):
+const { error } = await supabase
+  .from('followed_therapists')
+  .delete()
+  .eq('user_id', userId)
+  .eq('therapist_id', therapistId); // Second .eq() causes error
+
+// NEW (Working):
+// 1. Find the record first
+const { data: existingRecord, error: findError } = await supabase
+  .from('followed_therapists')
+  .select('*')
+  .eq('user_id', userId)
+  .eq('therapist_id', therapistId)
+  .single();
+
+// 2. Delete by ID (single condition)
+if (existingRecord) {
+  const { error: deleteError } = await supabase
+    .from('followed_therapists')
+    .delete()
+    .eq('id', existingRecord.id);
+}
+```
+
+### Enhancements Added:
+1. **Immediate UI Updates**: Follower counts update in real-time before database confirmation
+2. **Error Recovery**: UI state reverts if database operation fails
+3. **Dashboard Fix**: Changed from `followers` table to correct `followed_therapists` table
+4. **Consistent Experience**: Follow/unfollow works identically across all components
+
+### Database Table Verified:
+- **Correct**: `followed_therapists` table exists and is used consistently
+- **Incorrect**: `followers` table doesn't exist (was causing dashboard errors)
+
+### UI Flow Improvements:
+- **Optimistic Updates**: UI changes immediately for better UX
+- **State Recovery**: Reverts changes if database operation fails
+- **Real-time Counts**: Follower numbers update instantly
+- **Cross-Component Sync**: All follow buttons and counts stay in sync
+
+### Files Modified:
+1. `src/pages/TherapistDetail.tsx` - Fixed unfollow + added immediate count updates
+2. `src/components/TherapistCard.tsx` - Fixed unfollow validation pattern
+3. `src/pages/TherapistPublicPosts.tsx` - Fixed chained .eq() error
+4. `src/pages/AllTherapistPosts.tsx` - Fixed unfollow functionality
+5. `src/components/therapist/TherapistDashboard.tsx` - Fixed table name from `followers` to `followed_therapists`
+
+### Current Status:
+✅ Follow/unfollow works correctly across all components
+✅ Follower counts update immediately and accurately
+✅ Therapist dashboards show correct follower numbers
+✅ お気に入りセラピスト page displays followed therapists properly
+✅ Consistent error handling and user feedback
+✅ No more chained `.eq()` errors in follow system
+
+The follow system is now fully functional with immediate UI feedback and proper error handling.

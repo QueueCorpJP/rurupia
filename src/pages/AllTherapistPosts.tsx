@@ -107,14 +107,29 @@ const AllTherapistPosts = () => {
       const isFollowing = followedTherapists.has(therapistId);
       
       if (isFollowing) {
-        // Unfollow
-        const { error } = await supabase
+        // Unfollow: Find and delete the specific record using validation-first pattern
+        // First validate the record exists
+        const { data: existingRecord, error: findError } = await supabase
           .from('followed_therapists')
-          .delete()
+          .select('*')
           .eq('user_id', currentUser.id)
-          .eq('therapist_id', therapistId);
+          .eq('therapist_id', therapistId)
+          .single();
           
-        if (error) throw error;
+        if (findError) {
+          console.error('Error finding follow record:', findError);
+          throw findError;
+        }
+        
+        if (existingRecord) {
+          // Delete by ID to avoid chained .eq() calls
+          const { error: deleteError } = await supabase
+            .from('followed_therapists')
+            .delete()
+            .eq('id', existingRecord.id);
+            
+          if (deleteError) throw deleteError;
+        }
         
         // Update local state
         const newFollowed = new Set(followedTherapists);

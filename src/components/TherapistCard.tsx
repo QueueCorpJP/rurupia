@@ -149,14 +149,29 @@ const TherapistCard = ({ therapist, className }: TherapistCardProps) => {
     
     try {
       if (isFollowing) {
-        // Unfollow: Delete the record
-        const { error } = await (supabase as any)
+        // Unfollow: Find and delete the specific record using validation-first pattern
+        // First validate the record exists
+        const { data: existingRecord, error: findError } = await (supabase as any)
           .from('followed_therapists')
-          .delete()
+          .select('*')
           .eq('user_id', String(user.id))
-          .eq('therapist_id', String(therapist.id));
+          .eq('therapist_id', String(therapist.id))
+          .single();
           
-        if (error) throw error;
+        if (findError) {
+          console.error('Error finding follow record:', findError);
+          throw findError;
+        }
+        
+        if (existingRecord) {
+          // Delete by ID to avoid chained .eq() calls
+          const { error: deleteError } = await (supabase as any)
+            .from('followed_therapists')
+            .delete()
+            .eq('id', existingRecord.id);
+            
+          if (deleteError) throw deleteError;
+        }
         
         toast.success(`${therapist.name}のフォローを解除しました`);
       } else {

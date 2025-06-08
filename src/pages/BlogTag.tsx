@@ -26,11 +26,8 @@ const BlogTag = () => {
         const decodedTag = decodeURIComponent(tag || '');
         
         const { data, error } = await supabase
-          .from('blog_posts')
+          .from('published_blog_posts')
           .select('*')
-          .eq('published', true)
-          .contains('tags', [decodedTag])
-          .or(`scheduled_for.is.null,scheduled_for.lte.${now}`)
           .order('published_at', { ascending: false });
         
         if (error) {
@@ -38,23 +35,25 @@ const BlogTag = () => {
           return;
         }
         
-        // Transform data to match BlogPost type
+        // Transform data to match BlogPost type and filter by tag
         if (data) {
-          const transformedPosts: BlogPost[] = data.map(post => ({
-            id: post.id,
-            title: post.title,
-            slug: post.slug,
-            excerpt: post.excerpt,
-            content: post.content,
-            publishedAt: new Date(post.published_at).toLocaleDateString('ja-JP'),
-            category: post.category,
-            tags: post.tags || [],
-            coverImage: post.cover_image || 'https://placehold.co/600x400/png',
-            readTime: post.read_time,
-            views: post.views,
-            author_name: post.author_name,
-            author_avatar: post.author_avatar
-          }));
+          const transformedPosts: BlogPost[] = data
+            .filter(post => (post.tags || []).includes(decodedTag))
+            .map(post => ({
+              id: post.id,
+              title: post.title,
+              slug: post.slug,
+              excerpt: post.excerpt,
+              content: post.content,
+              publishedAt: new Date(post.published_at).toLocaleDateString('ja-JP'),
+              category: post.category,
+              tags: post.tags || [],
+              coverImage: post.cover_image || 'https://placehold.co/600x400/png',
+              readTime: post.read_time,
+              views: post.views,
+              author_name: post.author_name,
+              author_avatar: post.author_avatar
+            }));
           
           setBlogPosts(transformedPosts);
         }

@@ -23,10 +23,8 @@ const Blog = () => {
         const now = new Date().toISOString();
         
         const { data, error } = await supabase
-          .from('blog_posts')
+          .from('published_blog_posts')
           .select('*')
-          .eq('published', true)
-          .or(`scheduled_for.is.null,scheduled_for.lte.${now}`)
           .order('published_at', { ascending: false });
         
         if (error) {

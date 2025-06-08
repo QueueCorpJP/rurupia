@@ -35,6 +35,8 @@ const BlogDetail = () => {
     const fetchPostAndRelated = async () => {
       setIsLoading(true);
       try {
+        // Get current date in ISO format for filtering scheduled posts
+        const now = new Date().toISOString();
         if (!slug) return;
         
         // 1. Fetch the specific post
@@ -139,9 +141,8 @@ const BlogDetail = () => {
         
         // 6. Fetch recent posts
         const { data: recentData, error: recentError } = await supabase
-          .from('blog_posts')
+          .from('published_blog_posts')
           .select('*')
-          .eq('published', true)
           .neq('slug', slug)
           .order('published_at', { ascending: false })
           .limit(3);

@@ -124,14 +124,33 @@ const ResetPassword = () => {
     try {
       setIsLoading(true);
       
+      // Check if we have a valid session before attempting password update
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        toast.error("セッションが無効です。新しいパスワードリセットリンクを要求してください。", {
+          duration: 5000,
+        });
+        navigate("/forgot-password");
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: password
       });
 
       if (error) {
-        toast.error(`パスワード更新エラー: ${error.message}`, {
-          duration: 3000,
-        });
+        console.error("Password update error:", error);
+        if (error.message.includes('422')) {
+          toast.error("パスワードリセットセッションが期限切れです。新しいリンクを要求してください。", {
+            duration: 5000,
+          });
+          navigate("/forgot-password");
+        } else {
+          toast.error(`パスワード更新エラー: ${error.message}`, {
+            duration: 3000,
+          });
+        }
         return;
       }
 

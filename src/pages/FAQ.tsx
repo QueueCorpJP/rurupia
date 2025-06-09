@@ -10,58 +10,65 @@ const FAQ = () => {
         
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="item-1">
-            <AccordionTrigger>るぴぴあはどのようなサービスですか？</AccordionTrigger>
+            <AccordionTrigger>「るぴぴあ」とはどんなサイトですか？</AccordionTrigger>
             <AccordionContent>
-              るぴぴあは、男性セラピストによるリラクゼーションサービスのマッチングプラットフォームです。信頼できるセラピストと簡単に予約ができ、心と体のリラクゼーションをサポートします。
-            </AccordionContent>
+            「るぴぴあ」は、女性向け風俗のセラピストと、自分に合う人をゆっくり探したい女性をつなぐ、相性重視のマッチングサイトです。
+            複数の店舗に所属するセラピストの情報を一度に見られ、プロフィールや投稿を見ながら、気になる相手を自由に選べます。            </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-2">
-            <AccordionTrigger>予約方法を教えてください</AccordionTrigger>
+            <AccordionTrigger>「るぴぴあ」は無料で登録できますか？</AccordionTrigger>
             <AccordionContent>
-              まずは、お好みのセラピストを検索・選択し、プロフィールページからセッションをリクエストしてください。セラピストからの承認後、予約が確定します。ログインすることで予約の管理がさらに便利になります。
+            はい。ユーザー登録やセラピストの閲覧・チャット機能の利用など、基本機能はすべて無料です。料金が発生するのは、実際にお店でサービスを利用する際のみなので、安心してご利用いただけます。
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-3">
-            <AccordionTrigger>支払い方法は何がありますか？</AccordionTrigger>
+            <AccordionTrigger>セラピストはどうやって探せばいいですか？</AccordionTrigger>
             <AccordionContent>
-              支払い方法は現地での現金払いのみになります。
+            セラピスト一覧から接客スタイル・容姿などの条件で絞り込んだり、投稿内容から人柄を見てセラピストを探すことができます。価値観や趣味の共通点が見える機能もあり、相性の良さを見つけやすいのが「るぴぴあ」の特徴です。
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-5">
-            <AccordionTrigger>セラピストはどのように選ばれていますか？</AccordionTrigger>
+            <AccordionTrigger>予約はどうすればいいですか？</AccordionTrigger>
             <AccordionContent>
-              すべてのセラピストは厳格な審査プロセスを経て、資格や経験、プロフェッショナリズムが確認されています。また、ユーザーからのレビューシステムにより、高品質なサービスの提供を維持しています。
+            日時や場所を入力した、予約リクエストを送信するだけの簡単予約です。リクエストの送信前に、セラピストとチャットでお話することもできます。
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-6">
-            <AccordionTrigger>セラピストとして登録するには？</AccordionTrigger>
+            <AccordionTrigger>トラブルに巻き込まれないか心配です。</AccordionTrigger>
             <AccordionContent>
-              店舗から発行された登録リンクから、名前やセラピスト名などの情報を提出してください。審査後、承認されると登録完了となります。詳細な情報は登録後セラピスト用のプロフィールページから変更可能です。
+            セラピストとの間に不快な言動やトラブルがあった場合は、通報ボタンからすぐに報告できます。通報内容は店舗に連携され、必要に応じて運営側でも対応します。安全・安心に利用していただくための仕組みを整えています。
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-7">
-            <AccordionTrigger>予約のキャンセルや変更はできますか？</AccordionTrigger>
+            <AccordionTrigger>知人に知られずに利用できますか？</AccordionTrigger>
             <AccordionContent>
-              マイページの予約タブから予約の管理が可能です。
+            はい。「るぴぴあ」はニックネームとアイコンでの利用が可能で、投稿やチャットの内容は外部に公開されません。
             </AccordionContent>
           </AccordionItem>
           
           <AccordionItem value="item-8">
-            <AccordionTrigger>サービス中に問題が発生した場合はどうすればいいですか？</AccordionTrigger>
+            <AccordionTrigger>女性用風俗の利用がはじめてでも大丈夫ですか？</AccordionTrigger>
             <AccordionContent>
-              お問い合わせフォームまでご連絡ください。すべての問題に対して迅速に対応いたします。また、セッション後のフィードバックもサービス改善に役立てています。
+            もちろん大丈夫です。はじめての方こそ、複数の店舗やセラピストを比較できる「るぴぴあ」が安心です。プロフィールや投稿・チャットを通して、セラピストの人柄を知ることができます。
             </AccordionContent>
           </AccordionItem>          
           
           <AccordionItem value="item-10">
-            <AccordionTrigger>予約の確認方法はありますか？</AccordionTrigger>
+            <AccordionTrigger>女性用風俗の料金や支払い方法は？</AccordionTrigger>
             <AccordionContent>
-              予約完了後、確認メールが送信されます。また、マイページの予約履歴からもすべての予約を確認できます。
+            料金や支払い方法は各店舗によって異なりますが、事前にコース料金を確認できるため、納得した上で予約できます。
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="item-11">
+            <AccordionTrigger>プライバシーは守られますか？</AccordionTrigger>
+            <AccordionContent>
+            はい。ユーザーの個人情報は一切公開されず、ニックネームのみで利用できます。また、運営は女性ユーザーの匿名性・安全性を最優先に設計しており、情報が外部に漏れることはありません。
             </AccordionContent>
           </AccordionItem>
         </Accordion>

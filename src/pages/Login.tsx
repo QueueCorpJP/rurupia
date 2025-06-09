@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "../components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
   const isMobile = useIsMobile();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -71,6 +73,12 @@ const Login = () => {
           dismissible: true,
         });
         
+        // Check if there's a redirect parameter and use it if valid
+        if (redirectTo && (redirectTo.startsWith('/') || redirectTo.startsWith('http'))) {
+          navigate(redirectTo);
+          return;
+        }
+        
         const { data: storeData } = await supabase
           .from('stores')
           .select('id')
@@ -108,10 +116,14 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
+      const callbackUrl = redirectTo 
+        ? `${window.location.origin}/google-auth-callback?redirect=${encodeURIComponent(redirectTo)}`
+        : window.location.origin + '/google-auth-callback';
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/google-auth-callback',
+          redirectTo: callbackUrl,
         },
       });
 

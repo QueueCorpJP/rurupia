@@ -28,25 +28,29 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Get user email
-    const { data: user, error: userError } = await supabaseClient.auth.admin.getUserById(userId)
+    // Get user email - try auth user lookup first, fallback to provided email
+    let userEmail = null
     
-    if (userError || !user) {
-      console.error('ユーザー取得エラー:', userError)
-      return new Response(
-        JSON.stringify({ success: false, error: 'ユーザーが見つかりません' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        },
-      )
+    if (userId) {
+      const { data: user, error: userError } = await supabaseClient.auth.admin.getUserById(userId)
+      
+      if (user && user.user && user.user.email) {
+        userEmail = user.user.email
+      } else {
+        console.warn('ユーザー取得に失敗、フォールバックメールを使用:', userError)
+      }
     }
-
-    const userEmail = user.user.email
+    
+    // Use fallback email if auth user lookup failed or userId is null
+    if (!userEmail && data && data.fallbackEmail) {
+      userEmail = data.fallbackEmail
+      console.log('フォールバックメールアドレスを使用:', userEmail)
+    }
+    
     if (!userEmail) {
-      console.error('ユーザーのメールアドレスが見つかりません')
+      console.error('メールアドレスが見つかりません')
       return new Response(
-        JSON.stringify({ success: false, error: 'ユーザーのメールアドレスが見つかりません' }),
+        JSON.stringify({ success: false, error: 'メールアドレスが見つかりません' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -99,7 +103,7 @@ serve(async (req) => {
     <div class="content">
       <h2>新しい通知があります</h2>
       <p>${message}</p>
-      <a href="https://rupipia.jp/messages" class="button">メッセージを確認する</a>
+      <a href="https://rupipia.jp/login?redirect=/messages" class="button">メッセージを確認する</a>
     </div>
     <div class="footer">
       <p>このメールに心当たりがない場合は、お手数ですが削除してください。</p>
@@ -109,6 +113,35 @@ serve(async (req) => {
 </body>
 </html>`
 
+    // Create email payload for SendGrid
+    const emailPayload = {
+      personalizations: [{
+        to: [{ email: userEmail }],
+        subject: title
+      }],
+      from: { 
+        email: Deno.env.get('FROM_EMAIL') ?? 'noreply@rupipia.jp',
+        name: Deno.env.get('FROM_NAME') ?? 'るぴぴあ'
+      },
+      content: [{
+        type: 'text/html',
+        value: htmlContent
+      }],
+      tracking_settings: {
+        click_tracking: {
+          enable: false
+        },
+        open_tracking: {
+          enable: false
+        }
+      }
+    }
+
+    // Log the exact payload being sent to SendGrid
+    console.log('=== SENDGRID REQUEST PAYLOAD ===')
+    console.log('Payload:', JSON.stringify(emailPayload, null, 2))
+    console.log('=== END SENDGRID PAYLOAD ===')
+
     // Send email via SendGrid
     const sendGridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
@@ -116,38 +149,33 @@ serve(async (req) => {
         'Authorization': `Bearer ${sendGridApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        personalizations: [{
-          to: [{ email: userEmail }],
-          subject: title
-        }],
-        from: { 
-          email: Deno.env.get('FROM_EMAIL') ?? 'noreply@rupipia.jp',
-          name: Deno.env.get('FROM_NAME') ?? 'るぴぴあ'
-        },
-        content: [{
-          type: 'text/html',
-          value: htmlContent
-        }],
-        tracking_settings: {
-          click_tracking: {
-            enable: false
-          },
-          open_tracking: {
-            enable: false
-          }
-        }
-      })
+      body: JSON.stringify(emailPayload)
     })
+
+    console.log('=== SENDGRID RESPONSE ===')
+    console.log('Status:', sendGridResponse.status)
+    console.log('Status Text:', sendGridResponse.statusText)
+    console.log('Headers:', Object.fromEntries(sendGridResponse.headers.entries()))
+    console.log('=== END SENDGRID RESPONSE ===')
 
     if (!sendGridResponse.ok) {
       const errorText = await sendGridResponse.text()
       console.error(`SendGrid error: ${sendGridResponse.status} - ${errorText}`)
       console.error('SendGrid response headers:', Object.fromEntries(sendGridResponse.headers.entries()))
+      
+      // Try to parse the error response as JSON for more details
+      try {
+        const errorJson = JSON.parse(errorText)
+        console.error('SendGrid detailed error:', JSON.stringify(errorJson, null, 2))
+      } catch (e) {
+        console.error('Could not parse SendGrid error as JSON:', errorText)
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: `メール送信エラー: ${sendGridResponse.status}` 
+          error: `メール送信エラー: ${sendGridResponse.status}`,
+          details: errorText
         }),
         { 
           status: 500, 
@@ -163,6 +191,17 @@ serve(async (req) => {
     console.log(`種類: ${type}`)
     console.log('SendGrid response:', responseText)
     console.log('SendGrid response headers:', Object.fromEntries(sendGridResponse.headers.entries()))
+
+    // Additional validation - check if response contains any error indicators
+    if (responseText && responseText.length > 0) {
+      try {
+        const responseJson = JSON.parse(responseText)
+        console.log('SendGrid response JSON:', responseJson)
+      } catch (e) {
+        // Response text is not JSON, which is normal for successful SendGrid requests
+        console.log('SendGrid response is not JSON (this is normal for success)')
+      }
+    }
 
     return new Response(
       JSON.stringify({ 

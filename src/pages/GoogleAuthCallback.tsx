@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const GoogleAuthCallback = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
 
   useEffect(() => {
     const checkUserStatus = async () => {
@@ -50,6 +52,12 @@ const GoogleAuthCallback = () => {
 
         // User is not banned, redirect based on user type
         toast.success('ログインしました');
+
+        // Check if there's a redirect parameter and use it if valid
+        if (redirectTo && (redirectTo.startsWith('/') || redirectTo.startsWith('http'))) {
+          navigate(redirectTo);
+          return;
+        }
 
         // Check if user is a store
         const { data: storeData } = await supabase

@@ -56,6 +56,20 @@ export const sendVerificationEmail = async (userEmail: string, userName: string,
     console.log('=== END EMAIL NOTIFICATION ===');
 
     // Call the edge function to send the actual email using admin client
+    console.log('🚀 About to invoke edge function send-email-notification');
+    console.log('Function parameters:', {
+      userId: userId || null,
+      title: subject,
+      message: message,
+      type: 'verification',
+      data: {
+        isApproved: isApproved,
+        userName: userName,
+        userEmail: userEmail,
+        fallbackEmail: userEmail
+      }
+    });
+    
     const { data, error } = await supabaseAdmin.functions.invoke('send-email-notification', {
       body: {
         userId: userId || null,
@@ -71,8 +85,12 @@ export const sendVerificationEmail = async (userEmail: string, userName: string,
       }
     });
 
+    console.log('📧 Edge function invocation completed');
+    console.log('Response data:', data);
+    console.log('Response error:', error);
+
     if (error) {
-      console.error('Edge function error:', error);
+      console.error('❌ Edge function error:', error);
       throw error;
     }
     console.log('✅ Edge function response:', data);

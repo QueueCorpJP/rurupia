@@ -10,8 +10,7 @@ const About = () => {
     ceo: "松下七海",
     business: "アプリケーションソフトウェア販売業・メディア運営業",
     address: "〒130-0022 東京都墨田区江東橋4丁目27番14号 楽天地ビル3F",
-    email: "info@noctle.com",
-    phone: "03-1234-5678"
+    email: "info@noctle.com"
   };
 
   return (
@@ -81,13 +80,7 @@ const About = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-4">
-                      <Phone className="h-5 w-5 text-primary flex-shrink-0" />
-                      <div>
-                        <p className="font-medium">電話番号</p>
-                        <p className="text-muted-foreground">{companyInfo.phone}</p>
-                      </div>
-                    </div>
+                
                     
                     <div className="flex items-center gap-4">
                       <Mail className="h-5 w-5 text-primary flex-shrink-0" />

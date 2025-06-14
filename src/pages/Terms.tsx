@@ -9,7 +9,7 @@ const Terms = () => {
         
         <div className="prose prose-slate max-w-none">
           <p className="text-muted-foreground mb-6">
-            最終更新日: 2023年12月1日
+            最終更新日: 2025年6月14日
           </p>
           
           <section className="mb-8">

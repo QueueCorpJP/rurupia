@@ -172,7 +172,7 @@ const Privacy = () => {
               当サービスは、以下の第三者サービスと連携しています：
             </p>
             <ul className="list-disc pl-6 mt-2 space-y-2">
-              <li><strong>Google・LINE：</strong> ログイン認証（LINEのプライバシーポリシーが適用されます）</li>
+              <li><strong>Google・LINE：</strong> ログイン認証（Goole・LINEのプライバシーポリシーが適用されます）</li>
             </ul>
             <p className="mt-4">
               これらのサービスには、それぞれ独自のプライバシーポリシーが適用されます。

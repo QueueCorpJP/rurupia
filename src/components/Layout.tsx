@@ -138,7 +138,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                       <User className="h-4 w-4 mr-1" />
                       マイページ
                     </NavigationMenuTrigger>
-                    <NavigationMenuContent>
+                    <NavigationMenuContent className="right-0 left-auto">
                       <div className="grid w-[200px] gap-2 p-4">
                         <Link to={getUserDashboardLink()} className="block p-2 hover:bg-muted rounded-md">
                               <User className="h-4 w-4 inline mr-2" />
@@ -176,7 +176,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                   <NavigationMenuList>
                     <NavigationMenuItem>
                       <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
-                      <NavigationMenuContent>
+                      <NavigationMenuContent className="right-0 left-auto">
                         <div className="grid w-[200px] gap-2 p-4">
                           <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
                             ユーザーログイン
@@ -197,7 +197,7 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                   <NavigationMenuList>
                     <NavigationMenuItem>
                       <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
-                      <NavigationMenuContent>
+                      <NavigationMenuContent className="right-0 left-auto">
                         <div className="grid w-[200px] gap-2 p-4">
                           <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
                             ユーザー登録

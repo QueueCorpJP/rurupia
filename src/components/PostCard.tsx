@@ -695,7 +695,8 @@ const PostCard = ({ post: initialPost, onPostUpdated }: PostCardProps) => {
             <img 
               src={post.image_url} 
               alt="Post" 
-              className="w-full h-auto rounded-lg"
+              className="w-full max-w-md mx-auto h-auto rounded-lg object-cover"
+              style={{ aspectRatio: '16/9', maxHeight: '300px' }}
               onError={(e) => {
                 // Handle image load errors
                 const target = e.target as HTMLImageElement;

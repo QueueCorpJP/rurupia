@@ -1846,3 +1846,30 @@ if (error || !profile?.is_verified) {
 - ✅ **Profile update feedback** - Success toasts working for both user types
 
 This documentation serves as a reference for understanding the custom Supabase client limitations and the established patterns for working around them in this project.
+
+### PM Feedback UI Fixes ✅ (January 2025)
+**Problem 1**: Sign-up modal positioned incorrectly - goes off-screen when hovering over 新規登録 (New Registration) button in top right corner.
+
+**Root Cause**: Navigation menu dropdowns were using default left alignment, causing them to extend beyond the right edge of the screen.
+
+**Solution Applied**:
+1. **Right-Aligned Dropdowns**: Added `className="right-0 left-auto"` to all navigation menu content in header
+2. **Consistent Positioning**: Applied to all dropdown menus (Login, Sign-up, User Profile) for consistency
+3. **Files Modified**: `/src/components/Layout.tsx` - Updated NavigationMenuContent positioning
+4. **UI Components**: Also updated `/src/components/ui/navigation-menu.tsx` for general cleanup
+
+**Problem 2**: Images on `/all-posts` therapist posts page too large on big devices due to maintaining 1:1 aspect ratio.
+
+**Root Cause**: PostCard component used `w-full h-auto` for images, making them expand to full container width without size constraints.
+
+**Solution Applied**:
+1. **Responsive Image Sizing**: Added `max-w-md mx-auto` to limit maximum width and center images
+2. **Aspect Ratio Control**: Set `aspectRatio: '16/9'` and `maxHeight: '300px'` via style attribute
+3. **Better Object Fitting**: Added `object-cover` class for proper image scaling
+4. **Files Modified**: `/src/components/PostCard.tsx` - Updated image rendering with size constraints
+
+**Technical Details**:
+- **Before**: Images scaled to full width on large screens, became too dominant
+- **After**: Images max out at medium width (28rem), maintain 16:9 aspect ratio, max height 300px
+- **Responsive Design**: Images now scale appropriately across all device sizes
+- **User Experience**: Post layout now balanced between text and images on all screen sizes

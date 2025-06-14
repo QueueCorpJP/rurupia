@@ -138,8 +138,8 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                       <User className="h-4 w-4 mr-1" />
                       マイページ
                     </NavigationMenuTrigger>
-                    <NavigationMenuContent className="right-0 left-auto mr-6">
-                      <div className="grid w-[200px] gap-2 p-4 pr-6">
+                    <NavigationMenuContent>
+                      <div className="grid w-[220px] gap-2 p-4 pl-6 pr-8">
                         <Link to={getUserDashboardLink()} className="block p-2 hover:bg-muted rounded-md">
                               <User className="h-4 w-4 inline mr-2" />
                               プロフィール
@@ -176,8 +176,8 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                   <NavigationMenuList>
                     <NavigationMenuItem>
                       <NavigationMenuTrigger className="text-sm">ログイン</NavigationMenuTrigger>
-                      <NavigationMenuContent className="right-0 left-auto mr-6">
-                        <div className="grid w-[200px] gap-2 p-4 pr-6">
+                      <NavigationMenuContent>
+                        <div className="grid w-[220px] gap-2 p-4 pl-6 pr-8">
                           <Link to="/login" className="block p-2 hover:bg-muted rounded-md">
                             ユーザーログイン
                           </Link>
@@ -197,8 +197,8 @@ const Layout = ({ children, lang = 'ja-JP' }: LayoutProps) => {
                   <NavigationMenuList>
                     <NavigationMenuItem>
                       <NavigationMenuTrigger className="text-sm">新規登録</NavigationMenuTrigger>
-                      <NavigationMenuContent className="right-0 left-auto mr-6">
-                        <div className="grid w-[200px] gap-2 p-4 pr-6">
+                      <NavigationMenuContent>
+                        <div className="grid w-[220px] gap-2 p-4 pl-6 pr-8">
                           <Link to="/signup" className="block p-2 hover:bg-muted rounded-md">
                             ユーザー登録
                           </Link>

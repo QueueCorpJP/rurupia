@@ -1873,3 +1873,23 @@ This documentation serves as a reference for understanding the custom Supabase c
 - **After**: Images max out at medium width (28rem), maintain 16:9 aspect ratio, max height 300px
 - **Responsive Design**: Images now scale appropriately across all device sizes
 - **User Experience**: Post layout now balanced between text and images on all screen sizes
+
+### UI Fix – Navigation Menu Dropdown Position (June 2025)
+**Problem:** The "新規登録 / Sign-up" dropdown in the header touched the top-right corner of the viewport, looking unprofessional.
+
+**Root Cause:** The `NavigationMenu` root component included the `flex-1` class, causing it to stretch to the full width of the header. Because the dropdown content is positioned with `left-0 top-full`, this wide root made the dropdown align to the far right edge.
+
+**Solution:** Removed `flex-1` from the root element so the component's width shrinks to its trigger size. This keeps the dropdown aligned under its trigger and ensures it no longer touches the screen edge.
+
+**File Modified:**
+1. `src/components/ui/navigation-menu.tsx` – removed `flex-1` from root `className`.
+
+**Result:** All header dropdowns (ログイン, 新規登録, マイページ) now open directly under their triggers with comfortable spacing from the viewport edges.
+
+**Update:** Also removed `flex-1` from `NavigationMenuList` inside the same file to ensure the root doesn't stretch, fully resolving the dropdown's alignment issue.
+
+**Alignment Enhancement:** Added `className="right-0 left-auto"` to every `NavigationMenuContent` in `Layout.tsx` so dropdowns anchor to the right edge of their triggers, eliminating any overflow that caused them to touch the viewport edge.
+
+**Padding Reduction:** Changed dropdown container padding from `p-4 pl-8 pr-10` to `p-2` across all navigation menus to make them more compact and reduce overall width.
+
+**Width Reduction:** Reduced the registration dropdown container width from `w-[240px]` to `w-[180px]` to make it more compact and prevent it from extending too far from its trigger.

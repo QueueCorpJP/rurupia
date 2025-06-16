@@ -109,6 +109,25 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availableDaysByMonth, setAvailableDaysByMonth] = useState<Record<string, Date[]>>({});
   const [noAvailability, setNoAvailability] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check authentication status before showing the form
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsLoggedIn(!!user);
+        setIsCheckingAuth(false);
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        setIsLoggedIn(false);
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
 
   // Fetch therapist's working hours when component loads
   useEffect(() => {
@@ -512,8 +531,16 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast.error("ログインしていません");
+        // Show specific error for non-logged users and redirect to login
+        toast.error("予約するにはログインが必要です", {
+          description: "ログインページに移動します",
+          duration: 3000,
+        });
         setIsSubmitting(false);
+        // Redirect to login page with return URL
+        setTimeout(() => {
+          navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+        }, 1500);
         return;
       }
 
@@ -583,10 +610,12 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
           const userName = userData?.name || user.email || 'クライアント';
             
           // Send notification to therapist
-          await sendBookingNotificationToTherapist(String(therapist.id), userName, dateTime);
+          const therapistNotificationResult = await sendBookingNotificationToTherapist(String(therapist.id), userName, dateTime);
+          console.log('Therapist notification result:', therapistNotificationResult);
             
           // Send notification to store
-          await sendBookingNotificationToStore(String(therapist.id), userName, dateTime);
+          const storeNotificationResult = await sendBookingNotificationToStore(String(therapist.id), userName, dateTime);
+          console.log('Store notification result:', storeNotificationResult);
         } catch (notificationError) {
           console.error('Error sending booking notifications:', notificationError);
           // Continue with redirection even if notifications fail
@@ -610,7 +639,36 @@ const BookingRequestForm = ({ therapist, onClose }: BookingRequestFormProps) => 
           <h2 className="text-2xl font-semibold">予約リクエストを送信</h2>
         </div>
 
-        {noAvailability ? (
+        {isCheckingAuth ? (
+          <div className="text-center p-8 space-y-4">
+            <div className="inline-block animate-spin h-6 w-6 border-2 border-current border-t-transparent rounded-full"></div>
+            <p className="text-muted-foreground">認証状態を確認中...</p>
+          </div>
+        ) : !isLoggedIn ? (
+          <div className="text-center p-8 space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <h3 className="text-lg font-semibold text-yellow-800 mb-2">ログインが必要です</h3>
+              <p className="text-yellow-700 mb-4">
+                予約をするにはアカウントにログインする必要があります。
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button 
+                  onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}
+                  className="bg-yellow-600 hover:bg-yellow-700"
+                >
+                  ログイン
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate(`/signup?redirect=${encodeURIComponent(window.location.pathname)}`)}
+                >
+                  新規登録
+                </Button>
+              </div>
+            </div>
+            <Button variant="outline" onClick={onClose}>戻る</Button>
+          </div>
+        ) : noAvailability ? (
           <div className="text-center p-8 space-y-4">
             <p className="text-muted-foreground">
               このセラピストは現在予約を受け付けていません。

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "../components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ const Signup = () => {
   const [idPreview, setIdPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
 
   // Check if user is already logged in
   useEffect(() => {
@@ -41,7 +43,7 @@ const Signup = () => {
     try {
       setIsLoading(true);
       
-      // 1. Register the user with Supabase Auth
+              // 1. Sign up the user with Supabase Auth
       // No need to handle profile creation manually - it's done by a database trigger
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -59,7 +61,7 @@ const Signup = () => {
         
         // Provide specific Japanese error messages for common scenarios
         let errorMessage = authError.message;
-        if (authError.message.includes('User already registered')) {
+        if (authError.message.includes('User already signed up')) {
           errorMessage = 'このメールアドレスは既に登録されています。ログインページからサインインしてください。';
         } else if (authError.message.includes('Invalid email')) {
           errorMessage = 'メールアドレスの形式が正しくありません。';
@@ -84,7 +86,7 @@ const Signup = () => {
         return;
       }
       
-      console.log("User registered successfully:", authData.user.id);
+              console.log("User signed up successfully:", authData.user.id);
       
       // Wait a bit to allow triggers to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -129,8 +131,14 @@ const Signup = () => {
       console.log("Signup process completed successfully");
       toast.success("登録が完了しました！");
       
-      // Redirect to registration pending page instead of auto-login
-      navigate("/registration-pending");
+      // Redirect to registration pending page or original redirect URL
+      if (redirectTo && redirectTo.startsWith('/')) {
+        navigate("/registration-pending");
+        // Store redirect URL in sessionStorage for after approval
+        sessionStorage.setItem('post_signup_redirect', redirectTo);
+      } else {
+        navigate("/registration-pending");
+      }
       
     } catch (error) {
       console.error("Signup process error:", error);

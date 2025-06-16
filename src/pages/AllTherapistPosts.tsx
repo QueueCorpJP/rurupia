@@ -328,24 +328,26 @@ const AllTherapistPosts = () => {
           </div>
           
           {/* Posts List */}
-          <div className="space-y-6">
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
-              </div>
-            ) : posts.length > 0 ? (
-              posts.map(post => (
-                <PostCard 
-                  key={post.id} 
-                  post={post} 
-                  onPostUpdated={() => handlePostUpdate(post.id)}
-                />
-              ))
-            ) : (
-              <div className="bg-white border rounded-lg p-8 text-center">
-                <p className="text-muted-foreground">投稿がありません</p>
-              </div>
-            )}
+          <div className="flex flex-col items-center">
+            <div className="w-full max-w-sm space-y-4">
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : posts.length > 0 ? (
+                posts.map(post => (
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    onPostUpdated={() => handlePostUpdate(post.id)}
+                  />
+                ))
+              ) : (
+                <div className="bg-white border rounded-lg p-8 text-center">
+                  <p className="text-muted-foreground">投稿がありません</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

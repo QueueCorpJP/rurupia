@@ -33,7 +33,7 @@ const StoreSignup = () => {
     try {
       setIsLoading(true);
       
-      // 1. Register the user with Supabase Auth
+      // 1. Sign up the user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,

@@ -234,7 +234,7 @@ const TherapistSignup = () => {
       });
 
       if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
+        if (signUpError.message.includes('already signed up')) {
           toast.error('このメールアドレスは既に登録されています');
           return;
         }

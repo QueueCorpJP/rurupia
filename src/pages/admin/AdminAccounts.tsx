@@ -306,7 +306,7 @@ export default function AdminAccounts() {
         console.error('Auth error:', authError);
         
         // Provide more user-friendly error messages
-        if (authError.message.includes('already been registered')) {
+        if (authError.message.includes('already been signed up')) {
           toast.error(`このメールアドレス（${newAccountData.email}）は既に登録されています。別のメールアドレスを使用してください。`);
         } else if (authError.message.includes('Invalid email')) {
           toast.error('無効なメールアドレスです。正しい形式で入力してください。');

@@ -2,28 +2,53 @@
 let configCache: any = null;
 
 export async function getConfig() {
-  if (configCache) {
+  // Only return cache if it has valid Supabase config
+  if (configCache && configCache.VITE_SUPABASE_URL && configCache.VITE_SUPABASE_ANON_KEY) {
     return configCache;
   }
 
+  // First try environment variables directly
+  const envConfig = {
+    VITE_TINYMCE_API_KEY: (import.meta as any).env?.VITE_TINYMCE_API_KEY,
+    VITE_APP_LINE_CLIENT_ID: (import.meta as any).env?.VITE_APP_LINE_CLIENT_ID,
+    VITE_APP_LINE_CLIENT_SECRET: (import.meta as any).env?.VITE_APP_LINE_CLIENT_SECRET,
+    VITE_SUPABASE_URL: (import.meta as any).env?.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: (import.meta as any).env?.VITE_SUPABASE_ANON_KEY
+  };
+
+  // If we have Supabase env vars, use them directly
+  if (envConfig.VITE_SUPABASE_URL && envConfig.VITE_SUPABASE_ANON_KEY) {
+    configCache = envConfig;
+    return configCache;
+  }
+
+  // Otherwise try the API
   try {
     const response = await fetch('/api/config');
     if (!response.ok) {
       throw new Error('Failed to fetch config');
     }
-    configCache = await response.json();
-    return configCache;
+    const text = await response.text();
+    
+    // Check if response is JSON
+    if (!text.trim().startsWith('{')) {
+      throw new Error('API returned non-JSON response');
+    }
+    
+    const apiConfig = JSON.parse(text);
+    // Only cache if we have valid Supabase config
+    if (apiConfig.VITE_SUPABASE_URL && apiConfig.VITE_SUPABASE_ANON_KEY) {
+      configCache = apiConfig;
+      return configCache;
+    }
   } catch (error) {
     console.error('Error fetching config:', error);
-    // Fallback to environment variables for development
-    return {
-      VITE_TINYMCE_API_KEY: (import.meta as any).env?.VITE_TINYMCE_API_KEY,
-      VITE_APP_LINE_CLIENT_ID: (import.meta as any).env?.VITE_APP_LINE_CLIENT_ID,
-      VITE_APP_LINE_CLIENT_SECRET: (import.meta as any).env?.VITE_APP_LINE_CLIENT_SECRET,
-      VITE_SUPABASE_URL: (import.meta as any).env?.VITE_SUPABASE_URL,
-      VITE_SUPABASE_ANON_KEY: (import.meta as any).env?.VITE_SUPABASE_ANON_KEY
-    };
   }
+  
+  // Final fallback to environment variables (even if incomplete)
+  console.warn('Using environment variables as fallback config');
+  configCache = envConfig;
+  return configCache;
 }
 
 // Helper functions to get specific config values

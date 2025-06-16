@@ -23,7 +23,7 @@ const MessageInterface = ({ therapist, currentUser, isUserVerified }: MessageInt
       toast.error('メッセージ機能をご利用いただくには会員登録が必要です。', {
         duration: 4000,
       });
-      navigate('/register');
+                    navigate('/signup');
       return;
     }
     

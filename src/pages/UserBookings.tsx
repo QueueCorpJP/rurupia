@@ -88,6 +88,10 @@ const UserBookings = () => {
         if (!user) {
           setError('ログインしていません。ログインしてください。');
           setIsLoading(false);
+          // Redirect to login page after a short delay
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
           return;
         }
         

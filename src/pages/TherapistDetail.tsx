@@ -826,7 +826,7 @@ const TherapistDetail = () => {
                           toast.error('予約するには会員登録が必要です。まずは会員登録をお願いします。', {
                             duration: 4000,
                           });
-                          navigate('/register');
+                          navigate('/signup');
                           return;
                         }
                         

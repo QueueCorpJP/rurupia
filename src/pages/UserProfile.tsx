@@ -465,8 +465,8 @@ const UserProfile = () => {
       if (error && typeof error === 'object' && 'message' in error) {
         const errorMsg = (error as any).message;
         
-        if (errorMsg.includes('A user with this email address has already been registered') || 
-            errorMsg.includes('already been registered')) {
+                if (errorMsg.includes('A user with this email address has already been signed up') ||
+            errorMsg.includes('already been signed up')) {
           errorMessage = "このメールアドレスは既に使用されています";
           errorDescription = "別のメールアドレスをお試しください。または、そのメールアドレスでアカウントを作成済みの場合は、パスワードログインをご利用ください。";
         } else if (errorMsg.includes('Invalid email')) {

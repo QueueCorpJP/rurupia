@@ -17,7 +17,7 @@ const BlogCard = ({ post, variant = 'default', isRelated = false }: BlogCardProp
   
   return (
     <article className={`group overflow-hidden rounded-lg border bg-card transition-all hover:shadow-md ${
-      isFeatured ? 'lg:grid lg:grid-cols-2 gap-6' : ''
+      isFeatured ? 'lg:grid lg:grid-cols-2 gap-6 lg:max-w-[800px]' : 'lg:max-w-[800px]'
     }`}>
       <Link 
         to={`/blog/${post.slug}`} 

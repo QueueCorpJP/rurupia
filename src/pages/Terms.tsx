@@ -107,8 +107,7 @@ const Terms = () => {
             <h2 className="text-xl font-semibold mb-4">14. お問い合わせ</h2>
             <p>
               本規約に関するご質問やお問い合わせは、以下の連絡先までお願いします：<br />
-              メール: info@nokutoru.com<br />
-              電話: 03-1234-5678
+              メール: info@noctle.com
             </p>
           </section>
         </div>

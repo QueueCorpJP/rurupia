@@ -9,7 +9,7 @@ import {
 
 // Define all MBTI personality types + "I don't know" option
 export const mbtiTypes = [
-  { id: 'unknown', label: 'わからない' },
+  { id: 'unknown', label: '全て' },
   { id: 'INTJ', label: 'INTJ - 建築家' },
   { id: 'INTP', label: 'INTP - 論理学者' },
   { id: 'ENTJ', label: 'ENTJ - 指揮官' },
@@ -47,7 +47,7 @@ export const MBTISelect: React.FC<MBTISelectProps> = ({
       <SelectTrigger>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
+            <SelectContent position="popper" side="bottom" sideOffset={5} align="start" avoidCollisions={false}>
         {mbtiTypes.map(type => (
           <SelectItem key={type.id} value={type.id}>
             {type.label}

@@ -708,7 +708,8 @@ const Index = () => {
                 </span>
               </div>
               <h1 className="text-4xl font-bold tracking-tight md:text-5xl mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-rose-400">
-                もう、なんとなくで選ばない。<br className="hidden sm:inline" />"Re：また会いたくなる出会い"が、ここにある。
+                <span className="sm:hidden">Re：また会いたくなる出会いがここにある。</span>
+              <span className="hidden sm:inline">もう、なんとなくで選ばない。<br />"Re：また会いたくなる出会い"が、ここにある。</span>
               </h1>
               <p className="text-xl text-muted-foreground mx-auto leading-relaxed">
                 あなたにぴったりのセラピストと繋がれる新しい女風マッチングプラットフォーム、るぴぴあ。

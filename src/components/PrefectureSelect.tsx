@@ -37,7 +37,10 @@ export const PrefectureSelect: React.FC<PrefectureSelectProps> = ({
       <SelectTrigger>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent position="popper" side="bottom" sideOffset={5} align="start" avoidCollisions={false}>
+        <SelectItem key="all" value="全て">
+          全て
+        </SelectItem>
         {japanesePrefectures.map(prefecture => (
           <SelectItem key={prefecture} value={prefecture}>
             {prefecture}

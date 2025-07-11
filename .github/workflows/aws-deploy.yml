@@ -62,8 +62,13 @@ jobs:
       
       - name: Update Lambda Environment Variables
         run: |
-          aws lambda update-function-configuration --function-name rurupia-api --environment 'Variables={
-            "SUPABASE_URL":"${{ secrets.VITE_SUPABASE_URL }}",
-            "SUPABASE_SERVICE_ROLE_KEY":"${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}",
-            "SUPABASE_ANON_KEY":"${{ secrets.VITE_SUPABASE_ANON_KEY }}"
-          }' --region ${{ env.AWS_REGION }} 
+          cat > lambda_env.json << EOF
+          {
+            "Variables": {
+              "SUPABASE_URL": "${{ secrets.VITE_SUPABASE_URL }}",
+              "SUPABASE_SERVICE_ROLE_KEY": "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}",
+              "SUPABASE_ANON_KEY": "${{ secrets.VITE_SUPABASE_ANON_KEY }}"
+            }
+          }
+          EOF
+          aws lambda update-function-configuration --function-name rurupia-api --environment file://lambda_env.json --region ${{ env.AWS_REGION }} 

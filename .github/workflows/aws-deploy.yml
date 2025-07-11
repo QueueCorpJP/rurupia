@@ -59,7 +59,12 @@ jobs:
           npm ci
           zip -r function.zip index.js package.json package-lock.json node_modules/
           aws lambda update-function-code --function-name rurupia-api --zip-file fileb://function.zip --region ${{ env.AWS_REGION }}
-      
+          
+      - name: Wait for Lambda update to complete
+        run: |
+          echo "Waiting for Lambda function update to complete..."
+          aws lambda wait function-updated --function-name rurupia-api --region ${{ env.AWS_REGION }}
+          
       - name: Update Lambda Environment Variables
         run: |
           cat > lambda_env.json << EOF

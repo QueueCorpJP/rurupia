@@ -8,6 +8,8 @@
     "build": "zip -r function.zip . -x node_modules/\\* \\*.git\\*"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1"
+    "@supabase/supabase-js": "^2.49.1",
+    "aws-sdk": "^2.1692.0",
+    "nanoid": "^5.1.5"
   }
-} 
+}

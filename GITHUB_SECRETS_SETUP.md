@@ -13,6 +13,7 @@ To enable automatic deployment to AWS, you need to configure the following secre
 2. **Environment Variables**
    - `VITE_SUPABASE_URL`: `https://vvwkuqnotnilsbcswfqu.supabase.co`
    - `VITE_SUPABASE_ANON_KEY`: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2d2t1cW5vdG5pbHNiY3N3ZnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxMjY4NjMsImV4cCI6MjA1NzcwMjg2M30.1iiE4PAwM1pf-xxKENPHjpQS48V-OPKVnJCBncfNQZM`
+   - `SUPABASE_SERVICE_ROLE_KEY`: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2d2t1cW5vdG5pbHNiY3N3ZnF1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MjEyNjg2MywiZXhwIjoyMDU3NzAyODYzfQ.8nBw2_MVOjojRhPqWHLFKVK6zfuQfQJy031kcKRK3bQ`
    - `VITE_TINYMCE_API_KEY`: `nn4binis9k4dzuafzo2wvdl6jobzmh8e4g6hfjvs62zroxvd`
 
 ## How to Add Secrets to GitHub Repository
@@ -76,6 +77,15 @@ For security best practices, create a dedicated IAM user for GitHub Actions:
         "acm:DescribeCertificate"
       ],
       "Resource": "arn:aws:acm:us-east-1:536697269239:certificate/a7a75270-922d-4506-921e-d37143a91ff1"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:GetFunction"
+      ],
+      "Resource": "arn:aws:lambda:ap-northeast-1:536697269239:function:rurupia-api"
     }
   ]
 }

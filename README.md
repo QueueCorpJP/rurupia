@@ -26,6 +26,7 @@
 1. ReactアプリケーションがViteを使用してビルドされます
 2. ビルドされたアセットがAWS S3にアップロードされます
 3. CloudFrontディストリビューションが無効化され、最新のコンテンツが配信されます
+4. Lambda API関数が最新のコードで更新されます
 
 ### AWS リソース
 
@@ -39,12 +40,14 @@
 - アプリケーションのビルド
 - AWS S3へのデプロイ
 - CloudFrontキャッシュの無効化
+- Lambda API関数の更新
 
 このCI/CDパイプラインを使用するには、以下のGitHubリポジトリシークレットを設定する必要があります：
 - `AWS_ACCESS_KEY_ID`: S3とCloudFrontの権限を持つAWSアクセスキー
 - `AWS_SECRET_ACCESS_KEY`: 対応するAWSシークレットキー
 - `VITE_SUPABASE_URL`: SupabaseプロジェクトURL
 - `VITE_SUPABASE_ANON_KEY`: Supabase匿名キー
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabaseサービスロールキー（Lambda用）
 - `VITE_TINYMCE_API_KEY`: TinyMCE APIキー
 
 ## 開発環境

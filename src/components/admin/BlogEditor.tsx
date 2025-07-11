@@ -1,30 +1,21 @@
-import { useEffect, useState, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useEffect, useRef } from 'react';
+import { Editor } from '@tinymce/tinymce-react';
 import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { v4 as uuidv4 } from 'uuid';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Editor } from '@tinymce/tinymce-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Category {
   id: string;
@@ -57,6 +48,9 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   const [isLoadingFullPost, setIsLoadingFullPost] = useState(false);
   const [tinymceApiKey, setTinymceApiKey] = useState<string>('nn4binis9k4dzuafzo2wvdl6jobzmh8e4g6hfjvs62zroxvd');
   const editorRef = useRef<any>(null);
+  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryDescription, setNewCategoryDescription] = useState('');
   
   useEffect(() => {
     fetchCategories();
@@ -248,6 +242,52 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
   
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleAddCategory = async (name: string) => {
+    if (!name.trim()) {
+      toast.error('カテゴリ名を入力してください');
+      return;
+    }
+
+    const trimmedName = name.trim();
+    const trimmedDescription = newCategoryDescription.trim();
+
+    // Check if category already exists
+    const existingCategory = categories.find(cat => cat.name.toLowerCase() === trimmedName.toLowerCase());
+    if (existingCategory) {
+      toast.error('このカテゴリは既に存在します');
+      return;
+    }
+
+    try {
+      const categoryData = {
+        name: trimmedName,
+        ...(trimmedDescription && { description: trimmedDescription })
+      };
+
+      const { error } = await supabase
+        .from('blog_categories')
+        .insert(categoryData);
+
+      if (error) {
+        console.error('Error adding new category:', error);
+        toast.error(`カテゴリの追加に失敗しました: ${error.message}`);
+        return;
+      }
+
+      toast.success('カテゴリを追加しました');
+      setIsNewCategoryModalOpen(false);
+      setNewCategoryName('');
+      setNewCategoryDescription(''); // Clear description on success
+      fetchCategories(); // Refresh categories to include the new one
+      if (!categoryId) {
+        setCategoryId(categories.find(cat => cat.name === trimmedName)?.id || '');
+      }
+    } catch (error) {
+      console.error('Unexpected error adding category:', error);
+      toast.error('カテゴリの追加中にエラーが発生しました');
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -531,18 +571,73 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
             
             <div>
               <Label htmlFor="category">カテゴリ <span className="text-destructive">*</span></Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="カテゴリを選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="カテゴリを選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Dialog open={isNewCategoryModalOpen} onOpenChange={setIsNewCategoryModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      追加
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>新しいカテゴリを追加</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-category-name" className="text-right">
+                          カテゴリ名
+                        </Label>
+                        <Input
+                          id="new-category-name"
+                          className="col-span-3"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          placeholder="新しいカテゴリ名"
+                          onKeyPress={(e) => e.key === 'Enter' && handleAddCategory(newCategoryName)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-category-description" className="text-right">
+                          説明
+                        </Label>
+                        <Textarea
+                          id="new-category-description"
+                          className="col-span-3"
+                          value={newCategoryDescription}
+                          onChange={(e) => setNewCategoryDescription(e.target.value)}
+                          placeholder="カテゴリの説明を入力"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsNewCategoryModalOpen(false)}>
+                          キャンセル
+                        </Button>
+                        <Button onClick={() => handleAddCategory(newCategoryName)}>
+                          カテゴリを追加
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
             
             <div>
@@ -568,13 +663,58 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                   toolbar: 'undo redo | blocks | ' +
                     'bold italic forecolor | alignleft aligncenter ' +
                     'alignright alignjustify | bullist numlist outdent indent | ' +
-                    'removeformat | help',
+                    'image | removeformat | help',
                   content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                   branding: false,
                   promotion: false,
                   readonly: false,  // Ensure editor is not read-only
                   disabled: false,  // Ensure editor is not disabled
                   toolbar_mode: 'sliding',
+                  automatic_uploads: true,
+                  images_upload_url: 'https://pq33gk4qqd.execute-api.ap-northeast-1.amazonaws.com/prod/api/upload-image',
+                  image_uploadtab: true,
+                  file_picker_types: 'image',
+                  images_upload_handler: async (blobInfo, progress) => {
+                    return new Promise((resolve, reject) => {
+                      const reader = new FileReader();
+                      reader.onload = async () => {
+                        try {
+                          const result = reader.result;
+                          if (typeof result !== 'string') {
+                            reject('Failed to read file as string');
+                            return;
+                          }
+                          
+                          const base64Data = result.split(',')[1]; // Remove data:image/...;base64, prefix
+                          
+                          const response = await fetch('https://pq33gk4qqd.execute-api.ap-northeast-1.amazonaws.com/prod/api/upload-image', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              file: base64Data,
+                              filename: blobInfo.filename() || `image-${Date.now()}.${blobInfo.blob().type.split('/')[1]}`
+                            })
+                          });
+                          
+                          if (!response.ok) {
+                            const errorData = await response.json();
+                            reject(errorData.error || 'Upload failed');
+                            return;
+                          }
+                          
+                          const data = await response.json();
+                          resolve(data.location);
+                        } catch (error) {
+                          console.error('Upload error:', error);
+                          reject('Upload failed: ' + (error as Error).message);
+                        }
+                      };
+                      reader.onerror = () => reject('Failed to read file');
+                      reader.readAsDataURL(blobInfo.blob());
+                    });
+                  },
                   setup: (editor) => {
                     // Additional setup to ensure editor is editable
                     editor.on('init', () => {

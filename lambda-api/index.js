@@ -1,4 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
+import AWS from 'aws-sdk';
+import { customAlphabet } from 'nanoid';
+
+// Configure nanoid for generating short unique IDs
+const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 8);
+
+// Configure AWS S3
+const s3 = new AWS.S3({
+  region: 'ap-northeast-1'
+});
+
+const BUCKET_NAME = 'rupipia-blog-pictures';
 
 // Initialize Supabase client with environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -35,6 +47,8 @@ export const handler = async (event) => {
       return await handleUserLikes(queryStringParameters);
     } else if (path.startsWith('/api/post-comments')) {
       return await handlePostComments(httpMethod, requestBody, queryStringParameters, headers);
+    } else if (path.startsWith('/api/upload-image')) {
+      return await handleImageUpload(httpMethod, requestBody, headers);
     } else if (path.startsWith('/api/config')) {
       return await handleConfig();
     } else {
@@ -54,7 +68,99 @@ export const handler = async (event) => {
   }
 };
 
-// Get user session from Authorization header
+// Helper function to create slugified filename
+function slugifyFilename(filename) {
+  const name = filename.split('.')[0];
+  const extension = filename.split('.').pop();
+  const slugified = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `${slugified}-${nanoid()}.${extension}`;
+}
+
+// Handle image upload API
+async function handleImageUpload(method, body, headers) {
+  if (method !== 'POST') {
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  try {
+    const { file, filename } = body;
+
+    if (!file || !filename) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'File and filename are required' })
+      };
+    }
+
+    // Decode base64 file data
+    const fileBuffer = Buffer.from(file, 'base64');
+    
+    // Validate file size (5MB max)
+    if (fileBuffer.length > 5 * 1024 * 1024) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'File size must be less than 5MB' })
+      };
+    }
+
+    // Validate file type by extension
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const extension = filename.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(extension)) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Unsupported file type. Allowed: JPG, PNG, GIF, WebP' })
+      };
+    }
+
+    // Create folder structure: /tenantId/yyyy/mm/dd/filename
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const tenantId = 'default'; // You can customize this based on your tenant system
+    
+    const slugifiedFilename = slugifyFilename(filename);
+    const s3Key = `${tenantId}/${year}/${month}/${day}/${slugifiedFilename}`;
+
+    // Upload to S3
+    const uploadParams = {
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+      Body: fileBuffer,
+      ContentType: `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+      ACL: 'public-read'
+    };
+
+    const uploadResult = await s3.upload(uploadParams).promise();
+    
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ location: uploadResult.Location })
+    };
+  } catch (error) {
+    console.error('Image upload error:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Failed to upload image' })
+    };
+  }
+}
+
+// Helper function to get user from authorization header
 async function getUserFromAuth(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;

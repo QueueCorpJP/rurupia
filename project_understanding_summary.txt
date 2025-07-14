@@ -1948,3 +1948,28 @@ This documentation serves as a reference for understanding the custom Supabase c
 - Update functionality for category metadata
 
 **Current Category Status**: 6 active categories (1 test category successfully deleted)
+
+**Tested**: Successfully tested category deletion functionality by removing unused "お知らせ" category from database.
+
+## Recent Critical CI/CD Issue (July 14, 2025)
+
+### GitHub Actions Deployment Breaks Lambda Configuration
+**Problem**: After deploying the category management feature via GitHub Actions, the application started experiencing 502 Bad Gateway errors again.
+
+**Root Cause**: 
+- GitHub Actions CI/CD pipeline overwrote Lambda environment variables with empty values
+- GitHub repository secrets were not properly configured 
+- Deployment workflow (`aws-deploy.yml`) references secrets that don't exist:
+  - `${{ secrets.VITE_SUPABASE_URL }}`
+  - `${{ secrets.VITE_SUPABASE_ANON_KEY }}`
+  - `${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}`
+
+**Immediate Fix Applied**:
+- Manually restored Lambda environment variables using AWS CLI
+- API functionality restored (https://rupipia.jp/api/config returns 200 OK)
+
+**Permanent Fix Required**:
+- GitHub repository secrets must be configured with proper values from `GITHUB_SECRETS_SETUP.md`
+- This will prevent future deployments from breaking the Lambda configuration
+
+**Current Status**: ⚠️ URGENT - GitHub secrets need to be set to prevent recurring issues

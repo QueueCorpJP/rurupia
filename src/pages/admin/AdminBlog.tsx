@@ -4,10 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/admin/DataTable";
-import { Edit, Trash } from "lucide-react";
+import { Edit, Trash, Plus, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BlogEditor } from "@/components/admin/BlogEditor";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { format } from "date-fns";
@@ -26,6 +28,8 @@ interface BlogPost {
 interface Category {
   id: string;
   name: string;
+  description?: string;
+  post_count?: number;
 }
 
 const AdminBlog = () => {
@@ -38,6 +42,14 @@ const AdminBlog = () => {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [activeTab, setActiveTab] = useState("posts");
+  
+  // Category management states
+  const [isCategoryDeleteDialogOpen, setIsCategoryDeleteDialogOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryDescription, setEditCategoryDescription] = useState("");
   
   // Debug form states
   const [debugTitle, setDebugTitle] = useState("Test Post");
@@ -58,8 +70,25 @@ const AdminBlog = () => {
       
       if (categoriesError) throw categoriesError;
       
+      // Fetch category usage counts
+      const { data: categoryUsage, error: usageError } = await supabase
+        .from('blog_posts')
+        .select('category_id')
+        .not('category_id', 'is', null);
+      
+      if (usageError) throw usageError;
+      
       if (categoriesData) {
-        setCategories(categoriesData);
+        // Add post count to categories
+        const categoriesWithCount = categoriesData.map(category => {
+          const postCount = categoryUsage?.filter(post => post.category_id === category.id).length || 0;
+          return {
+            ...category,
+            post_count: postCount
+          };
+        });
+        
+        setCategories(categoriesWithCount);
       }
       
       // Fetch blog posts
@@ -145,6 +174,105 @@ const AdminBlog = () => {
   const confirmDelete = (postId: string) => {
     setSelectedPostId(postId);
     setIsDeleteDialogOpen(true);
+  };
+
+  // Category management functions
+  const handleEditCategory = (category: Category) => {
+    setSelectedCategory(category);
+    setEditCategoryName(category.name);
+    setEditCategoryDescription(category.description || "");
+    setIsEditCategoryModalOpen(true);
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!selectedCategory || !editCategoryName.trim()) {
+      toast({
+        title: "エラー",
+        description: "カテゴリ名を入力してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('blog_categories')
+        .update({
+          name: editCategoryName.trim(),
+          description: editCategoryDescription.trim() || null
+        })
+        .eq('id', selectedCategory.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "更新完了",
+        description: "カテゴリが更新されました。",
+      });
+
+      fetchBlogData();
+      setIsEditCategoryModalOpen(false);
+      setSelectedCategory(null);
+      setEditCategoryName("");
+      setEditCategoryDescription("");
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast({
+        title: "エラー",
+        description: "カテゴリの更新に失敗しました。",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmCategoryDelete = (category: Category) => {
+    setSelectedCategory(category);
+    setSelectedCategoryId(category.id);
+    setIsCategoryDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!selectedCategoryId || !selectedCategory) return;
+
+    // Check if category has posts
+    if (selectedCategory.post_count && selectedCategory.post_count > 0) {
+      toast({
+        title: "削除不可",
+        description: `このカテゴリは${selectedCategory.post_count}件の記事で使用中のため削除できません。`,
+        variant: "destructive",
+      });
+      setIsCategoryDeleteDialogOpen(false);
+      setSelectedCategoryId(null);
+      setSelectedCategory(null);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('blog_categories')
+        .delete()
+        .eq('id', selectedCategoryId);
+
+      if (error) throw error;
+
+      toast({
+        title: "削除完了",
+        description: "カテゴリが削除されました。",
+      });
+
+      fetchBlogData();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast({
+        title: "エラー",
+        description: "カテゴリの削除に失敗しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCategoryDeleteDialogOpen(false);
+      setSelectedCategoryId(null);
+      setSelectedCategory(null);
+    }
   };
 
   const filteredPosts = blogPosts.filter(
@@ -264,6 +392,61 @@ const AdminBlog = () => {
     }
   ];
 
+  // Category table columns
+  const categoryColumns = [
+    {
+      key: "name",
+      label: "カテゴリ名",
+      accessorKey: "name"
+    },
+    {
+      key: "description",
+      label: "説明",
+      accessorKey: "description"
+    },
+    {
+      key: "post_count",
+      label: "記事数",
+      render: (data: any) => {
+        if (!data || !data.row) return "0";
+        return data.row.post_count || 0;
+      }
+    },
+    {
+      key: "actions",
+      label: "操作",
+      render: (data: any) => {
+        if (!data || !data.row) return null;
+        
+        const category = data.row;
+        const hasPosts = category.post_count && category.post_count > 0;
+        
+        return (
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => handleEditCategory(category)}
+              title="編集"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className={hasPosts ? "text-muted-foreground cursor-not-allowed" : "text-destructive hover:text-destructive"}
+              onClick={() => !hasPosts && confirmCategoryDelete(category)}
+              disabled={hasPosts}
+              title={hasPosts ? "使用中のカテゴリは削除できません" : "削除"}
+            >
+              {hasPosts ? <AlertTriangle className="h-4 w-4" /> : <Trash className="h-4 w-4" />}
+            </Button>
+          </div>
+        );
+      }
+    }
+  ];
+
   const handleSimplePostCreation = async () => {
     if (!debugTitle || !debugCategory) {
       toast({
@@ -351,6 +534,7 @@ const AdminBlog = () => {
         <TabsList>
           <TabsTrigger value="posts">記事一覧</TabsTrigger>
           <TabsTrigger value="editor">新規作成/編集</TabsTrigger>
+          <TabsTrigger value="categories">カテゴリ管理</TabsTrigger>
         </TabsList>
 
         <TabsContent value="posts" className="space-y-4">
@@ -405,8 +589,27 @@ const AdminBlog = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="categories" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>カテゴリ管理</CardTitle>
+              <CardDescription>
+                ブログカテゴリの管理を行います。使用中のカテゴリは削除できません。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataTable 
+                columns={categoryColumns}
+                data={categories}
+                isLoading={isLoading}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
+      {/* Post Delete Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -419,6 +622,85 @@ const AdminBlog = () => {
             </Button>
             <Button variant="destructive" onClick={handleDeletePost}>
               削除
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Delete Dialog */}
+      <Dialog open={isCategoryDeleteDialogOpen} onOpenChange={setIsCategoryDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>カテゴリを削除</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedCategory && selectedCategory.post_count && selectedCategory.post_count > 0 ? (
+              <div className="flex items-center space-x-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">
+                    このカテゴリは削除できません
+                  </p>
+                  <p className="text-sm text-yellow-700">
+                    {selectedCategory.post_count}件の記事がこのカテゴリを使用しています。
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p>カテゴリ「{selectedCategory?.name}」を削除してもよろしいですか？この操作は取り消せません。</p>
+            )}
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setIsCategoryDeleteDialogOpen(false)}>
+              キャンセル
+            </Button>
+            {selectedCategory && (!selectedCategory.post_count || selectedCategory.post_count === 0) && (
+              <Button variant="destructive" onClick={handleDeleteCategory}>
+                削除
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Edit Dialog */}
+      <Dialog open={isEditCategoryModalOpen} onOpenChange={setIsEditCategoryModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>カテゴリを編集</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-category-name" className="text-right">
+                カテゴリ名
+              </Label>
+              <Input
+                id="edit-category-name"
+                className="col-span-3"
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
+                placeholder="カテゴリ名"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-category-description" className="text-right">
+                説明
+              </Label>
+              <Textarea
+                id="edit-category-description"
+                className="col-span-3"
+                value={editCategoryDescription}
+                onChange={(e) => setEditCategoryDescription(e.target.value)}
+                placeholder="カテゴリの説明を入力"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsEditCategoryModalOpen(false)}>
+              キャンセル
+            </Button>
+            <Button onClick={handleUpdateCategory}>
+              更新
             </Button>
           </div>
         </DialogContent>

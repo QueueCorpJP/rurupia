@@ -7,7 +7,7 @@ Rupipia is a therapist booking platform built with React/TypeScript, using Supab
 - **Frontend**: React 18 + TypeScript + Vite
 - **UI**: Tailwind CSS + shadcn/ui components
 - **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
-- **Deployment**: AWS S3 + CloudFront
+- **Deployment**: AWS S3 + CloudFront + API Gateway + Lambda
 - **Authentication**: LINE Login integration + Supabase Auth
 
 ## Key Features
@@ -1893,3 +1893,58 @@ This documentation serves as a reference for understanding the custom Supabase c
 **Padding Reduction:** Changed dropdown container padding from `p-4 pl-8 pr-10` to `p-2` across all navigation menus to make them more compact and reduce overall width.
 
 **Width Reduction:** Reduced the registration dropdown container width from `w-[240px]` to `w-[180px]` to make it more compact and prevent it from extending too far from its trigger.
+
+## Recent Critical Fix (July 13, 2025)
+
+### AWS Lambda API Configuration Issues Resolved
+**Problem**: The application was experiencing 502 (Bad Gateway) errors when accessing the `/api/config` endpoint, preventing the frontend from loading properly.
+
+**Root Cause**: The AWS Lambda function (`rurupia-api`) had empty environment variables for Supabase configuration:
+- `SUPABASE_URL`: Was empty
+- `SUPABASE_ANON_KEY`: Was empty  
+- `SUPABASE_SERVICE_ROLE_KEY`: Was empty
+
+**Solution Implemented**:
+1. **Identified Supabase Project**: Found the "nokutoru" project (ID: vvwkuqnotnilsbcswfqu) in ap-northeast-1 region
+2. **Retrieved Configuration**: 
+   - Supabase URL: `https://vvwkuqnotnilsbcswfqu.supabase.co`
+   - Anon Key: Retrieved via MCP Supabase tools
+   - Service Role Key: Found in `GITHUB_SECRETS_SETUP.md`
+3. **Updated Lambda Environment Variables**: Successfully configured all required environment variables
+4. **Verified Fix**: API now returns proper JSON configuration with 200 status
+
+**Current Status**: ✅ RESOLVED - The `/api/config` endpoint now works correctly, returning proper Supabase configuration to the frontend.
+
+## Recent Feature Addition (July 13, 2025)
+
+### Blog Category Management Feature
+**New Feature**: Added comprehensive category management functionality to the admin blog page.
+
+**Features Implemented**:
+1. **New "カテゴリ管理" Tab**: Added a third tab to the admin blog interface dedicated to category management
+2. **Category Listing**: Displays all blog categories with their usage statistics
+3. **Safe Delete Functionality**: 
+   - Categories with 0 posts can be deleted safely
+   - Categories in use by blog posts show a warning and cannot be deleted
+   - Visual indicators (AlertTriangle icon) for protected categories
+4. **Category Editing**: Edit category names and descriptions through a modal dialog
+5. **Usage Statistics**: Shows how many blog posts use each category
+
+**Safety Features**:
+- Prevents deletion of categories that have associated blog posts
+- Clear visual feedback about which categories are safe to delete
+- Warning messages when attempting to delete protected categories
+- Post count display for each category
+
+**UI Components Added**:
+- `CategoryColumns` table configuration with edit/delete actions
+- Category delete confirmation dialog with conditional warnings
+- Category edit modal with name and description fields
+- Enhanced DataTable integration for category management
+
+**Database Integration**: 
+- Fetches category usage counts via JOIN queries
+- Safe deletion with existence checks
+- Update functionality for category metadata
+
+**Current Category Status**: 6 active categories (1 test category successfully deleted)

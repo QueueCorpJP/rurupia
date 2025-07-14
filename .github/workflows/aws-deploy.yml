@@ -51,7 +51,7 @@ jobs:
         run: aws s3 sync ./dist s3://${{ env.S3_BUCKET }} --delete
       
       - name: Invalidate CloudFront distribution
-        run: aws cloudfront create-invalidation --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+        run: aws cloudfront create-invalidation --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*" 
       
       - name: Deploy Lambda Function
         run: |

@@ -660,10 +660,10 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
                     'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
                   ],
-                  toolbar: 'undo redo | blocks styleselect | ' +
+                  toolbar: 'undo redo | blocks | ' +
                     'bold italic forecolor | alignleft aligncenter ' +
                     'alignright alignjustify | bullist numlist outdent indent | ' +
-                    'balloon infobox | image | removeformat | help',
+                    'balloon infobox custom_headings custom_lists | image | removeformat | help',
                   content_style: `
                     body { font-family:Helvetica,Arial,sans-serif; font-size:14px }
                     
@@ -795,39 +795,18 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     });
                   },
                   formats: {
-                    'heading-line-h2': { selector: 'h2', classes: 'heading-line' },
-                    'heading-line-h3': { selector: 'h3', classes: 'heading-line' },
-                    'heading-dot-h2': { selector: 'h2', classes: 'heading-dot' },
-                    'heading-dot-h3': { selector: 'h3', classes: 'heading-dot' },
-                    'heading-sidebar-h2': { selector: 'h2', classes: 'heading-sidebar' },
-                    'heading-sidebar-h3': { selector: 'h3', classes: 'heading-sidebar' },
-                    'list-check': { selector: 'ul', classes: 'list-check' },
-                    'list-num-circle': { selector: 'ol', classes: 'list-num-circle' },
-                    'list-arrow': { selector: 'ul', classes: 'list-arrow' },
-                    'list-none': { selector: 'ul,ol', classes: 'list-none' }
+                    'heading-line-h2': { block: 'h2', classes: 'heading-line' },
+                    'heading-line-h3': { block: 'h3', classes: 'heading-line' },
+                    'heading-dot-h2': { block: 'h2', classes: 'heading-dot' },
+                    'heading-dot-h3': { block: 'h3', classes: 'heading-dot' },
+                    'heading-sidebar-h2': { block: 'h2', classes: 'heading-sidebar' },
+                    'heading-sidebar-h3': { block: 'h3', classes: 'heading-sidebar' },
+                    'list-check': { block: 'ul', classes: 'list-check', list_style_type: 'none' },
+                    'list-num-circle': { block: 'ol', classes: 'list-num-circle', list_style_type: 'none' },
+                    'list-arrow': { block: 'ul', classes: 'list-arrow', list_style_type: 'none' },
+                    'list-none': { block: 'ul', classes: 'list-none', list_style_type: 'none' }
                   },
-                  style_formats: [
-                    {
-                      title: 'カスタム見出し',
-                      items: [
-                        { title: 'H2 ライン', format: 'heading-line-h2' },
-                        { title: 'H3 ライン', format: 'heading-line-h3' },
-                        { title: 'H2 ドット', format: 'heading-dot-h2' },
-                        { title: 'H3 ドット', format: 'heading-dot-h3' },
-                        { title: 'H2 サイドバー', format: 'heading-sidebar-h2' },
-                        { title: 'H3 サイドバー', format: 'heading-sidebar-h3' }
-                      ]
-                    },
-                    {
-                      title: 'カスタムリスト',
-                      items: [
-                        { title: 'チェックリスト', format: 'list-check' },
-                        { title: '番号付き（丸）', format: 'list-num-circle' },
-                        { title: '矢印リスト', format: 'list-arrow' },
-                        { title: 'スタイルなし', format: 'list-none' }
-                      ]
-                    }
-                  ],
+
                   setup: (editor) => {
                     // Additional setup to ensure editor is editable
                     editor.on('init', () => {
@@ -958,6 +937,118 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                             api.close();
                           }
                         });
+                      }
+                    });
+
+                    // Add custom headings button
+                    editor.ui.registry.addMenuButton('custom_headings', {
+                      text: 'カスタム見出し',
+                      fetch: (callback) => {
+                        const items = [
+                          {
+                            type: 'menuitem',
+                            text: 'H2 ライン',
+                            onAction: () => {
+                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
+                              editor.selection.setContent(`<h2 class="heading-line">${selectedText}</h2>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 ライン',
+                            onAction: () => {
+                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
+                              editor.selection.setContent(`<h3 class="heading-line">${selectedText}</h3>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 ドット',
+                            onAction: () => {
+                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
+                              editor.selection.setContent(`<h2 class="heading-dot">${selectedText}</h2>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 ドット',
+                            onAction: () => {
+                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
+                              editor.selection.setContent(`<h3 class="heading-dot">${selectedText}</h3>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 サイドバー',
+                            onAction: () => {
+                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
+                              editor.selection.setContent(`<h2 class="heading-sidebar">${selectedText}</h2>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 サイドバー',
+                            onAction: () => {
+                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
+                              editor.selection.setContent(`<h3 class="heading-sidebar">${selectedText}</h3>`);
+                            }
+                          }
+                        ];
+                        callback(items);
+                      }
+                    });
+
+                    // Add custom lists button
+                    editor.ui.registry.addMenuButton('custom_lists', {
+                      text: 'カスタムリスト',
+                      fetch: (callback) => {
+                        const items = [
+                          {
+                            type: 'menuitem',
+                            text: 'チェックリスト',
+                            onAction: () => {
+                              editor.insertContent(`<ul class="list-check">
+                                <li>リストアイテム1</li>
+                                <li>リストアイテム2</li>
+                                <li>リストアイテム3</li>
+                              </ul>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: '番号付き（丸）',
+                            onAction: () => {
+                              editor.insertContent(`<ol class="list-num-circle">
+                                <li>リストアイテム1</li>
+                                <li>リストアイテム2</li>
+                                <li>リストアイテム3</li>
+                              </ol>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: '矢印リスト',
+                            onAction: () => {
+                              editor.insertContent(`<ul class="list-arrow">
+                                <li>リストアイテム1</li>
+                                <li>リストアイテム2</li>
+                                <li>リストアイテム3</li>
+                              </ul>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'スタイルなし',
+                            onAction: () => {
+                              editor.insertContent(`<ul class="list-none">
+                                <li>リストアイテム1</li>
+                                <li>リストアイテム2</li>
+                                <li>リストアイテム3</li>
+                              </ul>`);
+                            }
+                          }
+                        ];
+                        callback(items);
                       }
                     });
                   }

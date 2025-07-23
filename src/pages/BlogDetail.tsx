@@ -174,8 +174,9 @@ const inlineStyles = `
     content: '⚠️' !important;
     position: absolute !important;
     left: 12px !important;
-    top: 16px !important;
+    top: 12px !important;
     font-size: 16px !important;
+    line-height: 1 !important;
   }
 
   .prose .box-info::before,
@@ -184,8 +185,9 @@ const inlineStyles = `
     content: 'ℹ️' !important;
     position: absolute !important;
     left: 12px !important;
-    top: 16px !important;
+    top: 12px !important;
     font-size: 16px !important;
+    line-height: 1 !important;
   }
 
   .prose .box-tip::before,
@@ -194,8 +196,9 @@ const inlineStyles = `
     content: '💡' !important;
     position: absolute !important;
     left: 12px !important;
-    top: 16px !important;
+    top: 12px !important;
     font-size: 16px !important;
+    line-height: 1 !important;
   }
 
   .prose .box-warning::before,
@@ -204,8 +207,9 @@ const inlineStyles = `
     content: '⚠️' !important;
     position: absolute !important;
     left: 12px !important;
-    top: 16px !important;
+    top: 12px !important;
     font-size: 16px !important;
+    line-height: 1 !important;
   }
 
   .prose .box-good::before,
@@ -214,8 +218,9 @@ const inlineStyles = `
     content: '✅' !important;
     position: absolute !important;
     left: 12px !important;
-    top: 16px !important;
+    top: 12px !important;
     font-size: 16px !important;
+    line-height: 1 !important;
   }
 
   .prose .box-bad::before,
@@ -224,8 +229,9 @@ const inlineStyles = `
     content: '❌' !important;
     position: absolute !important;
     left: 12px !important;
-    top: 16px !important;
+    top: 12px !important;
     font-size: 16px !important;
+    line-height: 1 !important;
   }
 
   .prose .box-alert p,
@@ -246,8 +252,165 @@ const inlineStyles = `
   .box-warning p,
   .box-good p,
   .box-bad p {
-    margin-left: 28px !important;
+    margin-left: 32px !important;
     margin-bottom: 0 !important;
+    padding-top: 2px !important;
+  }
+
+  /* Custom Heading Styles */
+  .prose .heading-line,
+  .blog-content .heading-line,
+  .heading-line {
+    position: relative !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .prose .heading-line::after,
+  .blog-content .heading-line::after,
+  .heading-line::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 50px !important;
+    height: 3px !important;
+    background-color: #007bff !important;
+    border-radius: 2px !important;
+  }
+
+  .prose .heading-dot,
+  .blog-content .heading-dot,
+  .heading-dot {
+    position: relative !important;
+    padding-left: 20px !important;
+  }
+
+  .prose .heading-dot::before,
+  .blog-content .heading-dot::before,
+  .heading-dot::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 8px !important;
+    height: 8px !important;
+    background-color: #007bff !important;
+    border-radius: 50% !important;
+  }
+
+  .prose .heading-sidebar,
+  .blog-content .heading-sidebar,
+  .heading-sidebar {
+    position: relative !important;
+    padding-left: 16px !important;
+    border-left: 4px solid #007bff !important;
+    margin-left: 0 !important;
+  }
+
+  /* Custom List Styles */
+  .prose .list-check,
+  .blog-content .list-check,
+  .list-check {
+    list-style: none !important;
+    padding-left: 0 !important;
+  }
+
+  .prose .list-check li,
+  .blog-content .list-check li,
+  .list-check li {
+    position: relative !important;
+    padding-left: 28px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .prose .list-check li::before,
+  .blog-content .list-check li::before,
+  .list-check li::before {
+    content: '✓' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    color: #28a745 !important;
+    font-weight: bold !important;
+    font-size: 16px !important;
+  }
+
+  .prose .list-num-circle,
+  .blog-content .list-num-circle,
+  .list-num-circle {
+    list-style: none !important;
+    counter-reset: item !important;
+    padding-left: 0 !important;
+  }
+
+  .prose .list-num-circle li,
+  .blog-content .list-num-circle li,
+  .list-num-circle li {
+    position: relative !important;
+    padding-left: 40px !important;
+    margin-bottom: 8px !important;
+    counter-increment: item !important;
+  }
+
+  .prose .list-num-circle li::before,
+  .blog-content .list-num-circle li::before,
+  .list-num-circle li::before {
+    content: counter(item) !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    background-color: #007bff !important;
+    color: white !important;
+    border-radius: 50% !important;
+    width: 24px !important;
+    height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+  }
+
+  .prose .list-arrow,
+  .blog-content .list-arrow,
+  .list-arrow {
+    list-style: none !important;
+    padding-left: 0 !important;
+  }
+
+  .prose .list-arrow li,
+  .blog-content .list-arrow li,
+  .list-arrow li {
+    position: relative !important;
+    padding-left: 28px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .prose .list-arrow li::before,
+  .blog-content .list-arrow li::before,
+  .list-arrow li::before {
+    content: '→' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    color: #007bff !important;
+    font-weight: bold !important;
+    font-size: 16px !important;
+  }
+
+  .prose .list-none,
+  .blog-content .list-none,
+  .list-none {
+    list-style: none !important;
+    padding-left: 0 !important;
+  }
+
+  .prose .list-none li,
+  .blog-content .list-none li,
+  .list-none li {
+    margin-bottom: 8px !important;
   }
 `;
 

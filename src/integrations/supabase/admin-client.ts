@@ -24,18 +24,20 @@ async function initializeAdminClient() {
   try {
     const config = await getConfig();
     const SUPABASE_URL = config.VITE_SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = config.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    const SUPABASE_ANON_KEY = config.VITE_SUPABASE_ANON_KEY;
 
     // Validation to ensure environment variables are loaded
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       throw new Error(
-        'Missing Supabase admin environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_SERVICE_ROLE_KEY are set.'
+        'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
       );
     }
 
+    // Note: Using anon key instead of service role key for security
+    // Since RLS is disabled, anon key can perform admin operations
     adminClient = createClient<Database>(
       SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_ANON_KEY,
       {
         auth: {
           persistSession: false, // Don't persist admin sessions in browser

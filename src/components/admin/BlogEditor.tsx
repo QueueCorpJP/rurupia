@@ -660,11 +660,90 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
                     'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
                   ],
-                  toolbar: 'undo redo | blocks | ' +
+                  toolbar: 'undo redo | blocks styleselect | ' +
                     'bold italic forecolor | alignleft aligncenter ' +
                     'alignright alignjustify | bullist numlist outdent indent | ' +
-                    'image | removeformat | help',
-                  content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+                    'balloon infobox | image | removeformat | help',
+                  content_style: `
+                    body { font-family:Helvetica,Arial,sans-serif; font-size:14px }
+                    
+                    /* Balloon Blocks */
+                    .balloon-left, .balloon-right, .balloon-both {
+                      position: relative; background-color: var(--balloon-color, #e3f2fd);
+                      border-radius: 12px; padding: 16px 20px; margin: 16px 0;
+                      border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    }
+                    .balloon-left::before {
+                      content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+                      width: 0; height: 0; border-style: solid; border-width: 10px 10px 10px 0;
+                      border-color: transparent var(--balloon-color, #e3f2fd) transparent transparent;
+                    }
+                    .balloon-right::before {
+                      content: ''; position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+                      width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 10px;
+                      border-color: transparent transparent transparent var(--balloon-color, #e3f2fd);
+                    }
+                    .balloon-both::before {
+                      content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+                      width: 0; height: 0; border-style: solid; border-width: 10px 10px 10px 0;
+                      border-color: transparent var(--balloon-color, #e3f2fd) transparent transparent;
+                    }
+                    .balloon-both::after {
+                      content: ''; position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+                      width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 10px;
+                      border-color: transparent transparent transparent var(--balloon-color, #e3f2fd);
+                    }
+                    
+                    /* Info Boxes */
+                    .box-alert, .box-info, .box-tip, .box-warning, .box-good, .box-bad {
+                      border-radius: 8px; padding: 16px; margin: 16px 0; border-left: 4px solid; position: relative;
+                    }
+                    .box-alert { background-color: var(--box-color, #fff3cd); border-left-color: #ff9800; color: #856404; }
+                    .box-info { background-color: var(--box-color, #d1ecf1); border-left-color: #17a2b8; color: #0c5460; }
+                    .box-tip { background-color: var(--box-color, #d4edda); border-left-color: #28a745; color: #155724; }
+                    .box-warning { background-color: var(--box-color, #f8d7da); border-left-color: #dc3545; color: #721c24; }
+                    .box-good { background-color: var(--box-color, #d1f2eb); border-left-color: #00d4aa; color: #0c6e54; }
+                    .box-bad { background-color: var(--box-color, #f5c6cb); border-left-color: #e74c3c; color: #721c24; }
+                    .box-alert::before { content: '⚠️'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
+                    .box-info::before { content: 'ℹ️'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
+                    .box-tip::before { content: '💡'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
+                    .box-warning::before { content: '⚠️'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
+                    .box-good::before { content: '✅'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
+                    .box-bad::before { content: '❌'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
+                    .box-alert p, .box-info p, .box-tip p, .box-warning p, .box-good p, .box-bad p {
+                      margin-left: 28px; margin-bottom: 0;
+                    }
+                    
+                    /* Custom Headings */
+                    .heading-line { position: relative; padding-bottom: 8px; margin-bottom: 20px; }
+                    .heading-line::after {
+                      content: ''; position: absolute; bottom: 0; left: 0; width: 50px; height: 3px;
+                      background-color: #007bff; border-radius: 2px;
+                    }
+                    .heading-dot { position: relative; padding-left: 20px; }
+                    .heading-dot::before {
+                      content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+                      width: 8px; height: 8px; background-color: #007bff; border-radius: 50%;
+                    }
+                    .heading-sidebar { position: relative; padding-left: 16px; border-left: 4px solid #007bff; margin-left: 0; }
+                    
+                    /* Custom Lists */
+                    .list-check { list-style: none; padding-left: 0; }
+                    .list-check li { position: relative; padding-left: 28px; margin-bottom: 8px; }
+                    .list-check li::before { content: '✓'; position: absolute; left: 0; top: 0; color: #28a745; font-weight: bold; font-size: 16px; }
+                    .list-num-circle { list-style: none; counter-reset: item; padding-left: 0; }
+                    .list-num-circle li { position: relative; padding-left: 40px; margin-bottom: 8px; counter-increment: item; }
+                    .list-num-circle li::before {
+                      content: counter(item); position: absolute; left: 0; top: 0; background-color: #007bff; color: white;
+                      border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+                      font-size: 12px; font-weight: bold;
+                    }
+                    .list-arrow { list-style: none; padding-left: 0; }
+                    .list-arrow li { position: relative; padding-left: 28px; margin-bottom: 8px; }
+                    .list-arrow li::before { content: '→'; position: absolute; left: 0; top: 0; color: #007bff; font-weight: bold; font-size: 16px; }
+                    .list-none { list-style: none; padding-left: 0; }
+                    .list-none li { margin-bottom: 8px; }
+                  `,
                   branding: false,
                   promotion: false,
                   readonly: false,  // Ensure editor is not read-only
@@ -715,12 +794,170 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                       reader.readAsDataURL(blobInfo.blob());
                     });
                   },
+                  formats: {
+                    'heading-line-h2': { selector: 'h2', classes: 'heading-line' },
+                    'heading-line-h3': { selector: 'h3', classes: 'heading-line' },
+                    'heading-dot-h2': { selector: 'h2', classes: 'heading-dot' },
+                    'heading-dot-h3': { selector: 'h3', classes: 'heading-dot' },
+                    'heading-sidebar-h2': { selector: 'h2', classes: 'heading-sidebar' },
+                    'heading-sidebar-h3': { selector: 'h3', classes: 'heading-sidebar' },
+                    'list-check': { selector: 'ul', classes: 'list-check' },
+                    'list-num-circle': { selector: 'ol', classes: 'list-num-circle' },
+                    'list-arrow': { selector: 'ul', classes: 'list-arrow' },
+                    'list-none': { selector: 'ul,ol', classes: 'list-none' }
+                  },
+                  style_formats: [
+                    {
+                      title: 'カスタム見出し',
+                      items: [
+                        { title: 'H2 ライン', format: 'heading-line-h2' },
+                        { title: 'H3 ライン', format: 'heading-line-h3' },
+                        { title: 'H2 ドット', format: 'heading-dot-h2' },
+                        { title: 'H3 ドット', format: 'heading-dot-h3' },
+                        { title: 'H2 サイドバー', format: 'heading-sidebar-h2' },
+                        { title: 'H3 サイドバー', format: 'heading-sidebar-h3' }
+                      ]
+                    },
+                    {
+                      title: 'カスタムリスト',
+                      items: [
+                        { title: 'チェックリスト', format: 'list-check' },
+                        { title: '番号付き（丸）', format: 'list-num-circle' },
+                        { title: '矢印リスト', format: 'list-arrow' },
+                        { title: 'スタイルなし', format: 'list-none' }
+                      ]
+                    }
+                  ],
                   setup: (editor) => {
                     // Additional setup to ensure editor is editable
                     editor.on('init', () => {
                       editor.getBody().contentEditable = true;
                       if (editor.mode?.set) {
                         editor.mode.set('design');
+                      }
+                    });
+
+                    // Add balloon block button
+                    editor.ui.registry.addButton('balloon', {
+                      text: '吹き出し',
+                      onAction: () => {
+                        editor.windowManager.open({
+                          title: '吹き出しブロック',
+                          body: {
+                            type: 'panel',
+                            items: [
+                              {
+                                type: 'selectbox',
+                                name: 'direction',
+                                label: '方向',
+                                items: [
+                                  { text: '左', value: 'left' },
+                                  { text: '右', value: 'right' },
+                                  { text: '両方', value: 'both' }
+                                ]
+                              },
+                              {
+                                type: 'colorinput',
+                                name: 'color',
+                                label: '色',
+                                value: '#e3f2fd'
+                              }
+                            ]
+                          },
+                          buttons: [
+                            {
+                              type: 'cancel',
+                              text: 'キャンセル'
+                            },
+                            {
+                              type: 'submit',
+                              text: '挿入',
+                              primary: true
+                            }
+                          ],
+                          onSubmit: (api) => {
+                            const data = api.getData();
+                            const html = `<div class="balloon-${data.direction}" style="--balloon-color: ${data.color};">
+                              <p>ここにテキストを入力してください</p>
+                            </div><p><br></p>`;
+                            editor.insertContent(html);
+                            
+                            // Position cursor after the inserted element
+                            setTimeout(() => {
+                              const balloonElements = editor.getBody().querySelectorAll('.balloon-left, .balloon-right, .balloon-both');
+                              const lastBalloon = balloonElements[balloonElements.length - 1];
+                              if (lastBalloon && lastBalloon.nextElementSibling) {
+                                editor.selection.setCursorLocation(lastBalloon.nextElementSibling, 0);
+                              }
+                            }, 10);
+                            
+                            api.close();
+                          }
+                        });
+                      }
+                    });
+
+                    // Add info box button
+                    editor.ui.registry.addButton('infobox', {
+                      text: 'ボックス',
+                      onAction: () => {
+                        editor.windowManager.open({
+                          title: '情報ボックス',
+                          body: {
+                            type: 'panel',
+                            items: [
+                              {
+                                type: 'selectbox',
+                                name: 'type',
+                                label: 'タイプ',
+                                items: [
+                                  { text: 'アラート', value: 'alert' },
+                                  { text: '情報', value: 'info' },
+                                  { text: 'ヒント', value: 'tip' },
+                                  { text: '警告', value: 'warning' },
+                                  { text: '良い', value: 'good' },
+                                  { text: '悪い', value: 'bad' }
+                                ]
+                              },
+                              {
+                                type: 'colorinput',
+                                name: 'color',
+                                label: '色（オプション）',
+                                value: ''
+                              }
+                            ]
+                          },
+                          buttons: [
+                            {
+                              type: 'cancel',
+                              text: 'キャンセル'
+                            },
+                            {
+                              type: 'submit',
+                              text: '挿入',
+                              primary: true
+                            }
+                          ],
+                          onSubmit: (api) => {
+                            const data = api.getData();
+                            const colorStyle = data.color ? ` style="--box-color: ${data.color};"` : '';
+                            const html = `<div class="box-${data.type}"${colorStyle}>
+                              <p>ここにテキストを入力してください</p>
+                            </div><p><br></p>`;
+                            editor.insertContent(html);
+                            
+                            // Position cursor after the inserted element
+                            setTimeout(() => {
+                              const boxElements = editor.getBody().querySelectorAll('[class^="box-"]');
+                              const lastBox = boxElements[boxElements.length - 1];
+                              if (lastBox && lastBox.nextElementSibling) {
+                                editor.selection.setCursorLocation(lastBox.nextElementSibling, 0);
+                              }
+                            }, 10);
+                            
+                            api.close();
+                          }
+                        });
                       }
                     });
                   }

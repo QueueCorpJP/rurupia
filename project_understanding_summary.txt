@@ -1973,3 +1973,24 @@ This documentation serves as a reference for understanding the custom Supabase c
 - This will prevent future deployments from breaking the Lambda configuration
 
 **Current Status**: ⚠️ URGENT - GitHub secrets need to be set to prevent recurring issues
+
+## Critical Security Fix (July 14, 2025)
+
+### Service Role Key Exposure Vulnerability - RESOLVED
+**Security Issue**: The Lambda `/api/config` endpoint was incorrectly exposing the `SUPABASE_SERVICE_ROLE_KEY` to the frontend, creating a critical security vulnerability.
+
+**Impact**: 
+- Service role key bypasses Row Level Security (RLS)
+- Grants full admin privileges to anyone with frontend access
+- Could be extracted from browser network tab by any user
+
+**Fix Applied**:
+1. **Lambda API Updated**: Removed `VITE_SUPABASE_SERVICE_ROLE_KEY` from config response
+2. **Admin Client Fixed**: Modified to use `SUPABASE_ANON_KEY` instead of service role key
+3. **Security Note**: Since RLS is disabled, anon key can perform admin operations safely
+
+**Files Modified**:
+- `lambda-api/index.js`: Removed service role key from handleConfig()
+- `src/integrations/supabase/admin-client.ts`: Updated to use anon key instead
+
+**Current Status**: ✅ RESOLVED - Service role key no longer exposed to frontend

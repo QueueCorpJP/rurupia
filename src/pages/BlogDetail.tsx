@@ -13,6 +13,244 @@ import { supabase } from '@/integrations/supabase/client';
 import SEO from '@/components/SEO';
 import DOMPurify from 'dompurify';
 
+// Inline styles for balloon and box elements to ensure they load
+const inlineStyles = `
+  .prose .balloon-left,
+  .prose .balloon-right, 
+  .prose .balloon-both,
+  .blog-content .balloon-left,
+  .blog-content .balloon-right,
+  .blog-content .balloon-both,
+  .balloon-left,
+  .balloon-right,
+  .balloon-both {
+    position: relative !important;
+    background-color: var(--balloon-color, #e3f2fd) !important;
+    border-radius: 12px !important;
+    padding: 16px 20px !important;
+    margin: 16px 0 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    display: block !important;
+  }
+  
+  .prose .balloon-left::before,
+  .blog-content .balloon-left::before,
+  .balloon-left::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-style: solid !important;
+    border-width: 10px 10px 10px 0 !important;
+    border-color: transparent var(--balloon-color, #e3f2fd) transparent transparent !important;
+  }
+
+  .prose .balloon-right::before,
+  .blog-content .balloon-right::before,
+  .balloon-right::before {
+    content: '' !important;
+    position: absolute !important;
+    right: -10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-style: solid !important;
+    border-width: 10px 0 10px 10px !important;
+    border-color: transparent transparent transparent var(--balloon-color, #e3f2fd) !important;
+  }
+
+  .prose .balloon-both::before,
+  .blog-content .balloon-both::before,
+  .balloon-both::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-style: solid !important;
+    border-width: 10px 10px 10px 0 !important;
+    border-color: transparent var(--balloon-color, #e3f2fd) transparent transparent !important;
+  }
+
+  .prose .balloon-both::after,
+  .blog-content .balloon-both::after,
+  .balloon-both::after {
+    content: '' !important;
+    position: absolute !important;
+    right: -10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-style: solid !important;
+    border-width: 10px 0 10px 10px !important;
+    border-color: transparent transparent transparent var(--balloon-color, #e3f2fd) !important;
+  }
+
+  .prose .box-alert,
+  .prose .box-info,
+  .prose .box-tip,
+  .prose .box-warning,
+  .prose .box-good,
+  .prose .box-bad,
+  .blog-content .box-alert,
+  .blog-content .box-info,
+  .blog-content .box-tip,
+  .blog-content .box-warning,
+  .blog-content .box-good,
+  .blog-content .box-bad,
+  .box-alert,
+  .box-info,
+  .box-tip,
+  .box-warning,
+  .box-good,
+  .box-bad {
+    border-radius: 8px !important;
+    padding: 16px !important;
+    margin: 16px 0 !important;
+    border-left: 4px solid !important;
+    position: relative !important;
+    display: block !important;
+  }
+
+  .prose .box-alert,
+  .blog-content .box-alert,
+  .box-alert {
+    background-color: var(--box-color, #fff3cd) !important;
+    border-left-color: #ff9800 !important;
+    color: #856404 !important;
+  }
+
+  .prose .box-info,
+  .blog-content .box-info,
+  .box-info {
+    background-color: var(--box-color, #d1ecf1) !important;
+    border-left-color: #17a2b8 !important;
+    color: #0c5460 !important;
+  }
+
+  .prose .box-tip,
+  .blog-content .box-tip,
+  .box-tip {
+    background-color: var(--box-color, #d4edda) !important;
+    border-left-color: #28a745 !important;
+    color: #155724 !important;
+  }
+
+  .prose .box-warning,
+  .blog-content .box-warning,
+  .box-warning {
+    background-color: var(--box-color, #f8d7da) !important;
+    border-left-color: #dc3545 !important;
+    color: #721c24 !important;
+  }
+
+  .prose .box-good,
+  .blog-content .box-good,
+  .box-good {
+    background-color: var(--box-color, #d1f2eb) !important;
+    border-left-color: #00d4aa !important;
+    color: #0c6e54 !important;
+  }
+
+  .prose .box-bad,
+  .blog-content .box-bad,
+  .box-bad {
+    background-color: var(--box-color, #f5c6cb) !important;
+    border-left-color: #e74c3c !important;
+    color: #721c24 !important;
+  }
+
+  .prose .box-alert::before,
+  .blog-content .box-alert::before,
+  .box-alert::before {
+    content: '⚠️' !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .prose .box-info::before,
+  .blog-content .box-info::before,
+  .box-info::before {
+    content: 'ℹ️' !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .prose .box-tip::before,
+  .blog-content .box-tip::before,
+  .box-tip::before {
+    content: '💡' !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .prose .box-warning::before,
+  .blog-content .box-warning::before,
+  .box-warning::before {
+    content: '⚠️' !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .prose .box-good::before,
+  .blog-content .box-good::before,
+  .box-good::before {
+    content: '✅' !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .prose .box-bad::before,
+  .blog-content .box-bad::before,
+  .box-bad::before {
+    content: '❌' !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .prose .box-alert p,
+  .prose .box-info p,
+  .prose .box-tip p,
+  .prose .box-warning p,
+  .prose .box-good p,
+  .prose .box-bad p,
+  .blog-content .box-alert p,
+  .blog-content .box-info p,
+  .blog-content .box-tip p,
+  .blog-content .box-warning p,
+  .blog-content .box-good p,
+  .blog-content .box-bad p,
+  .box-alert p,
+  .box-info p,
+  .box-tip p,
+  .box-warning p,
+  .box-good p,
+  .box-bad p {
+    margin-left: 28px !important;
+    margin-bottom: 0 !important;
+  }
+`;
+
 const BlogDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -474,6 +712,7 @@ const BlogDetail = () => {
   
   return (
     <Layout>
+      <style dangerouslySetInnerHTML={{ __html: inlineStyles }} />
       <SEO 
         title={post.title}
         description={post.excerpt}
@@ -566,13 +805,16 @@ const BlogDetail = () => {
                 </h1>
                 
                 <div 
-                  className="prose prose-lg max-w-none" 
+                  className="prose prose-lg max-w-none blog-content" 
                   dangerouslySetInnerHTML={{ 
                     __html: DOMPurify.sanitize(post.content, {
-                      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre'],
-                      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel'],
-                      ALLOW_DATA_ATTR: false
-                    }) 
+                      ALLOWED_TAGS: ['div', 'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre', 'span'],
+                      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class', 'style'],
+                      ALLOW_DATA_ATTR: false,
+                      FORBID_TAGS: [],
+                      FORBID_ATTR: [],
+                      KEEP_CONTENT: true
+                    })
                   }} 
                 />
                 

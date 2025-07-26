@@ -680,10 +680,67 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     
                     /* Clean SANGO-Style Info Boxes */
                     .sango-box { width: 100%; max-width: 680px; margin: 1.5rem auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; border: none; background: transparent; }
-                    .sango-box .box-header { background-color: var(--accent, #2196f3); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; border-radius: 8px 8px 0 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
-                    .sango-box .box-content { border: 1px solid var(--accent, #2196f3); border-top: none; background-color: color-mix(in srgb, var(--accent, #2196f3) 10%, white); padding: 1rem; border-radius: 0 0 8px 8px; margin: 0; min-height: 120px; box-sizing: border-box; }
+                    .sango-box .box-header { background-color: var(--header-color, var(--accent, #2196f3)); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; border-radius: 8px 8px 0 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
+                    .sango-box .box-content { border: 1px solid var(--header-color, var(--accent, #2196f3)); border-top: none; background-color: var(--content-color, color-mix(in srgb, var(--accent, #2196f3) 10%, white)); padding: 1rem; border-radius: 0 0 8px 8px; margin: 0; min-height: 120px; box-sizing: border-box; }
                     .sango-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
                     .sango-box .box-content p + p { margin-top: 0.5rem; }
+                    
+                    /* Border Box Style */
+                    .border-box { width: 100%; max-width: 680px; margin: 1.5rem auto; border: 2px solid var(--header-color, var(--accent, #2196f3)); border-radius: 8px; background: white; }
+                    .border-box .box-header { background-color: var(--header-color, var(--accent, #2196f3)); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
+                    .border-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; }
+                    .border-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
+                    .border-box .box-content p + p { margin-top: 0.5rem; }
+                    
+                    /* Left Accent Box Style */
+                    .left-accent-box { width: 100%; max-width: 680px; margin: 1.5rem auto; border-left: 6px solid var(--header-color, var(--accent, #2196f3)); background: white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+                    .left-accent-box .box-header { background-color: var(--header-color, color-mix(in srgb, var(--accent, #2196f3) 15%, white)); color: var(--accent, var(--header-color, #2196f3)); font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; border-bottom: 1px solid color-mix(in srgb, var(--accent, var(--header-color, #2196f3)) 20%, white); }
+                    .left-accent-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; }
+                    .left-accent-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
+                    .left-accent-box .box-content p + p { margin-top: 0.5rem; }
+                    
+                    /* Gradient Box Style - Full Beautiful Gradient */
+                    .gradient-box { width: 100%; max-width: 680px; margin: 1.5rem auto; border-radius: 8px; background: linear-gradient(135deg, var(--accent, #2196f3) 0%, color-mix(in srgb, var(--accent, #2196f3) 30%, white) 100%); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); overflow: hidden; }
+                    .gradient-box .box-header { background: linear-gradient(135deg, var(--accent, #2196f3) 0%, color-mix(in srgb, var(--accent, #2196f3) 70%, black) 100%); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
+                    .gradient-box .box-content { background: linear-gradient(135deg, color-mix(in srgb, var(--accent, #2196f3) 30%, white) 0%, color-mix(in srgb, var(--accent, #2196f3) 8%, white) 100%); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; }
+                    .gradient-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
+                    .gradient-box .box-content p + p { margin-top: 0.5rem; }
+                    
+                    /* Rounded Box Style */
+                    .rounded-box { width: 100%; max-width: 680px; margin: 1.5rem auto; border-radius: 16px; background: white; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); border: 1px solid color-mix(in srgb, var(--accent, #2196f3) 30%, white); }
+                    .rounded-box .box-header { background-color: color-mix(in srgb, var(--accent, #2196f3) 20%, white); color: var(--accent, #2196f3); font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; border-radius: 16px 16px 0 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
+                    .rounded-box .box-content { background-color: white; padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; border-radius: 0 0 16px 16px; }
+                    .rounded-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
+                    .rounded-box .box-content p + p { margin-top: 0.5rem; }
+                    
+                    /* Shadow Box Style */
+                    .shadow-box { width: 100%; max-width: 680px; margin: 1.5rem auto; background: white; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); border-radius: 8px; border-top: 4px solid var(--header-color, var(--accent, #2196f3)); }
+                    .shadow-box .box-header { background-color: var(--header-color, color-mix(in srgb, var(--accent, #2196f3) 8%, white)); color: var(--accent, var(--header-color, #2196f3)); font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; border-bottom: 1px solid color-mix(in srgb, var(--accent, var(--header-color, #2196f3)) 15%, white); }
+                    .shadow-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; }
+                    .shadow-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
+                    .shadow-box .box-content p + p { margin-top: 0.5rem; }
+                    
+                    /* Gradient Box Style - Full Beautiful Gradient */
+                    .gradient-box { width: 100%; max-width: 680px; margin: 1.5rem auto; border-radius: 12px; background: linear-gradient(135deg, var(--gradient-start, #9C27B0) 0%, var(--gradient-end, #E1BEE7) 100%); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.2); }
+                    .gradient-box .box-header { background: transparent; color: white; font-weight: bold; font-size: 0.95rem; padding: 1.2rem 1rem; margin: 0; line-height: 1.2; height: 52px; display: flex; align-items: center; box-sizing: border-box; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); border-bottom: 1px solid rgba(255, 255, 255, 0.2); }
+                    .gradient-box .box-content { background: transparent; padding: 1.2rem 1rem; margin: 0; min-height: 120px; box-sizing: border-box; color: white; }
+                    .gradient-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: white; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+                    .gradient-box .box-content p + p { margin-top: 0.5rem; }
+                    
+                    /* Outline Title Band Box Style */
+                    .outline-title-band-box { width: 100%; max-width: 680px; margin: 1.5rem auto; background: white; border: 2px solid var(--header-color, var(--accent, #F4C018)); border-radius: 8px; position: relative; }
+                    .outline-title-band-box .box-header { background-color: var(--header-color, var(--accent, #F4C018)); color: white; font-weight: bold; font-size: 0.95rem; padding: 0 1rem; margin: 0; line-height: 1.2; height: 44px; display: inline-flex; align-items: center; box-sizing: border-box; border-radius: 6px 6px 0 0; position: absolute; top: -2px; left: -2px; z-index: 1; min-width: 120px; width: auto; }
+                    .outline-title-band-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; padding-top: 60px; color: #333; }
+                    .outline-title-band-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
+                    .outline-title-band-box .box-content p + p { margin-top: 0.5rem; }
+                    
+                    /* Flag Header Box Style */
+                    .flag-header-box { width: 100%; max-width: 680px; margin: 1.5rem auto; background: white; border: 2px solid var(--header-color, var(--accent, #4DA0FF)); border-radius: 8px; position: relative; }
+                    .flag-header-box .box-header { background-color: var(--header-color, var(--accent, #4DA0FF)); color: white; font-weight: bold; font-size: 0.9rem; padding: 0 20px 0 16px; margin: 0; line-height: 1.2; height: 32px; display: flex; align-items: center; box-sizing: border-box; position: absolute; top: 12px; left: 12px; min-width: 120px; max-width: 250px; }
+                    .flag-header-box .box-header::after { content: ''; position: absolute; right: -8px; top: 0; width: 0; height: 0; border-style: solid; border-width: 16px 0 16px 8px; border-color: transparent transparent transparent var(--header-color, var(--accent, #4DA0FF)); }
+                    .flag-header-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; padding-top: 60px; }
+                    .flag-header-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
+                    .flag-header-box .box-content p + p { margin-top: 0.5rem; }
                     
                     /* Enhanced Custom Headings with Color Support */
                     .heading-line { position: relative; padding-bottom: 8px; margin-bottom: 20px; }
@@ -703,28 +760,28 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     .heading-dot::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; background-color: var(--heading-color, #007bff); border-radius: 50%; }
                     .heading-sidebar { position: relative; padding-left: 16px; border-left: 4px solid var(--heading-color, #007bff); margin-left: 0; }
                     
-                    /* Enhanced Custom Lists */
+                    /* Enhanced Custom Lists with Color Support */
                     .list-check { list-style: none; padding-left: 0; }
                     .list-check li { position: relative; padding-left: 28px; margin-bottom: 8px; }
-                    .list-check li::before { content: '✓'; position: absolute; left: 0; top: 0; color: #28a745; font-weight: bold; font-size: 16px; }
+                    .list-check li::before { content: '✓'; position: absolute; left: 0; top: 0; color: var(--list-color, #28a745); font-weight: bold; font-size: 16px; }
                     .list-star { list-style: none; padding-left: 0; }
                     .list-star li { position: relative; padding-left: 28px; margin-bottom: 8px; }
-                    .list-star li::before { content: '★'; position: absolute; left: 0; top: 0; color: #ffc107; font-weight: bold; font-size: 16px; }
+                    .list-star li::before { content: '★'; position: absolute; left: 0; top: 0; color: var(--list-color, #ffc107); font-weight: bold; font-size: 16px; }
                     .list-heart { list-style: none; padding-left: 0; }
                     .list-heart li { position: relative; padding-left: 28px; margin-bottom: 8px; }
                     .list-heart li::before { content: '💖'; position: absolute; left: 0; top: 0; font-size: 16px; }
                     .list-num-circle { list-style: none; counter-reset: item; padding-left: 0; }
                     .list-num-circle li { position: relative; padding-left: 40px; margin-bottom: 8px; counter-increment: item; }
-                    .list-num-circle li::before { content: counter(item); position: absolute; left: 0; top: 0; background-color: #007bff; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+                    .list-num-circle li::before { content: counter(item); position: absolute; left: 0; top: 0; background-color: var(--list-color, #007bff); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
                     .list-num-square { list-style: none; counter-reset: item; padding-left: 0; }
                     .list-num-square li { position: relative; padding-left: 40px; margin-bottom: 8px; counter-increment: item; }
-                    .list-num-square li::before { content: counter(item); position: absolute; left: 0; top: 0; background-color: #28a745; color: white; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+                    .list-num-square li::before { content: counter(item); position: absolute; left: 0; top: 0; background-color: var(--list-color, #28a745); color: white; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
                     .list-arrow { list-style: none; padding-left: 0; }
                     .list-arrow li { position: relative; padding-left: 28px; margin-bottom: 8px; }
-                    .list-arrow li::before { content: '→'; position: absolute; left: 0; top: 0; color: #007bff; font-weight: bold; font-size: 16px; }
+                    .list-arrow li::before { content: '→'; position: absolute; left: 0; top: 0; color: var(--list-color, #007bff); font-weight: bold; font-size: 16px; }
                     .list-double-arrow { list-style: none; padding-left: 0; }
                     .list-double-arrow li { position: relative; padding-left: 28px; margin-bottom: 8px; }
-                    .list-double-arrow li::before { content: '⇒'; position: absolute; left: 0; top: 0; color: #dc3545; font-weight: bold; font-size: 16px; }
+                    .list-double-arrow li::before { content: '⇒'; position: absolute; left: 0; top: 0; color: var(--list-color, #dc3545); font-weight: bold; font-size: 16px; }
                     .list-none { list-style: none; padding-left: 0; }
                     .list-none li { margin-bottom: 8px; }
                   `,
@@ -927,57 +984,263 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                       }
                     });
 
-                    // SANGO-style box button with title/body input
-                    editor.ui.registry.addButton('infobox', {
+                    // Enhanced box button with multiple styles
+                    editor.ui.registry.addMenuButton('infobox', {
                       text: 'ボックス',
-                      onAction: () => {
-                        editor.windowManager.open({
-                          title: 'ボックス',
-                          body: {
-                            type: 'panel',
-                            items: [
-                              {
-                                type: 'colorinput',
-                                name: 'color',
-                                label: 'アクセントカラー',
-                                value: '#2196f3'
-                              }
-                            ]
-                          },
-                          buttons: [
-                            {
-                              type: 'cancel',
-                              text: 'キャンセル'
-                            },
-                            {
-                              type: 'submit',
-                              text: '挿入',
-                              primary: true
-                            }
-                          ],
-                          onSubmit: (api) => {
-                            const data = api.getData();
-                            const accentColor = data.color || '#2196f3';
-                            
-                            const html = `<div class="sango-box" style="--accent: ${accentColor};">
-                              <header class="box-header">ここにタイトルを入力</header>
-                              <div class="box-content"><p>ここに内容を入力してください。</p></div>
-                            </div><p><br></p>`;
-                            
-                            editor.insertContent(html);
-                            
-                            // Position cursor after the inserted element
-                            setTimeout(() => {
-                              const boxElements = editor.getBody().querySelectorAll('.sango-box');
-                              const lastBox = boxElements[boxElements.length - 1];
-                              if (lastBox && lastBox.nextElementSibling) {
-                                editor.selection.setCursorLocation(lastBox.nextElementSibling, 0);
-                              }
-                            }, 10);
-                            
-                            api.close();
+                      fetch: (callback) => {
+                        const openBoxDialog = (boxType: string, displayName: string) => {
+                          let defaultColor = '#2196f3';
+                          
+                          // Set appropriate default colors for each box type
+                          switch(boxType) {
+                            case 'outline-title-band':
+                              defaultColor = '#F4C018';
+                              break;
+                            case 'flag-header':
+                              defaultColor = '#4DA0FF';
+                              break;
+                            case 'gradient':
+                              defaultColor = '#9C27B0';
+                              break;
+                            default:
+                              defaultColor = '#2196f3';
                           }
-                        });
+
+                          // Special handling for gradient box
+                          if (boxType === 'gradient') {
+                            editor.windowManager.open({
+                              title: `${displayName}の色を選択`,
+                              initialData: {
+                                startColor: defaultColor,
+                                endColor: '#E1BEE7'
+                              },
+                              body: {
+                                type: 'panel',
+                                items: [
+                                  {
+                                    type: 'colorinput',
+                                    name: 'startColor',
+                                    label: '開始色',
+                                    value: defaultColor
+                                  },
+                                  {
+                                    type: 'colorinput',
+                                    name: 'endColor',
+                                    label: '終了色',
+                                    value: '#E1BEE7'
+                                  }
+                                ]
+                              },
+                              buttons: [
+                                {
+                                  type: 'cancel',
+                                  text: 'キャンセル'
+                                },
+                                {
+                                  type: 'submit',
+                                  text: '挿入',
+                                  primary: true
+                                }
+                              ],
+                              onSubmit: (api) => {
+                                const data = api.getData();
+                                const startColor = data.startColor || defaultColor;
+                                const endColor = data.endColor || '#E1BEE7';
+                                
+                                const html = `<div class="gradient-box" style="--gradient-start: ${startColor}; --gradient-end: ${endColor};">
+                                  <header class="box-header">ここにタイトルを入力</header>
+                                  <div class="box-content"><p>ここに内容を入力してください。</p></div>
+                                </div><p><br></p>`;
+                                
+                                editor.insertContent(html);
+                                
+                                // Position cursor after the inserted element
+                                setTimeout(() => {
+                                  const boxElements = editor.getBody().querySelectorAll('[class$="-box"]');
+                                  const lastBox = boxElements[boxElements.length - 1];
+                                  if (lastBox && lastBox.nextElementSibling) {
+                                    editor.selection.setCursorLocation(lastBox.nextElementSibling, 0);
+                                  }
+                                }, 10);
+                                
+                                api.close();
+                              }
+                            });
+                            return;
+                          }
+
+                          const showDialog = (mode = 'accent', currentData: any = {}) => {
+                            const accentColor = currentData.accentColor || defaultColor;
+                            const headerColor = currentData.headerColor || defaultColor;
+                            const contentColor = currentData.contentColor || '#f8f9fa';
+
+                            const dialogConfig = {
+                              title: `${displayName}の色を選択`,
+                              initialData: {
+                                colorMode: mode,
+                                accentColor: accentColor,
+                                headerColor: headerColor,
+                                contentColor: contentColor
+                              },
+                              body: {
+                                type: 'panel',
+                                items: [
+                                  {
+                                    type: 'selectbox',
+                                    name: 'colorMode',
+                                    label: '色設定方法',
+                                    items: [
+                                      { text: 'アクセントカラー', value: 'accent' },
+                                      { text: 'ヘッダー・コンテンツ別々', value: 'separate' }
+                                    ]
+                                  }
+                                ]
+                              },
+                              buttons: [
+                                {
+                                  type: 'cancel',
+                                  text: 'キャンセル'
+                                },
+                                {
+                                  type: 'submit',
+                                  text: '挿入',
+                                  primary: true
+                                }
+                              ],
+                              onChange: (api, details) => {
+                                if (details.name === 'colorMode') {
+                                  const data = api.getData();
+                                  api.close();
+                                  showDialog(data.colorMode, data);
+                                }
+                              },
+                              onSubmit: (api) => {
+                                const data = api.getData();
+                                let html = '';
+                                
+                                // Determine color variables based on mode
+                                let colorVars = '';
+                                if (data.colorMode === 'accent') {
+                                  const accentColor = data.accentColor || defaultColor;
+                                  colorVars = `--accent: ${accentColor};`;
+                                } else {
+                                  const headerColor = data.headerColor || defaultColor;
+                                  const contentColor = data.contentColor || '#f8f9fa';
+                                  colorVars = `--header-color: ${headerColor}; --content-color: ${contentColor};`;
+                                }
+                                
+                                switch(boxType) {
+                                  case 'border':
+                                    html = `<div class="border-box" style="${colorVars}">
+                                      <header class="box-header">ここにタイトルを入力</header>
+                                      <div class="box-content"><p>ここに内容を入力してください。</p></div>
+                                    </div><p><br></p>`;
+                                    break;
+                                  case 'left-accent':
+                                    html = `<div class="left-accent-box" style="${colorVars}">
+                                      <header class="box-header">ここにタイトルを入力</header>
+                                      <div class="box-content"><p>ここに内容を入力してください。</p></div>
+                                    </div><p><br></p>`;
+                                    break;
+                                  case 'shadow':
+                                    html = `<div class="shadow-box" style="${colorVars}">
+                                      <header class="box-header">ここにタイトルを入力</header>
+                                      <div class="box-content"><p>ここに内容を入力してください。</p></div>
+                                    </div><p><br></p>`;
+                                    break;
+                                  case 'outline-title-band':
+                                    html = `<div class="outline-title-band-box" style="${colorVars}">
+                                      <header class="box-header">ここにタイトルを入力</header>
+                                      <div class="box-content"><p>ここに内容を入力してください。</p></div>
+                                    </div><p><br></p>`;
+                                    break;
+                                  case 'flag-header':
+                                    html = `<div class="flag-header-box" style="${colorVars}">
+                                      <header class="box-header">ここにタイトルを入力</header>
+                                      <div class="box-content"><p>ここに内容を入力してください。</p></div>
+                                    </div><p><br></p>`;
+                                    break;
+                                }
+                                
+                                editor.insertContent(html);
+                                
+                                // Position cursor after the inserted element
+                                setTimeout(() => {
+                                  const boxElements = editor.getBody().querySelectorAll('[class$="-box"]');
+                                  const lastBox = boxElements[boxElements.length - 1];
+                                  if (lastBox && lastBox.nextElementSibling) {
+                                    editor.selection.setCursorLocation(lastBox.nextElementSibling, 0);
+                                  }
+                                }, 10);
+                                
+                                api.close();
+                              }
+                            } as any;
+
+                            // Add appropriate color inputs based on mode
+                            if (mode === 'accent') {
+                              dialogConfig.body.items.push({
+                                type: 'colorinput',
+                                name: 'accentColor',
+                                label: 'アクセントカラー',
+                                value: accentColor
+                              });
+                            } else {
+                              dialogConfig.body.items.push(
+                                {
+                                  type: 'colorinput',
+                                  name: 'headerColor',
+                                  label: 'ヘッダー色',
+                                  value: headerColor
+                                },
+                                {
+                                  type: 'colorinput',
+                                  name: 'contentColor',
+                                  label: 'コンテンツ背景色',
+                                  value: contentColor
+                                }
+                              );
+                            }
+
+                            editor.windowManager.open(dialogConfig);
+                          };
+
+                          showDialog();
+                        };
+
+                        const items = [
+                          {
+                            type: 'menuitem',
+                            text: 'ボーダーボックス',
+                            onAction: () => openBoxDialog('border', 'ボーダーボックス')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: '左アクセントボックス',
+                            onAction: () => openBoxDialog('left-accent', '左アクセントボックス')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'シャドウボックス',
+                            onAction: () => openBoxDialog('shadow', 'シャドウボックス')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: '枠線＋タイトル帯',
+                            onAction: () => openBoxDialog('outline-title-band', '枠線＋タイトル帯')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: '旗アイコン見出し',
+                            onAction: () => openBoxDialog('flag-header', '旗アイコン見出し')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'グラデーションボックス',
+                            onAction: () => openBoxDialog('gradient', 'グラデーションボックス')
+                          }
+                        ];
+                        callback(items);
                       }
                     });
 
@@ -1124,98 +1387,150 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                       }
                     });
 
-                    // Enhanced custom lists button
+                    // Enhanced custom lists button with color settings
                     editor.ui.registry.addMenuButton('custom_lists', {
                       text: 'カスタムリスト',
                       fetch: (callback) => {
+                        const openListDialog = (listType: string, displayName: string, defaultColor: string) => {
+                          // Heart list doesn't need color picker since it uses emoji
+                          if (listType === 'heart') {
+                            const html = `<ul class="list-heart">
+                              <li>リストアイテム1</li>
+                              <li>リストアイテム2</li>
+                              <li>リストアイテム3</li>
+                            </ul>`;
+                            
+                            editor.insertContent(html);
+                            return;
+                          }
+
+                          editor.windowManager.open({
+                            title: `${displayName}の色を選択`,
+                            body: {
+                              type: 'panel',
+                              items: [
+                                {
+                                  type: 'colorinput',
+                                  name: 'listColor',
+                                  label: 'リスト色',
+                                  value: defaultColor
+                                }
+                              ]
+                            },
+                            buttons: [
+                              {
+                                type: 'cancel',
+                                text: 'キャンセル'
+                              },
+                              {
+                                type: 'submit',
+                                text: '挿入',
+                                primary: true
+                              }
+                            ],
+                            onSubmit: (api) => {
+                              const data = api.getData();
+                              const listColor = data.listColor || defaultColor;
+                              let html = '';
+                              
+                              switch(listType) {
+                                case 'check':
+                                  html = `<ul class="list-check" style="--list-color: ${listColor};">
+                                    <li>リストアイテム1</li>
+                                    <li>リストアイテム2</li>
+                                    <li>リストアイテム3</li>
+                                  </ul>`;
+                                  break;
+                                case 'star':
+                                  html = `<ul class="list-star" style="--list-color: ${listColor};">
+                                    <li>リストアイテム1</li>
+                                    <li>リストアイテム2</li>
+                                    <li>リストアイテム3</li>
+                                  </ul>`;
+                                  break;
+                                case 'num-circle':
+                                  html = `<ol class="list-num-circle" style="--list-color: ${listColor};">
+                                    <li>リストアイテム1</li>
+                                    <li>リストアイテム2</li>
+                                    <li>リストアイテム3</li>
+                                  </ol>`;
+                                  break;
+                                case 'num-square':
+                                  html = `<ol class="list-num-square" style="--list-color: ${listColor};">
+                                    <li>リストアイテム1</li>
+                                    <li>リストアイテム2</li>
+                                    <li>リストアイテム3</li>
+                                  </ol>`;
+                                  break;
+                                case 'arrow':
+                                  html = `<ul class="list-arrow" style="--list-color: ${listColor};">
+                                    <li>リストアイテム1</li>
+                                    <li>リストアイテム2</li>
+                                    <li>リストアイテム3</li>
+                                  </ul>`;
+                                  break;
+                                case 'double-arrow':
+                                  html = `<ul class="list-double-arrow" style="--list-color: ${listColor};">
+                                    <li>リストアイテム1</li>
+                                    <li>リストアイテム2</li>
+                                    <li>リストアイテム3</li>
+                                  </ul>`;
+                                  break;
+                                case 'none':
+                                  html = `<ul class="list-none">
+                                    <li>リストアイテム1</li>
+                                    <li>リストアイテム2</li>
+                                    <li>リストアイテム3</li>
+                                  </ul>`;
+                                  break;
+                              }
+                              
+                              editor.insertContent(html);
+                              api.close();
+                            }
+                          });
+                        };
+
                         const items = [
                           {
                             type: 'menuitem',
                             text: 'チェックリスト ✓',
-                            onAction: () => {
-                              editor.insertContent(`<ul class="list-check">
-                                <li>リストアイテム1</li>
-                                <li>リストアイテム2</li>
-                                <li>リストアイテム3</li>
-                              </ul>`);
-                            }
+                            onAction: () => openListDialog('check', 'チェックリスト', '#28a745')
                           },
                           {
                             type: 'menuitem',
                             text: 'スターリスト ★',
-                            onAction: () => {
-                              editor.insertContent(`<ul class="list-star">
-                                <li>リストアイテム1</li>
-                                <li>リストアイテム2</li>
-                                <li>リストアイテム3</li>
-                              </ul>`);
-                            }
+                            onAction: () => openListDialog('star', 'スターリスト', '#ffc107')
                           },
                           {
                             type: 'menuitem',
                             text: 'ハートリスト 💖',
-                            onAction: () => {
-                              editor.insertContent(`<ul class="list-heart">
-                                <li>リストアイテム1</li>
-                                <li>リストアイテム2</li>
-                                <li>リストアイテム3</li>
-                              </ul>`);
-                            }
+                            onAction: () => openListDialog('heart', 'ハートリスト', '#e91e63')
                           },
                           {
                             type: 'menuitem',
                             text: '番号付き（丸）',
-                            onAction: () => {
-                              editor.insertContent(`<ol class="list-num-circle">
-                                <li>リストアイテム1</li>
-                                <li>リストアイテム2</li>
-                                <li>リストアイテム3</li>
-                              </ol>`);
-                            }
+                            onAction: () => openListDialog('num-circle', '番号付き（丸）', '#007bff')
                           },
                           {
                             type: 'menuitem',
                             text: '番号付き（四角）',
-                            onAction: () => {
-                              editor.insertContent(`<ol class="list-num-square">
-                                <li>リストアイテム1</li>
-                                <li>リストアイテム2</li>
-                                <li>リストアイテム3</li>
-                              </ol>`);
-                            }
+                            onAction: () => openListDialog('num-square', '番号付き（四角）', '#28a745')
                           },
                           {
                             type: 'menuitem',
                             text: '矢印リスト →',
-                            onAction: () => {
-                              editor.insertContent(`<ul class="list-arrow">
-                                <li>リストアイテム1</li>
-                                <li>リストアイテム2</li>
-                                <li>リストアイテム3</li>
-                              </ul>`);
-                            }
+                            onAction: () => openListDialog('arrow', '矢印リスト', '#007bff')
                           },
                           {
                             type: 'menuitem',
                             text: 'ダブル矢印リスト ⇒',
-                            onAction: () => {
-                              editor.insertContent(`<ul class="list-double-arrow">
-                                <li>リストアイテム1</li>
-                                <li>リストアイテム2</li>
-                                <li>リストアイテム3</li>
-                              </ul>`);
-                            }
+                            onAction: () => openListDialog('double-arrow', 'ダブル矢印リスト', '#dc3545')
                           },
                           {
                             type: 'menuitem',
                             text: 'スタイルなし',
-                            onAction: () => {
-                              editor.insertContent(`<ul class="list-none">
-                                <li>リストアイテム1</li>
-                                <li>リストアイテム2</li>
-                                <li>リストアイテム3</li>
-                              </ul>`);
-                            }
+                            onAction: () => openListDialog('none', 'スタイルなし', '#333333')
                           }
                         ];
                         callback(items);

@@ -932,7 +932,7 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                       text: 'ボックス',
                       onAction: () => {
                         editor.windowManager.open({
-                          title: 'SANGO風ボックス',
+                          title: 'ボックス',
                           body: {
                             type: 'panel',
                             items: [

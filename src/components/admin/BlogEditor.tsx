@@ -667,80 +667,64 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                   content_style: `
                     body { font-family:Helvetica,Arial,sans-serif; font-size:14px }
                     
-                    /* Balloon Blocks */
-                    .balloon-left, .balloon-right, .balloon-both {
-                      position: relative; background-color: var(--balloon-color, #e3f2fd);
-                      border-radius: 12px; padding: 16px 20px; margin: 16px 0;
-                      border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    }
-                    .balloon-left::before {
-                      content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
-                      width: 0; height: 0; border-style: solid; border-width: 10px 10px 10px 0;
-                      border-color: transparent var(--balloon-color, #e3f2fd) transparent transparent;
-                    }
-                    .balloon-right::before {
-                      content: ''; position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
-                      width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 10px;
-                      border-color: transparent transparent transparent var(--balloon-color, #e3f2fd);
-                    }
-                    .balloon-both::before {
-                      content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
-                      width: 0; height: 0; border-style: solid; border-width: 10px 10px 10px 0;
-                      border-color: transparent var(--balloon-color, #e3f2fd) transparent transparent;
-                    }
-                    .balloon-both::after {
-                      content: ''; position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
-                      width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 10px;
-                      border-color: transparent transparent transparent var(--balloon-color, #e3f2fd);
-                    }
+                    /* Speech Balloon Blocks with Avatar Support */
+                    .balloon-container { display: flex; align-items: flex-start; margin: 20px 0; gap: 12px; background: transparent; }
+                    .balloon-avatar { flex-shrink: 0; width: 60px; height: auto; background: transparent; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+                    .balloon-avatar img { width: 60px; height: 60px; object-fit: cover; border-radius: 50%; }
+                    .balloon-avatar .avatar-placeholder { width: 60px; height: 60px; background: transparent; display: flex; align-items: center; justify-content: center; font-size: 32px; border-radius: 50%; }
+                    .balloon-content { flex: 1; position: relative; background: transparent; }
+                    .balloon-speech { background-color: var(--balloon-color, #ffffff); border-radius: 18px; padding: 16px 20px; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); position: relative; margin: 0; }
+                    .balloon-left .balloon-speech::before { content: ''; position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-style: solid; border-width: 10px 10px 10px 0; border-color: transparent var(--balloon-color, #ffffff) transparent transparent; }
+                    .balloon-right .balloon-speech::before { content: ''; position: absolute; right: -10px; top: 20px; width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 10px; border-color: transparent transparent transparent var(--balloon-color, #ffffff); }
+                    .balloon-caption { text-align: center; font-size: 12px; color: #666; margin: 0; padding: 0; background: transparent; white-space: nowrap; }
                     
-                    /* Info Boxes */
-                    .box-alert, .box-info, .box-tip, .box-warning, .box-good, .box-bad {
-                      border-radius: 8px; padding: 16px; margin: 16px 0; border-left: 4px solid; position: relative;
-                    }
-                    .box-alert { background-color: var(--box-color, #fff3cd); border-left-color: #ff9800; color: #856404; }
-                    .box-info { background-color: var(--box-color, #d1ecf1); border-left-color: #17a2b8; color: #0c5460; }
-                    .box-tip { background-color: var(--box-color, #d4edda); border-left-color: #28a745; color: #155724; }
-                    .box-warning { background-color: var(--box-color, #f8d7da); border-left-color: #dc3545; color: #721c24; }
-                    .box-good { background-color: var(--box-color, #d1f2eb); border-left-color: #00d4aa; color: #0c6e54; }
-                    .box-bad { background-color: var(--box-color, #f5c6cb); border-left-color: #e74c3c; color: #721c24; }
-                    .box-alert::before { content: '⚠️'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
-                    .box-info::before { content: 'ℹ️'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
-                    .box-tip::before { content: '💡'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
-                    .box-warning::before { content: '⚠️'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
-                    .box-good::before { content: '✅'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
-                    .box-bad::before { content: '❌'; position: absolute; left: 12px; top: 16px; font-size: 16px; }
-                    .box-alert p, .box-info p, .box-tip p, .box-warning p, .box-good p, .box-bad p {
-                      margin-left: 28px; margin-bottom: 0;
-                    }
+                    /* Clean SANGO-Style Info Boxes */
+                    .sango-box { width: 100%; max-width: 680px; margin: 1.5rem auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; border: none; background: transparent; }
+                    .sango-box .box-header { background-color: var(--accent, #2196f3); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; border-radius: 8px 8px 0 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
+                    .sango-box .box-content { border: 1px solid var(--accent, #2196f3); border-top: none; background-color: color-mix(in srgb, var(--accent, #2196f3) 10%, white); padding: 1rem; border-radius: 0 0 8px 8px; margin: 0; min-height: 120px; box-sizing: border-box; }
+                    .sango-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
+                    .sango-box .box-content p + p { margin-top: 0.5rem; }
                     
-                    /* Custom Headings */
+                    /* Enhanced Custom Headings with Color Support */
                     .heading-line { position: relative; padding-bottom: 8px; margin-bottom: 20px; }
-                    .heading-line::after {
-                      content: ''; position: absolute; bottom: 0; left: 0; width: 50px; height: 3px;
-                      background-color: #007bff; border-radius: 2px;
-                    }
+                    .heading-line::after { content: ''; position: absolute; bottom: 0; left: 0; width: 50px; height: 3px; background-color: var(--heading-color, #007bff); border-radius: 2px; }
+                    .heading-dotted { position: relative; padding-bottom: 8px; margin-bottom: 20px; }
+                    .heading-dotted::after { content: ''; position: absolute; bottom: 0; left: 0; width: 80px; height: 2px; border-bottom: 2px dotted var(--heading-color, #007bff); }
+                    .heading-cross { position: relative; padding-bottom: 8px; margin-bottom: 20px; }
+                    .heading-cross::after { content: ''; position: absolute; bottom: 0; left: 0; width: 60px; height: 2px; background: repeating-linear-gradient(45deg, var(--heading-color, #007bff), var(--heading-color, #007bff) 5px, transparent 5px, transparent 10px); }
+                    .heading-stripe { position: relative; padding: 8px 16px; margin-bottom: 20px; background: linear-gradient(135deg, var(--heading-color, #007bff) 0%, color-mix(in srgb, var(--heading-color, #007bff) 80%, black) 100%); color: white; border-radius: 4px; transform: skew(-10deg); }
+                    .heading-stripe span { display: inline-block; transform: skew(10deg); }
+                    .heading-ribbon { position: relative; background: var(--heading-color, #007bff); color: white; padding: 8px 20px 8px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0; }
+                    .heading-ribbon::before { content: ''; position: absolute; right: -8px; top: 0; width: 0; height: 0; border-style: solid; border-width: 0 0 100% 8px; border-color: transparent transparent color-mix(in srgb, var(--heading-color, #007bff) 80%, black) transparent; }
+                    .heading-arrow { position: relative; background: var(--heading-color, #007bff); color: white; padding: 8px 24px 8px 16px; margin-bottom: 20px; border-radius: 4px 0 0 4px; }
+                    .heading-arrow::after { content: ''; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-style: solid; border-width: 20px 0 20px 12px; border-color: transparent transparent transparent var(--heading-color, #007bff); }
+                    .heading-shadow { position: relative; padding: 8px 16px; margin-bottom: 20px; background: #f8f9fa; border-left: 4px solid var(--heading-color, #007bff); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
                     .heading-dot { position: relative; padding-left: 20px; }
-                    .heading-dot::before {
-                      content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-                      width: 8px; height: 8px; background-color: #007bff; border-radius: 50%;
-                    }
-                    .heading-sidebar { position: relative; padding-left: 16px; border-left: 4px solid #007bff; margin-left: 0; }
+                    .heading-dot::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; background-color: var(--heading-color, #007bff); border-radius: 50%; }
+                    .heading-sidebar { position: relative; padding-left: 16px; border-left: 4px solid var(--heading-color, #007bff); margin-left: 0; }
                     
-                    /* Custom Lists */
+                    /* Enhanced Custom Lists */
                     .list-check { list-style: none; padding-left: 0; }
                     .list-check li { position: relative; padding-left: 28px; margin-bottom: 8px; }
                     .list-check li::before { content: '✓'; position: absolute; left: 0; top: 0; color: #28a745; font-weight: bold; font-size: 16px; }
+                    .list-star { list-style: none; padding-left: 0; }
+                    .list-star li { position: relative; padding-left: 28px; margin-bottom: 8px; }
+                    .list-star li::before { content: '★'; position: absolute; left: 0; top: 0; color: #ffc107; font-weight: bold; font-size: 16px; }
+                    .list-heart { list-style: none; padding-left: 0; }
+                    .list-heart li { position: relative; padding-left: 28px; margin-bottom: 8px; }
+                    .list-heart li::before { content: '💖'; position: absolute; left: 0; top: 0; font-size: 16px; }
                     .list-num-circle { list-style: none; counter-reset: item; padding-left: 0; }
                     .list-num-circle li { position: relative; padding-left: 40px; margin-bottom: 8px; counter-increment: item; }
-                    .list-num-circle li::before {
-                      content: counter(item); position: absolute; left: 0; top: 0; background-color: #007bff; color: white;
-                      border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-                      font-size: 12px; font-weight: bold;
-                    }
+                    .list-num-circle li::before { content: counter(item); position: absolute; left: 0; top: 0; background-color: #007bff; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+                    .list-num-square { list-style: none; counter-reset: item; padding-left: 0; }
+                    .list-num-square li { position: relative; padding-left: 40px; margin-bottom: 8px; counter-increment: item; }
+                    .list-num-square li::before { content: counter(item); position: absolute; left: 0; top: 0; background-color: #28a745; color: white; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
                     .list-arrow { list-style: none; padding-left: 0; }
                     .list-arrow li { position: relative; padding-left: 28px; margin-bottom: 8px; }
                     .list-arrow li::before { content: '→'; position: absolute; left: 0; top: 0; color: #007bff; font-weight: bold; font-size: 16px; }
+                    .list-double-arrow { list-style: none; padding-left: 0; }
+                    .list-double-arrow li { position: relative; padding-left: 28px; margin-bottom: 8px; }
+                    .list-double-arrow li::before { content: '⇒'; position: absolute; left: 0; top: 0; color: #dc3545; font-weight: bold; font-size: 16px; }
                     .list-none { list-style: none; padding-left: 0; }
                     .list-none li { margin-bottom: 8px; }
                   `,
@@ -797,13 +781,29 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                   formats: {
                     'heading-line-h2': { block: 'h2', classes: 'heading-line' },
                     'heading-line-h3': { block: 'h3', classes: 'heading-line' },
+                    'heading-dotted-h2': { block: 'h2', classes: 'heading-dotted' },
+                    'heading-dotted-h3': { block: 'h3', classes: 'heading-dotted' },
+                    'heading-cross-h2': { block: 'h2', classes: 'heading-cross' },
+                    'heading-cross-h3': { block: 'h3', classes: 'heading-cross' },
+                    'heading-stripe-h2': { block: 'h2', classes: 'heading-stripe' },
+                    'heading-stripe-h3': { block: 'h3', classes: 'heading-stripe' },
+                    'heading-ribbon-h2': { block: 'h2', classes: 'heading-ribbon' },
+                    'heading-ribbon-h3': { block: 'h3', classes: 'heading-ribbon' },
+                    'heading-arrow-h2': { block: 'h2', classes: 'heading-arrow' },
+                    'heading-arrow-h3': { block: 'h3', classes: 'heading-arrow' },
+                    'heading-shadow-h2': { block: 'h2', classes: 'heading-shadow' },
+                    'heading-shadow-h3': { block: 'h3', classes: 'heading-shadow' },
                     'heading-dot-h2': { block: 'h2', classes: 'heading-dot' },
                     'heading-dot-h3': { block: 'h3', classes: 'heading-dot' },
                     'heading-sidebar-h2': { block: 'h2', classes: 'heading-sidebar' },
                     'heading-sidebar-h3': { block: 'h3', classes: 'heading-sidebar' },
                     'list-check': { block: 'ul', classes: 'list-check', list_style_type: 'none' },
+                    'list-star': { block: 'ul', classes: 'list-star', list_style_type: 'none' },
+                    'list-heart': { block: 'ul', classes: 'list-heart', list_style_type: 'none' },
                     'list-num-circle': { block: 'ol', classes: 'list-num-circle', list_style_type: 'none' },
+                    'list-num-square': { block: 'ol', classes: 'list-num-square', list_style_type: 'none' },
                     'list-arrow': { block: 'ul', classes: 'list-arrow', list_style_type: 'none' },
+                    'list-double-arrow': { block: 'ul', classes: 'list-double-arrow', list_style_type: 'none' },
                     'list-none': { block: 'ul', classes: 'list-none', list_style_type: 'none' }
                   },
 
@@ -816,12 +816,17 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                       }
                     });
 
-                    // Add balloon block button
+                    // Enhanced balloon block button with avatar support
                     editor.ui.registry.addButton('balloon', {
                       text: '吹き出し',
                       onAction: () => {
                         editor.windowManager.open({
                           title: '吹き出しブロック',
+                          initialData: {
+                            direction: 'left',
+                            animal: '🐱',
+                            color: '#FFFFFF'
+                          },
                           body: {
                             type: 'panel',
                             items: [
@@ -830,16 +835,35 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                                 name: 'direction',
                                 label: '方向',
                                 items: [
-                                  { text: '左', value: 'left' },
-                                  { text: '右', value: 'right' },
-                                  { text: '両方', value: 'both' }
+                                  { text: '左（アバター左側）', value: 'left' },
+                                  { text: '右（アバター右側）', value: 'right' },
+                                  { text: 'シンプル左', value: 'simple-left' },
+                                  { text: 'シンプル右', value: 'simple-right' },
+                                  { text: 'シンプル両方', value: 'simple-both' }
+                                ]
+                              },
+                              {
+                                type: 'selectbox',
+                                name: 'animal',
+                                label: 'アバター動物',
+                                items: [
+                                  { text: '🐱 ネコ', value: '🐱' },
+                                  { text: '🐶 イヌ', value: '🐶' },
+                                  { text: '🐰 ウサギ', value: '🐰' },
+                                  { text: '🐼 パンダ', value: '🐼' },
+                                  { text: '🐸 カエル', value: '🐸' },
+                                  { text: '🐧 ペンギン', value: '🐧' },
+                                  { text: '🦊 キツネ', value: '🦊' },
+                                  { text: '🐻 クマ', value: '🐻' },
+                                  { text: '🐵 サル', value: '🐵' },
+                                  { text: '🐨 コアラ', value: '🐨' }
                                 ]
                               },
                               {
                                 type: 'colorinput',
                                 name: 'color',
-                                label: '色',
-                                value: '#e3f2fd'
+                                label: '背景色',
+                                value: '#FFFFFF'
                               }
                             ]
                           },
@@ -856,17 +880,44 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                           ],
                           onSubmit: (api) => {
                             const data = api.getData();
-                            const html = `<div class="balloon-${data.direction}" style="--balloon-color: ${data.color};">
-                              <p>ここにテキストを入力してください</p>
-                            </div><p><br></p>`;
+                            let html = '';
+                            
+                            // Ensure color defaults to white if not set or empty
+                            const balloonColor = data.color && data.color.trim() !== '' ? data.color : '#FFFFFF';
+                            
+                            if (data.direction === 'left' || data.direction === 'right') {
+                              // Advanced balloon with animal avatar
+                              const avatarContent = `<div class="avatar-placeholder" style="font-size: 32px;">${data.animal}</div>`;
+                              
+                              const avatarPosition = data.direction === 'left' ? 'order: 1;' : 'order: 3;';
+                              const contentPosition = data.direction === 'left' ? 'order: 2;' : 'order: 1;';
+                              
+                              html = `<div class="balloon-container balloon-${data.direction}" style="--balloon-color: ${balloonColor};">
+                                <div class="balloon-avatar" style="${avatarPosition}">
+                                  ${avatarContent}
+                                </div>
+                                <div class="balloon-content" style="${contentPosition}">
+                                  <div class="balloon-speech">
+                                    <p>ここに吹き出しの中に入れる文を書きます。</p>
+                                  </div>
+                                </div>
+                              </div><p><br></p>`;
+                            } else {
+                              // Simple balloon (legacy)
+                              const balloonClass = data.direction.replace('simple-', '');
+                              html = `<div class="balloon-${balloonClass}" style="--balloon-color: ${balloonColor};">
+                                <p>ここにテキストを入力してください</p>
+                              </div><p><br></p>`;
+                            }
+                            
                             editor.insertContent(html);
                             
                             // Position cursor after the inserted element
                             setTimeout(() => {
-                              const balloonElements = editor.getBody().querySelectorAll('.balloon-left, .balloon-right, .balloon-both');
-                              const lastBalloon = balloonElements[balloonElements.length - 1];
-                              if (lastBalloon && lastBalloon.nextElementSibling) {
-                                editor.selection.setCursorLocation(lastBalloon.nextElementSibling, 0);
+                              const containers = editor.getBody().querySelectorAll('.balloon-container, .balloon-left, .balloon-right, .balloon-both');
+                              const lastContainer = containers[containers.length - 1];
+                              if (lastContainer && lastContainer.nextElementSibling) {
+                                editor.selection.setCursorLocation(lastContainer.nextElementSibling, 0);
                               }
                             }, 10);
                             
@@ -876,33 +927,20 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                       }
                     });
 
-                    // Add info box button
+                    // SANGO-style box button with title/body input
                     editor.ui.registry.addButton('infobox', {
                       text: 'ボックス',
                       onAction: () => {
                         editor.windowManager.open({
-                          title: '情報ボックス',
+                          title: 'SANGO風ボックス',
                           body: {
                             type: 'panel',
                             items: [
                               {
-                                type: 'selectbox',
-                                name: 'type',
-                                label: 'タイプ',
-                                items: [
-                                  { text: 'アラート', value: 'alert' },
-                                  { text: '情報', value: 'info' },
-                                  { text: 'ヒント', value: 'tip' },
-                                  { text: '警告', value: 'warning' },
-                                  { text: '良い', value: 'good' },
-                                  { text: '悪い', value: 'bad' }
-                                ]
-                              },
-                              {
                                 type: 'colorinput',
                                 name: 'color',
-                                label: '色（オプション）',
-                                value: ''
+                                label: 'アクセントカラー',
+                                value: '#2196f3'
                               }
                             ]
                           },
@@ -919,15 +957,18 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                           ],
                           onSubmit: (api) => {
                             const data = api.getData();
-                            const colorStyle = data.color ? ` style="--box-color: ${data.color};"` : '';
-                            const html = `<div class="box-${data.type}"${colorStyle}>
-                              <p>ここにテキストを入力してください</p>
+                            const accentColor = data.color || '#2196f3';
+                            
+                            const html = `<div class="sango-box" style="--accent: ${accentColor};">
+                              <header class="box-header">ここにタイトルを入力</header>
+                              <div class="box-content"><p>ここに内容を入力してください。</p></div>
                             </div><p><br></p>`;
+                            
                             editor.insertContent(html);
                             
                             // Position cursor after the inserted element
                             setTimeout(() => {
-                              const boxElements = editor.getBody().querySelectorAll('[class^="box-"]');
+                              const boxElements = editor.getBody().querySelectorAll('.sango-box');
                               const lastBox = boxElements[boxElements.length - 1];
                               if (lastBox && lastBox.nextElementSibling) {
                                 editor.selection.setCursorLocation(lastBox.nextElementSibling, 0);
@@ -940,74 +981,181 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                       }
                     });
 
-                    // Add custom headings button
+                    // Enhanced custom headings button with color picker
                     editor.ui.registry.addMenuButton('custom_headings', {
                       text: 'カスタム見出し',
                       fetch: (callback) => {
+                        const openHeadingDialog = (headingType: string, headingLevel: 'h2' | 'h3', displayName: string) => {
+                          editor.windowManager.open({
+                            title: `${displayName}の色を選択`,
+                            body: {
+                              type: 'panel',
+                              items: [
+                                {
+                                  type: 'colorinput',
+                                  name: 'color',
+                                  label: 'アクセントカラー',
+                                  value: '#007bff'
+                                }
+                              ]
+                            },
+                            buttons: [
+                              {
+                                type: 'cancel',
+                                text: 'キャンセル'
+                              },
+                              {
+                                type: 'submit',
+                                text: '挿入',
+                                primary: true
+                              }
+                            ],
+                            onSubmit: (api) => {
+                              const data = api.getData();
+                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
+                              const accentColor = data.color || '#007bff';
+                              
+                              let html = '';
+                              if (headingType === 'stripe') {
+                                html = `<${headingLevel} class="heading-${headingType}" style="--heading-color: ${accentColor};"><span>${selectedText}</span></${headingLevel}>`;
+                              } else {
+                                html = `<${headingLevel} class="heading-${headingType}" style="--heading-color: ${accentColor};">${selectedText}</${headingLevel}>`;
+                              }
+                              
+                              editor.selection.setContent(html);
+                              api.close();
+                            }
+                          });
+                        };
+
                         const items = [
                           {
                             type: 'menuitem',
-                            text: 'H2 ライン',
-                            onAction: () => {
-                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
-                              editor.selection.setContent(`<h2 class="heading-line">${selectedText}</h2>`);
-                            }
+                            text: 'H2 ライン（実線下線）',
+                            onAction: () => openHeadingDialog('line', 'h2', 'H2 ライン')
                           },
                           {
                             type: 'menuitem',
-                            text: 'H3 ライン',
-                            onAction: () => {
-                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
-                              editor.selection.setContent(`<h3 class="heading-line">${selectedText}</h3>`);
-                            }
+                            text: 'H3 ライン（実線下線）',
+                            onAction: () => openHeadingDialog('line', 'h3', 'H3 ライン')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 ドット線（点線下線）',
+                            onAction: () => openHeadingDialog('dotted', 'h2', 'H2 ドット線')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 ドット線（点線下線）',
+                            onAction: () => openHeadingDialog('dotted', 'h3', 'H3 ドット線')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 クロス線（斜線）',
+                            onAction: () => openHeadingDialog('cross', 'h2', 'H2 クロス線')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 クロス線（斜線）',
+                            onAction: () => openHeadingDialog('cross', 'h3', 'H3 クロス線')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 ストライプ（斜め背景）',
+                            onAction: () => openHeadingDialog('stripe', 'h2', 'H2 ストライプ')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 ストライプ（斜め背景）',
+                            onAction: () => openHeadingDialog('stripe', 'h3', 'H3 ストライプ')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 リボン（タグリボン）',
+                            onAction: () => openHeadingDialog('ribbon', 'h2', 'H2 リボン')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 リボン（タグリボン）',
+                            onAction: () => openHeadingDialog('ribbon', 'h3', 'H3 リボン')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 アロー（矢印ノッチ）',
+                            onAction: () => openHeadingDialog('arrow', 'h2', 'H2 アロー')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 アロー（矢印ノッチ）',
+                            onAction: () => openHeadingDialog('arrow', 'h3', 'H3 アロー')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 シャドウバー',
+                            onAction: () => openHeadingDialog('shadow', 'h2', 'H2 シャドウバー')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 シャドウバー',
+                            onAction: () => openHeadingDialog('shadow', 'h3', 'H3 シャドウバー')
                           },
                           {
                             type: 'menuitem',
                             text: 'H2 ドット',
-                            onAction: () => {
-                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
-                              editor.selection.setContent(`<h2 class="heading-dot">${selectedText}</h2>`);
-                            }
+                            onAction: () => openHeadingDialog('dot', 'h2', 'H2 ドット')
                           },
                           {
                             type: 'menuitem',
                             text: 'H3 ドット',
-                            onAction: () => {
-                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
-                              editor.selection.setContent(`<h3 class="heading-dot">${selectedText}</h3>`);
-                            }
+                            onAction: () => openHeadingDialog('dot', 'h3', 'H3 ドット')
                           },
                           {
                             type: 'menuitem',
                             text: 'H2 サイドバー',
-                            onAction: () => {
-                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
-                              editor.selection.setContent(`<h2 class="heading-sidebar">${selectedText}</h2>`);
-                            }
+                            onAction: () => openHeadingDialog('sidebar', 'h2', 'H2 サイドバー')
                           },
                           {
                             type: 'menuitem',
                             text: 'H3 サイドバー',
-                            onAction: () => {
-                              const selectedText = editor.selection.getContent({ format: 'text' }) || 'ここに見出しを入力';
-                              editor.selection.setContent(`<h3 class="heading-sidebar">${selectedText}</h3>`);
-                            }
+                            onAction: () => openHeadingDialog('sidebar', 'h3', 'H3 サイドバー')
                           }
                         ];
                         callback(items);
                       }
                     });
 
-                    // Add custom lists button
+                    // Enhanced custom lists button
                     editor.ui.registry.addMenuButton('custom_lists', {
                       text: 'カスタムリスト',
                       fetch: (callback) => {
                         const items = [
                           {
                             type: 'menuitem',
-                            text: 'チェックリスト',
+                            text: 'チェックリスト ✓',
                             onAction: () => {
                               editor.insertContent(`<ul class="list-check">
+                                <li>リストアイテム1</li>
+                                <li>リストアイテム2</li>
+                                <li>リストアイテム3</li>
+                              </ul>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'スターリスト ★',
+                            onAction: () => {
+                              editor.insertContent(`<ul class="list-star">
+                                <li>リストアイテム1</li>
+                                <li>リストアイテム2</li>
+                                <li>リストアイテム3</li>
+                              </ul>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'ハートリスト 💖',
+                            onAction: () => {
+                              editor.insertContent(`<ul class="list-heart">
                                 <li>リストアイテム1</li>
                                 <li>リストアイテム2</li>
                                 <li>リストアイテム3</li>
@@ -1027,9 +1175,31 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                           },
                           {
                             type: 'menuitem',
-                            text: '矢印リスト',
+                            text: '番号付き（四角）',
+                            onAction: () => {
+                              editor.insertContent(`<ol class="list-num-square">
+                                <li>リストアイテム1</li>
+                                <li>リストアイテム2</li>
+                                <li>リストアイテム3</li>
+                              </ol>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: '矢印リスト →',
                             onAction: () => {
                               editor.insertContent(`<ul class="list-arrow">
+                                <li>リストアイテム1</li>
+                                <li>リストアイテム2</li>
+                                <li>リストアイテム3</li>
+                              </ul>`);
+                            }
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'ダブル矢印リスト ⇒',
+                            onAction: () => {
+                              editor.insertContent(`<ul class="list-double-arrow">
                                 <li>リストアイテム1</li>
                                 <li>リストアイテム2</li>
                                 <li>リストアイテム3</li>

@@ -679,16 +679,16 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     .balloon-caption { text-align: center; font-size: 12px; color: #666; margin: 0; padding: 0; background: transparent; white-space: nowrap; }
                     
                     /* Clean SANGO-Style Info Boxes */
-                    .sango-box { width: 100%; max-width: 680px; margin: 1.5rem auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; border: none; background: transparent; }
-                    .sango-box .box-header { background-color: var(--header-color, var(--accent, #2196f3)); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; border-radius: 8px 8px 0 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
-                    .sango-box .box-content { border: 1px solid var(--header-color, var(--accent, #2196f3)); border-top: none; background-color: var(--content-color, color-mix(in srgb, var(--accent, #2196f3) 10%, white)); padding: 1rem; border-radius: 0 0 8px 8px; margin: 0; min-height: 120px; box-sizing: border-box; }
+                    .sango-box { width: 100%; max-width: 680px; margin: 1.5rem auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06); overflow: visible; border: none; background: transparent; }
+                    .sango-box .box-header { background-color: var(--header-color, var(--accent, #2196f3)); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
+                    .sango-box .box-content { border: 1px solid var(--header-color, var(--accent, #2196f3)); border-top: none; background-color: var(--content-color, color-mix(in srgb, var(--accent, #2196f3) 10%, white)); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; }
                     .sango-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
                     .sango-box .box-content p + p { margin-top: 0.5rem; }
                     
                     /* Border Box Style */
-                    .border-box { width: 100%; max-width: 680px; margin: 1.5rem auto; border: 2px solid var(--header-color, var(--accent, #2196f3)); border-radius: 8px; background: white; }
-                    .border-box .box-header { background-color: var(--header-color, var(--accent, #2196f3)); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
-                    .border-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; }
+                    .border-box { width: 100%; max-width: 680px; margin: 1.5rem auto; border: 3px solid var(--header-color, var(--accent, #2196f3)); border-radius: 8px; background: transparent; }
+                    .border-box .box-header { background-color: var(--header-color, var(--accent, #2196f3)); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 3px 3px 0 3px; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; background-clip: padding-box; }
+                    .border-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0 3px 3px 3px; min-height: 120px; box-sizing: border-box; border-radius: inherit; background-clip: padding-box; }
                     .border-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
                     .border-box .box-content p + p { margin-top: 0.5rem; }
                     
@@ -700,7 +700,7 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     .left-accent-box .box-content p + p { margin-top: 0.5rem; }
                     
                     /* Gradient Box Style - Full Beautiful Gradient */
-                    .gradient-box { width: 100%; max-width: 680px; margin: 1.5rem auto; border-radius: 8px; background: linear-gradient(135deg, var(--accent, #2196f3) 0%, color-mix(in srgb, var(--accent, #2196f3) 30%, white) 100%); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); overflow: hidden; }
+                    .gradient-box { width: 100%; max-width: 680px; margin: 1.5rem auto; background: linear-gradient(135deg, var(--accent, #2196f3) 0%, color-mix(in srgb, var(--accent, #2196f3) 30%, white) 100%); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); overflow: visible; }
                     .gradient-box .box-header { background: linear-gradient(135deg, var(--accent, #2196f3) 0%, color-mix(in srgb, var(--accent, #2196f3) 70%, black) 100%); color: white; font-weight: bold; font-size: 0.95rem; padding: 1rem; margin: 0; line-height: 1.2; height: 48px; display: flex; align-items: center; box-sizing: border-box; }
                     .gradient-box .box-content { background: linear-gradient(135deg, color-mix(in srgb, var(--accent, #2196f3) 30%, white) 0%, color-mix(in srgb, var(--accent, #2196f3) 8%, white) 100%); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; }
                     .gradient-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
@@ -893,10 +893,7 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                                 label: '方向',
                                 items: [
                                   { text: '左（アバター左側）', value: 'left' },
-                                  { text: '右（アバター右側）', value: 'right' },
-                                  { text: 'シンプル左', value: 'simple-left' },
-                                  { text: 'シンプル右', value: 'simple-right' },
-                                  { text: 'シンプル両方', value: 'simple-both' }
+                                  { text: '右（アバター右側）', value: 'right' }
                                 ]
                               },
                               {
@@ -937,35 +934,26 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                           ],
                           onSubmit: (api) => {
                             const data = api.getData();
-                            let html = '';
                             
                             // Ensure color defaults to white if not set or empty
                             const balloonColor = data.color && data.color.trim() !== '' ? data.color : '#FFFFFF';
                             
-                            if (data.direction === 'left' || data.direction === 'right') {
-                              // Advanced balloon with animal avatar
-                              const avatarContent = `<div class="avatar-placeholder" style="font-size: 32px;">${data.animal}</div>`;
-                              
-                              const avatarPosition = data.direction === 'left' ? 'order: 1;' : 'order: 3;';
-                              const contentPosition = data.direction === 'left' ? 'order: 2;' : 'order: 1;';
-                              
-                              html = `<div class="balloon-container balloon-${data.direction}" style="--balloon-color: ${balloonColor};">
-                                <div class="balloon-avatar" style="${avatarPosition}">
-                                  ${avatarContent}
+                            // Only avatar-based balloons now
+                            const avatarContent = `<div class="avatar-placeholder" style="font-size: 32px;">${data.animal}</div>`;
+                            
+                            const avatarPosition = data.direction === 'left' ? 'order: 1;' : 'order: 3;';
+                            const contentPosition = data.direction === 'left' ? 'order: 2;' : 'order: 1;';
+                            
+                            const html = `<div class="balloon-container balloon-${data.direction}" style="--balloon-color: ${balloonColor};">
+                              <div class="balloon-avatar" style="${avatarPosition}">
+                                ${avatarContent}
+                              </div>
+                              <div class="balloon-content" style="${contentPosition}">
+                                <div class="balloon-speech">
+                                  <p>ここに吹き出しの中に入れる文を書きます。</p>
                                 </div>
-                                <div class="balloon-content" style="${contentPosition}">
-                                  <div class="balloon-speech">
-                                    <p>ここに吹き出しの中に入れる文を書きます。</p>
-                                  </div>
-                                </div>
-                              </div><p><br></p>`;
-                            } else {
-                              // Simple balloon (legacy)
-                              const balloonClass = data.direction.replace('simple-', '');
-                              html = `<div class="balloon-${balloonClass}" style="--balloon-color: ${balloonColor};">
-                                <p>ここにテキストを入力してください</p>
-                              </div><p><br></p>`;
-                            }
+                              </div>
+                            </div><p><br></p>`;
                             
                             editor.insertContent(html);
                             

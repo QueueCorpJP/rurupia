@@ -346,6 +346,8 @@ const inlineStyles = `
     border: 2px solid var(--header-color, var(--accent, #F4C018)) !important;
     border-radius: 8px !important;
     position: relative !important;
+    overflow: hidden !important;
+    padding-top: 30px !important;
   }
 
   .prose .outline-title-band-box .box-header,
@@ -364,8 +366,8 @@ const inlineStyles = `
     box-sizing: border-box !important;
     border-radius: 6px 6px 0 0 !important;
     position: absolute !important;
-    top: -2px !important;
-    left: -2px !important;
+    top: 0 !important;
+    left: 0 !important;
     z-index: 1 !important;
     min-width: 120px !important;
     width: auto !important;
@@ -409,6 +411,8 @@ const inlineStyles = `
     border: 2px solid var(--header-color, var(--accent, #4DA0FF)) !important;
     border-radius: 8px !important;
     position: relative !important;
+    overflow: hidden !important;
+    padding: 20px 20px 20px 20px !important;
   }
 
   .prose .flag-header-box .box-header,
@@ -418,7 +422,7 @@ const inlineStyles = `
     color: white !important;
     font-weight: bold !important;
     font-size: 0.9rem !important;
-    padding: 0 20px 0 16px !important;
+    padding: 0 16px 0 16px !important;
     margin: 0 !important;
     line-height: 1.2 !important;
     height: 32px !important;
@@ -428,8 +432,9 @@ const inlineStyles = `
     position: absolute !important;
     top: 12px !important;
     left: 12px !important;
-    min-width: 120px !important;
-    max-width: 250px !important;
+    min-width: 100px !important;
+    max-width: 200px !important;
+    border-radius: 4px !important;
   }
 
   .prose .flag-header-box .box-header::after,
@@ -437,12 +442,12 @@ const inlineStyles = `
   .flag-header-box .box-header::after {
     content: '' !important;
     position: absolute !important;
-    right: -8px !important;
+    right: -6px !important;
     top: 0 !important;
     width: 0 !important;
     height: 0 !important;
     border-style: solid !important;
-    border-width: 16px 0 16px 8px !important;
+    border-width: 16px 0 16px 6px !important;
     border-color: transparent transparent transparent var(--header-color, var(--accent, #4DA0FF)) !important;
   }
 

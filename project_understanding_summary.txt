@@ -1780,7 +1780,18 @@ await (supabase as any).from('table').update(data).in('field', array);
 
 ### Recent Updates (Latest Session)
 
-**Issues Addressed:**
+**Blog Rich Text Editor Improvements (Current Session):**
+1. ✅ **Fixed Speech Bubble Width:** 吹き出し now automatically adjusts width to match content length instead of using fixed width
+2. ✅ **Added Avatar Image Upload:** Speech bubbles now support custom image file uploads in addition to emoji avatars
+3. ✅ **Fixed Box Title Band Width:** 枠線＋タイトル帯 and 旗アイコン見出し title bands now resize to match actual title text length
+4. ✅ **Fixed Custom Heading Underlines:** ライン（実線下線）、ドット線（点線下線）、クロス線（斜線）underlines now match heading text width using 100% width and inline-block display
+5. ✅ **Enhanced Design Styles:** Updated ストライプ（斜め背景）and アロー（矢印ノッチ）with improved gradients, shadows, and visual effects
+6. ✅ **Fixed Dialog Issues:** Resolved TinyMCE dialog problems with missing buttons, broken color picker, and close functionality
+7. ✅ **Added New Heading Components:** 
+   - **Speech-Bubble Heading:** Full-width rounded rectangle with downward-pointing triangular tail
+   - **Dashed-Inset Heading Box:** Rectangular bar with thin dashed border inset, creating double-frame effect
+
+**Previous Issues Addressed:**
 1. ✅ **Fixed TherapistMessagesFix.tsx read marking:** Resolved `.update().in()` chaining error
 2. ✅ **Fixed follower count display:** Changed from count query to select + length approach
 3. ✅ **Added verification requirements:** Users must be ID-verified to book/message therapists

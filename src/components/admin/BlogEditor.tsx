@@ -672,8 +672,8 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     .balloon-avatar { flex-shrink: 0; width: 60px; height: auto; background: transparent; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
                     .balloon-avatar img { width: 60px; height: 60px; object-fit: cover; border-radius: 50%; }
                     .balloon-avatar .avatar-placeholder { width: 60px; height: 60px; background: transparent; display: flex; align-items: center; justify-content: center; font-size: 32px; border-radius: 50%; }
-                    .balloon-content { flex: 1; position: relative; background: transparent; }
-                    .balloon-speech { background-color: var(--balloon-color, #ffffff); border-radius: 18px; padding: 16px 20px; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); position: relative; margin: 0; }
+                    .balloon-content { flex: 0 1 auto; position: relative; background: transparent; max-width: fit-content; }
+                    .balloon-speech { background-color: var(--balloon-color, #ffffff); border-radius: 18px; padding: 16px 20px; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); position: relative; margin: 0; display: inline-block; max-width: fit-content; }
                     .balloon-left .balloon-speech::before { content: ''; position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-style: solid; border-width: 10px 10px 10px 0; border-color: transparent var(--balloon-color, #ffffff) transparent transparent; }
                     .balloon-right .balloon-speech::before { content: ''; position: absolute; right: -10px; top: 20px; width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 10px; border-color: transparent transparent transparent var(--balloon-color, #ffffff); }
                     .balloon-caption { text-align: center; font-size: 12px; color: #666; margin: 0; padding: 0; background: transparent; white-space: nowrap; }
@@ -729,32 +729,41 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     
                     /* Outline Title Band Box Style */
                     .outline-title-band-box { width: 100%; max-width: 680px; margin: 1.5rem auto; background: white; border: 2px solid var(--header-color, var(--accent, #F4C018)); border-radius: 8px; position: relative; }
-                    .outline-title-band-box .box-header { background-color: var(--header-color, var(--accent, #F4C018)); color: white; font-weight: bold; font-size: 0.95rem; padding: 0 1rem; margin: 0; line-height: 1.2; height: 44px; display: inline-flex; align-items: center; box-sizing: border-box; border-radius: 6px 6px 0 0; position: absolute; top: -2px; left: -2px; z-index: 1; min-width: 120px; width: auto; }
+                    .outline-title-band-box .box-header { background-color: var(--header-color, var(--accent, #F4C018)); color: white; font-weight: bold; font-size: 0.95rem; padding: 0 1rem; margin: 0; line-height: 1.2; height: 44px; display: inline-flex; align-items: center; box-sizing: border-box; border-radius: 6px 6px 0 0; position: absolute; top: -2px; left: -2px; z-index: 1; width: fit-content; max-width: calc(100% - 20px); }
                     .outline-title-band-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; padding-top: 60px; color: #333; }
                     .outline-title-band-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
                     .outline-title-band-box .box-content p + p { margin-top: 0.5rem; }
                     
                     /* Flag Header Box Style */
                     .flag-header-box { width: 100%; max-width: 680px; margin: 1.5rem auto; background: white; border: 2px solid var(--header-color, var(--accent, #4DA0FF)); border-radius: 8px; position: relative; }
-                    .flag-header-box .box-header { background-color: var(--header-color, var(--accent, #4DA0FF)); color: white; font-weight: bold; font-size: 0.9rem; padding: 0 20px 0 16px; margin: 0; line-height: 1.2; height: 32px; display: flex; align-items: center; box-sizing: border-box; position: absolute; top: 12px; left: 12px; min-width: 120px; max-width: 250px; }
+                    .flag-header-box .box-header { background-color: var(--header-color, var(--accent, #4DA0FF)); color: white; font-weight: bold; font-size: 0.9rem; padding: 0 20px 0 16px; margin: 0; line-height: 1.2; height: 32px; display: inline-flex; align-items: center; box-sizing: border-box; position: absolute; top: 12px; left: 12px; width: fit-content; max-width: calc(100% - 50px); }
                     .flag-header-box .box-header::after { content: ''; position: absolute; right: -8px; top: 0; width: 0; height: 0; border-style: solid; border-width: 16px 0 16px 8px; border-color: transparent transparent transparent var(--header-color, var(--accent, #4DA0FF)); }
                     .flag-header-box .box-content { background-color: var(--content-color, white); padding: 1rem; margin: 0; min-height: 120px; box-sizing: border-box; padding-top: 60px; }
                     .flag-header-box .box-content p { margin: 0; padding: 0; line-height: 1.6; color: #333; }
                     .flag-header-box .box-content p + p { margin-top: 0.5rem; }
                     
                     /* Enhanced Custom Headings with Color Support */
-                    .heading-line { position: relative; padding-bottom: 8px; margin-bottom: 20px; }
-                    .heading-line::after { content: ''; position: absolute; bottom: 0; left: 0; width: 50px; height: 3px; background-color: var(--heading-color, #007bff); border-radius: 2px; }
-                    .heading-dotted { position: relative; padding-bottom: 8px; margin-bottom: 20px; }
-                    .heading-dotted::after { content: ''; position: absolute; bottom: 0; left: 0; width: 80px; height: 2px; border-bottom: 2px dotted var(--heading-color, #007bff); }
-                    .heading-cross { position: relative; padding-bottom: 8px; margin-bottom: 20px; }
-                    .heading-cross::after { content: ''; position: absolute; bottom: 0; left: 0; width: 60px; height: 2px; background: repeating-linear-gradient(45deg, var(--heading-color, #007bff), var(--heading-color, #007bff) 5px, transparent 5px, transparent 10px); }
-                    .heading-stripe { position: relative; padding: 8px 16px; margin-bottom: 20px; background: linear-gradient(135deg, var(--heading-color, #007bff) 0%, color-mix(in srgb, var(--heading-color, #007bff) 80%, black) 100%); color: white; border-radius: 4px; transform: skew(-10deg); }
-                    .heading-stripe span { display: inline-block; transform: skew(10deg); }
+                    .heading-line { position: relative; padding-bottom: 8px; margin-bottom: 20px; display: inline-block; }
+                    .heading-line::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background-color: var(--heading-color, #007bff); border-radius: 2px; }
+                    .heading-dotted { position: relative; padding-bottom: 8px; margin-bottom: 20px; display: inline-block; }
+                    .heading-dotted::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; border-bottom: 2px dotted var(--heading-color, #007bff); }
+                    .heading-cross { position: relative; padding-bottom: 8px; margin-bottom: 20px; display: inline-block; }
+                    .heading-cross::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: repeating-linear-gradient(45deg, var(--heading-color, #007bff), var(--heading-color, #007bff) 5px, transparent 5px, transparent 10px); }
+                    
+                    /* Speech-Bubble Heading */
+                    .heading-speech-bubble { position: relative; background-color: var(--heading-color, #007bff); color: white; padding: 16px 24px; margin-bottom: 20px; border-radius: 4px; display: block; width: 100%; font-weight: bold; }
+                    .heading-speech-bubble::after { content: ''; position: absolute; bottom: -8px; left: 20px; width: 0; height: 0; border-style: solid; border-width: 8px 8px 0 8px; border-color: var(--heading-color, #007bff) transparent transparent transparent; }
+                    
+                    /* Dashed-Inset Heading Box */
+                    .heading-dashed-inset { position: relative; background-color: var(--heading-color, #007bff); color: white; padding: 16px 24px; margin-bottom: 20px; border-radius: 2px; display: block; width: 100%; font-weight: bold; }
+                    .heading-dashed-inset::before { content: ''; position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px; border: 2px dashed rgba(255, 255, 255, 0.8); border-radius: 1px; }
+                    .heading-stripe { position: relative; padding: 12px 20px; margin-bottom: 20px; background: linear-gradient(135deg, var(--heading-color, #007bff) 0%, color-mix(in srgb, var(--heading-color, #007bff) 70%, black) 100%); color: white; border-radius: 6px; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15); transform: skew(-8deg); display: inline-block; font-weight: bold; }
+                    .heading-stripe span { display: inline-block; transform: skew(8deg); }
+                    .heading-stripe::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255, 255, 255, 0.1) 2px, rgba(255, 255, 255, 0.1) 4px); border-radius: 6px; }
                     .heading-ribbon { position: relative; background: var(--heading-color, #007bff); color: white; padding: 8px 20px 8px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0; }
                     .heading-ribbon::before { content: ''; position: absolute; right: -8px; top: 0; width: 0; height: 0; border-style: solid; border-width: 0 0 100% 8px; border-color: transparent transparent color-mix(in srgb, var(--heading-color, #007bff) 80%, black) transparent; }
-                    .heading-arrow { position: relative; background: var(--heading-color, #007bff); color: white; padding: 8px 24px 8px 16px; margin-bottom: 20px; border-radius: 4px 0 0 4px; }
-                    .heading-arrow::after { content: ''; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-style: solid; border-width: 20px 0 20px 12px; border-color: transparent transparent transparent var(--heading-color, #007bff); }
+                    .heading-arrow { position: relative; background: var(--heading-color, #007bff); color: white; padding: 12px 28px 12px 20px; margin-bottom: 20px; border-radius: 6px 0 0 6px; display: inline-block; font-weight: bold; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15); }
+                    .heading-arrow::after { content: ''; position: absolute; right: -16px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-style: solid; border-width: 24px 0 24px 16px; border-color: transparent transparent transparent var(--heading-color, #007bff); filter: drop-shadow(2px 0 4px rgba(0, 0, 0, 0.1)); }
                     .heading-shadow { position: relative; padding: 8px 16px; margin-bottom: 20px; background: #f8f9fa; border-left: 4px solid var(--heading-color, #007bff); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
                     .heading-dot { position: relative; padding-left: 20px; }
                     .heading-dot::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; background-color: var(--heading-color, #007bff); border-radius: 50%; }
@@ -842,6 +851,10 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     'heading-dotted-h3': { block: 'h3', classes: 'heading-dotted' },
                     'heading-cross-h2': { block: 'h2', classes: 'heading-cross' },
                     'heading-cross-h3': { block: 'h3', classes: 'heading-cross' },
+                    'heading-speech-bubble-h2': { block: 'h2', classes: 'heading-speech-bubble' },
+                    'heading-speech-bubble-h3': { block: 'h3', classes: 'heading-speech-bubble' },
+                    'heading-dashed-inset-h2': { block: 'h2', classes: 'heading-dashed-inset' },
+                    'heading-dashed-inset-h3': { block: 'h3', classes: 'heading-dashed-inset' },
                     'heading-stripe-h2': { block: 'h2', classes: 'heading-stripe' },
                     'heading-stripe-h3': { block: 'h3', classes: 'heading-stripe' },
                     'heading-ribbon-h2': { block: 'h2', classes: 'heading-ribbon' },
@@ -877,98 +890,289 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     editor.ui.registry.addButton('balloon', {
                       text: '吹き出し',
                       onAction: () => {
-                        editor.windowManager.open({
-                          title: '吹き出しブロック',
-                          initialData: {
-                            direction: 'left',
-                            animal: '🐱',
-                            color: '#FFFFFF'
-                          },
-                          body: {
-                            type: 'panel',
-                            items: [
-                              {
-                                type: 'selectbox',
-                                name: 'direction',
-                                label: '方向',
-                                items: [
-                                  { text: '左（アバター左側）', value: 'left' },
-                                  { text: '右（アバター右側）', value: 'right' }
-                                ]
-                              },
-                              {
-                                type: 'selectbox',
-                                name: 'animal',
-                                label: 'アバター動物',
-                                items: [
-                                  { text: '🐱 ネコ', value: '🐱' },
-                                  { text: '🐶 イヌ', value: '🐶' },
-                                  { text: '🐰 ウサギ', value: '🐰' },
-                                  { text: '🐼 パンダ', value: '🐼' },
-                                  { text: '🐸 カエル', value: '🐸' },
-                                  { text: '🐧 ペンギン', value: '🐧' },
-                                  { text: '🦊 キツネ', value: '🦊' },
-                                  { text: '🐻 クマ', value: '🐻' },
-                                  { text: '🐵 サル', value: '🐵' },
-                                  { text: '🐨 コアラ', value: '🐨' }
-                                ]
-                              },
-                              {
-                                type: 'colorinput',
-                                name: 'color',
-                                label: '背景色',
-                                value: '#FFFFFF'
-                              }
-                            ]
-                          },
-                          buttons: [
-                            {
-                              type: 'cancel',
-                              text: 'キャンセル'
+                        const showDialog = (currentData: any = {}) => {
+                          const isImageMode = currentData.avatarType === 'image';
+                          let dialogApi: any = null;
+                          
+                          const dialogInstance = editor.windowManager.open({
+                            title: '吹き出しブロック',
+                            initialData: {
+                              direction: 'left',
+                              avatarType: 'emoji',
+                              animal: '🐱',
+                              customImageUrl: '',
+                              color: '#FFFFFF',
+                              ...currentData
                             },
-                            {
-                              type: 'submit',
-                              text: '挿入',
-                              primary: true
-                            }
-                          ],
-                          onSubmit: (api) => {
-                            const data = api.getData();
-                            
-                            // Ensure color defaults to white if not set or empty
-                            const balloonColor = data.color && data.color.trim() !== '' ? data.color : '#FFFFFF';
-                            
-                            // Only avatar-based balloons now
-                            const avatarContent = `<div class="avatar-placeholder" style="font-size: 32px;">${data.animal}</div>`;
-                            
-                            const avatarPosition = data.direction === 'left' ? 'order: 1;' : 'order: 3;';
-                            const contentPosition = data.direction === 'left' ? 'order: 2;' : 'order: 1;';
-                            
-                            const html = `<div class="balloon-container balloon-${data.direction}" style="--balloon-color: ${balloonColor};">
-                              <div class="balloon-avatar" style="${avatarPosition}">
-                                ${avatarContent}
-                              </div>
-                              <div class="balloon-content" style="${contentPosition}">
-                                <div class="balloon-speech">
-                                  <p>ここに吹き出しの中に入れる文を書きます。</p>
-                                </div>
-                              </div>
-                            </div><p><br></p>`;
-                            
-                            editor.insertContent(html);
-                            
-                            // Position cursor after the inserted element
-                            setTimeout(() => {
-                              const containers = editor.getBody().querySelectorAll('.balloon-container, .balloon-left, .balloon-right, .balloon-both');
-                              const lastContainer = containers[containers.length - 1];
-                              if (lastContainer && lastContainer.nextElementSibling) {
-                                editor.selection.setCursorLocation(lastContainer.nextElementSibling, 0);
+                            body: {
+                              type: 'panel',
+                              items: [
+                                {
+                                  type: 'selectbox',
+                                  name: 'direction',
+                                  label: '方向',
+                                  items: [
+                                    { text: '左（アバター左側）', value: 'left' },
+                                    { text: '右（アバター右側）', value: 'right' }
+                                  ]
+                                },
+                                {
+                                  type: 'selectbox',
+                                  name: 'avatarType',
+                                  label: 'アバタータイプ',
+                                  items: [
+                                    { text: '絵文字', value: 'emoji' },
+                                    { text: 'カスタム画像', value: 'image' }
+                                  ]
+                                },
+                                ...(isImageMode ? [
+                                  {
+                                    type: 'htmlpanel',
+                                    html: '<div><button type="button" id="upload-avatar-btn" style="padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">画像をアップロード</button></div>'
+                                  },
+                                  {
+                                    type: 'input',
+                                    name: 'customImageUrl',
+                                    label: 'アップロード済み画像URL',
+                                    placeholder: '画像をアップロードしてください'
+                                  }
+                                ] : [
+                                  {
+                                    type: 'selectbox',
+                                    name: 'animal',
+                                    label: 'アバター動物',
+                                    items: [
+                                      { text: '🐱 ネコ', value: '🐱' },
+                                      { text: '🐶 イヌ', value: '🐶' },
+                                      { text: '🐰 ウサギ', value: '🐰' },
+                                      { text: '🐼 パンダ', value: '🐼' },
+                                      { text: '🐸 カエル', value: '🐸' },
+                                      { text: '🐧 ペンギン', value: '🐧' },
+                                      { text: '🦊 キツネ', value: '🦊' },
+                                      { text: '🐻 クマ', value: '🐻' },
+                                      { text: '🐵 サル', value: '🐵' },
+                                      { text: '🐨 コアラ', value: '🐨' }
+                                    ]
+                                  }
+                                ]),
+                                {
+                                  type: 'colorinput',
+                                  name: 'color',
+                                  label: '背景色'
+                                }
+                              ]
+                            },
+                            buttons: [
+                              {
+                                type: 'cancel',
+                                text: 'キャンセル'
+                              },
+                              {
+                                type: 'submit',
+                                text: '挿入',
+                                primary: true
                               }
-                            }, 10);
-                            
-                            api.close();
+                            ],
+                            onChange: (api, details) => {
+                              if (details.name === 'avatarType') {
+                                const data = api.getData();
+                                api.close();
+                                showDialog(data);
+                              }
+                            },
+                            onSubmit: async (api) => {
+                              dialogApi = api;
+                              const data = api.getData();
+                              
+                              console.log('=== DIALOG SUBMIT DATA ===');
+                              console.log('Full data:', data);
+                              console.log('avatarType:', data.avatarType);
+                              console.log('customImageUrl:', data.customImageUrl);
+                              console.log('animal:', data.animal);
+                              console.log('========================');
+                              
+                              // Ensure color defaults to white if not set or empty
+                              const balloonColor = data.color || '#FFFFFF';
+                              
+                              // Choose avatar content based on type
+                              let avatarContent;
+                              if (data.avatarType === 'image' && data.customImageUrl && data.customImageUrl.trim() !== '') {
+                                console.log('Using custom image:', data.customImageUrl);
+                                avatarContent = `<img src="${data.customImageUrl}" alt="カスタムアバター" />`;
+                              } else {
+                                console.log('Using emoji:', data.animal || '🐱');
+                                avatarContent = `<div class="avatar-placeholder" style="font-size: 32px;">${data.animal || '🐱'}</div>`;
+                              }
+                              
+                              const avatarPosition = data.direction === 'left' ? 'order: 1;' : 'order: 3;';
+                              const contentPosition = data.direction === 'left' ? 'order: 2;' : 'order: 1;';
+                              
+                              const html = `<div class="balloon-container balloon-${data.direction}" style="--balloon-color: ${balloonColor};">
+                                <div class="balloon-avatar" style="${avatarPosition}">
+                                  ${avatarContent}
+                                </div>
+                                <div class="balloon-content" style="${contentPosition}">
+                                  <div class="balloon-speech">
+                                    <p>ここに吹き出しの中に入れる文を書きます。</p>
+                                  </div>
+                                </div>
+                              </div><p><br></p>`;
+                              
+                              editor.insertContent(html);
+                              
+                              // Position cursor after the inserted element
+                              setTimeout(() => {
+                                const containers = editor.getBody().querySelectorAll('.balloon-container');
+                                const lastContainer = containers[containers.length - 1];
+                                if (lastContainer && lastContainer.nextElementSibling) {
+                                  editor.selection.setCursorLocation(lastContainer.nextElementSibling, 0);
+                                }
+                              }, 10);
+                              
+                              api.close();
+                            }
+                          });
+                          
+                          // Store the dialog API reference for the upload function
+                          dialogApi = dialogInstance;
+                          
+                          // Add click handler for upload button if in image mode
+                          if (isImageMode) {
+                            setTimeout(() => {
+                              const uploadBtn = document.getElementById('upload-avatar-btn');
+                              if (uploadBtn) {
+                                uploadBtn.onclick = () => {
+                                  const input = document.createElement('input');
+                                  input.type = 'file';
+                                  input.accept = 'image/*';
+                                  input.onchange = async (e) => {
+                                    const file = (e.target as HTMLInputElement).files?.[0];
+                                    if (file) {
+                                      try {
+                                        uploadBtn.textContent = 'アップロード中...';
+                                        uploadBtn.style.opacity = '0.7';
+                                        
+                                        // Use the EXACT same upload mechanism as TinyMCE's built-in image upload
+                                        const reader = new FileReader();
+                                        reader.onload = async () => {
+                                          try {
+                                            const result = reader.result;
+                                            if (typeof result !== 'string') {
+                                              throw new Error('Failed to read file as string');
+                                            }
+                                            
+                                            const base64Data = result.split(',')[1]; // Remove data:image/...;base64, prefix
+                                            
+                                            const response = await fetch('https://pq33gk4qqd.execute-api.ap-northeast-1.amazonaws.com/prod/api/upload-image', {
+                                              method: 'POST',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({
+                                                file: base64Data,
+                                                filename: file.name || `avatar-${Date.now()}.${file.type.split('/')[1]}`
+                                              })
+                                            });
+                                            
+                                            if (!response.ok) {
+                                              const errorData = await response.json();
+                                              throw new Error(errorData.error || 'Upload failed');
+                                            }
+                                            
+                                            const data = await response.json();
+                                            
+                                            console.log('=== UPLOAD SUCCESS ===');
+                                            console.log('Upload response:', data);
+                                            console.log('Image URL:', data.location);
+                                            
+                                            // CRITICAL: Update the dialog data directly via API (this is the main fix!)
+                                            if (dialogApi) {
+                                              const currentDialogData = dialogApi.getData();
+                                              console.log('Current dialog data before update:', currentDialogData);
+                                              
+                                              dialogApi.setData({
+                                                ...currentDialogData,
+                                                customImageUrl: data.location
+                                              });
+                                              
+                                              console.log('Updated dialog data:', dialogApi.getData());
+                                              
+                                              // Also try to update the visual field if it exists
+                                              const urlInput = document.querySelector('input[name="customImageUrl"]') as HTMLInputElement;
+                                              console.log('URL Input element found:', !!urlInput);
+                                              
+                                              if (urlInput) {
+                                                console.log('Before setting value:', urlInput.value);
+                                                urlInput.value = data.location;
+                                                console.log('After setting value:', urlInput.value);
+                                                
+                                                // Trigger events for visual feedback
+                                                urlInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                                urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                              } else {
+                                                console.log('Visual field not found, but dialog data was updated directly!');
+                                              }
+                                            } else {
+                                              console.error('Dialog API not available!');
+                                            }
+                                            console.log('===================');
+                                            
+                                            uploadBtn.textContent = '✅ アップロード完了';
+                                            uploadBtn.style.opacity = '1';
+                                            uploadBtn.style.backgroundColor = '#28a745';
+                                            
+                                            setTimeout(() => {
+                                              uploadBtn.textContent = '画像をアップロード';
+                                              uploadBtn.style.backgroundColor = '#0066cc';
+                                            }, 2000);
+                                            
+                                          } catch (error) {
+                                            console.error('Upload error:', error);
+                                            uploadBtn.textContent = '❌ アップロード失敗';
+                                            uploadBtn.style.backgroundColor = '#dc3545';
+                                            alert('画像のアップロードに失敗しました: ' + (error as Error).message);
+                                            
+                                            setTimeout(() => {
+                                              uploadBtn.textContent = '画像をアップロード';
+                                              uploadBtn.style.backgroundColor = '#0066cc';
+                                              uploadBtn.style.opacity = '1';
+                                            }, 2000);
+                                          }
+                                        };
+                                        reader.onerror = () => {
+                                          uploadBtn.textContent = '❌ ファイル読み込み失敗';
+                                          uploadBtn.style.backgroundColor = '#dc3545';
+                                          alert('ファイルの読み込みに失敗しました');
+                                          
+                                          setTimeout(() => {
+                                            uploadBtn.textContent = '画像をアップロード';
+                                            uploadBtn.style.backgroundColor = '#0066cc';
+                                            uploadBtn.style.opacity = '1';
+                                          }, 2000);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      } catch (error) {
+                                        console.error('File processing error:', error);
+                                        uploadBtn.textContent = '❌ ファイル処理失敗';
+                                        uploadBtn.style.backgroundColor = '#dc3545';
+                                        alert('ファイルの処理に失敗しました');
+                                        
+                                        setTimeout(() => {
+                                          uploadBtn.textContent = '画像をアップロード';
+                                          uploadBtn.style.backgroundColor = '#0066cc';
+                                          uploadBtn.style.opacity = '1';
+                                        }, 2000);
+                                      }
+                                    }
+                                  };
+                                  input.click();
+                                };
+                              }
+                            }, 100);
                           }
-                        });
+                        };
+                        
+                        showDialog();
                       }
                     });
 
@@ -1309,6 +1513,26 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                             type: 'menuitem',
                             text: 'H3 クロス線（斜線）',
                             onAction: () => openHeadingDialog('cross', 'h3', 'H3 クロス線')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 スピーチバブル見出し',
+                            onAction: () => openHeadingDialog('speech-bubble', 'h2', 'H2 スピーチバブル')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 スピーチバブル見出し',
+                            onAction: () => openHeadingDialog('speech-bubble', 'h3', 'H3 スピーチバブル')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H2 ダッシュインセット見出し',
+                            onAction: () => openHeadingDialog('dashed-inset', 'h2', 'H2 ダッシュインセット')
+                          },
+                          {
+                            type: 'menuitem',
+                            text: 'H3 ダッシュインセット見出し',
+                            onAction: () => openHeadingDialog('dashed-inset', 'h3', 'H3 ダッシュインセット')
                           },
                           {
                             type: 'menuitem',

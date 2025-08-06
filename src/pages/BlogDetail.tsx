@@ -99,6 +99,21 @@ const inlineStyles = `
     border-color: transparent var(--balloon-color, #ffffff) transparent transparent !important;
   }
 
+  .prose .balloon-left .balloon-speech::after,
+  .blog-content .balloon-left .balloon-speech::after,
+  .balloon-left .balloon-speech::after {
+    content: '' !important;
+    position: absolute !important;
+    left: -11px !important;
+    top: 19px !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-style: solid !important;
+    border-width: 11px 11px 11px 0 !important;
+    border-color: transparent rgba(0, 0, 0, 0.1) transparent transparent !important;
+    z-index: -1 !important;
+  }
+
   .prose .balloon-right .balloon-speech::before,
   .blog-content .balloon-right .balloon-speech::before,
   .balloon-right .balloon-speech::before {
@@ -111,6 +126,21 @@ const inlineStyles = `
     border-style: solid !important;
     border-width: 10px 0 10px 10px !important;
     border-color: transparent transparent transparent var(--balloon-color, #ffffff) !important;
+  }
+
+  .prose .balloon-right .balloon-speech::after,
+  .blog-content .balloon-right .balloon-speech::after,
+  .balloon-right .balloon-speech::after {
+    content: '' !important;
+    position: absolute !important;
+    right: -11px !important;
+    top: 19px !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-style: solid !important;
+    border-width: 11px 0 11px 11px !important;
+    border-color: transparent transparent transparent rgba(0, 0, 0, 0.1) !important;
+    z-index: -1 !important;
   }
 
   /* Clean SANGO-Style Info Boxes */

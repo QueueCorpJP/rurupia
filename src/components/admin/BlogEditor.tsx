@@ -675,7 +675,9 @@ export function BlogEditor({ onSuccess, initialData }: BlogEditorProps) {
                     .balloon-content { flex: 0 1 auto; position: relative; background: transparent; max-width: fit-content; }
                     .balloon-speech { background-color: var(--balloon-color, #ffffff); border-radius: 18px; padding: 16px 20px; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); position: relative; margin: 0; display: inline-block; max-width: fit-content; }
                     .balloon-left .balloon-speech::before { content: ''; position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-style: solid; border-width: 10px 10px 10px 0; border-color: transparent var(--balloon-color, #ffffff) transparent transparent; }
+                    .balloon-left .balloon-speech::after { content: ''; position: absolute; left: -11px; top: 19px; width: 0; height: 0; border-style: solid; border-width: 11px 11px 11px 0; border-color: transparent rgba(0, 0, 0, 0.1) transparent transparent; z-index: -1; }
                     .balloon-right .balloon-speech::before { content: ''; position: absolute; right: -10px; top: 20px; width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 10px; border-color: transparent transparent transparent var(--balloon-color, #ffffff); }
+                    .balloon-right .balloon-speech::after { content: ''; position: absolute; right: -11px; top: 19px; width: 0; height: 0; border-style: solid; border-width: 11px 0 11px 11px; border-color: transparent transparent transparent rgba(0, 0, 0, 0.1); z-index: -1; }
                     .balloon-caption { text-align: center; font-size: 12px; color: #666; margin: 0; padding: 0; background: transparent; white-space: nowrap; }
                     
                     /* Clean SANGO-Style Info Boxes */
